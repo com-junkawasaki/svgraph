@@ -83,6 +83,21 @@ def test_non_rendering_non_positive_dimension_shapes_are_skipped() -> None:
     assert "<p:pic>" not in dml
 
 
+def test_analyze_svg_ignores_non_rendering_non_positive_dimension_shapes() -> None:
+    report = analyze_svg(
+        """<svg viewBox="0 0 100 100">
+          <rect width="0%" height="8" filter="url(#blur)"/>
+          <circle cx="10" cy="10" r="0" mix-blend-mode="multiply"/>
+          <ellipse cx="20" cy="20" rx="8" ry="-1" shape-rendering="crispEdges"/>
+          <image href="photo.png" width="50%" height="0"/>
+        </svg>"""
+    )
+
+    assert report.convertible_elements == 1
+    assert report.ignored_elements == 4
+    assert report.unsupported_attributes == {}
+
+
 def test_default_stroke_linecap_is_explicitly_flat() -> None:
     dml = svg_to_drawingml('<svg><line x1="0" y1="0" x2="10" y2="0" stroke="#111111"/></svg>')
 
@@ -672,7 +687,7 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
       <path d="M0 0 H10 V10 Z" fill-rule="evenodd"/>
       <rect width="10" height="8" filter="url(#blur)" mask="url(#fade)"/>
       <text x="0" y="20" isolation="isolate">Hint</text>
-      <image href="data:image/png;base64,abc" image-rendering="pixelated" color-rendering="optimizeQuality"/>
+      <image href="data:image/png;base64,abc" x="0" y="0" width="10" height="8" image-rendering="pixelated" color-rendering="optimizeQuality"/>
       <defs><linearGradient id="spread" spreadMethod="reflect" gradientUnits="userSpaceOnUse" gradientTransform="rotate(15)"><stop stop-color="#fff"/></linearGradient></defs>
     </svg>"""
 

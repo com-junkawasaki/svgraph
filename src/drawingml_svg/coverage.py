@@ -13,6 +13,7 @@ from .converter import (
     _clip_path_is_supported,
     _href,
     _is_hidden,
+    _length,
     _local_name,
     _marker_is_supported,
     _matrix_multiply,
@@ -27,6 +28,7 @@ from .converter import (
     _svg_word_spacing_is_supported,
     _svg_dasharray_numbers,
     _switch_selected_child,
+    _viewport_size,
 )
 
 SUPPORTED_ELEMENTS = {
@@ -102,7 +104,7 @@ def analyze_svg(svg_text: str) -> SvgCoverage:
     css = _collect_css(root)
     refs = _collect_refs(root)
     stats = _CoverageStats()
-    _walk(root, css, refs, {}, _root_viewbox_matrix(root), stats, ())
+    _walk(root, css, refs, {}, _root_viewbox_matrix(root), stats, (), _viewport_size(root))
     measurable = max(stats.total_elements - stats.ignored_elements, 0)
     coverage = stats.convertible_elements / measurable if measurable else 1.0
     return SvgCoverage(
@@ -151,6 +153,7 @@ def _walk(
     inherited_matrix: tuple[float, float, float, float, float, float],
     stats: _CoverageStats,
     ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
 ) -> None:
     tag = _local_name(element.tag)
     stats.total_elements += 1
@@ -162,6 +165,7 @@ def _walk(
     style = _computed_style(element, css, inherited_style, ancestors)
     specified_style = _computed_style(element, css, {}, ancestors)
     hidden = _is_hidden(style)
+    non_rendering_geometry = _has_non_rendering_geometry(element, style, viewport)
 
     use_supported = True
     if tag == "use":
@@ -170,7 +174,7 @@ def _walk(
     if tag == "switch":
         switch_supported = _switch_selected_child(element) is not None or len(element) == 0
 
-    if tag in IGNORED_ELEMENTS or hidden:
+    if tag in IGNORED_ELEMENTS or hidden or non_rendering_geometry:
         stats.ignored_elements += 1
     elif tag in SUPPORTED_ELEMENTS and path_supported and use_supported and switch_supported:
         stats.convertible_elements += 1
@@ -179,10 +183,17 @@ def _walk(
     else:
         stats.add_unsupported_element(tag)
 
-    if hidden:
+    if hidden or non_rendering_geometry:
         return
 
     matrix = _matrix_multiply(inherited_matrix, _parse_transform(element.get("transform", "")))
+    child_viewport = viewport
+    if tag == "svg" and ancestors:
+        child_viewport = _viewport_size(
+            element,
+            _optional_length(element.get("width"), "x", viewport),
+            _optional_length(element.get("height"), "y", viewport),
+        )
     _inspect_attributes(element, style, specified_style, refs, css, matrix, stats, ancestors)
 
     if tag == "path":
@@ -191,7 +202,7 @@ def _walk(
     if tag == "switch":
         selected = _switch_selected_child(element)
         if selected is not None:
-            _walk(selected, css, refs, style, matrix, stats, ancestors + (element,))
+            _walk(selected, css, refs, style, matrix, stats, ancestors + (element,), child_viewport)
         return
 
     for child in element:
@@ -199,7 +210,7 @@ def _walk(
             stats.total_elements += 1
             stats.ignored_elements += 1
             continue
-        _walk(child, css, refs, style, matrix, stats, ancestors + (element,))
+        _walk(child, css, refs, style, matrix, stats, ancestors + (element,), child_viewport)
 
 
 def _inspect_attributes(
@@ -300,6 +311,25 @@ def _inspect_path(path_data: str, stats: _CoverageStats) -> None:
     for command in path_data:
         if command.isalpha() and command not in supported:
             stats.add_unsupported_path_command(command)
+
+
+def _has_non_rendering_geometry(element: ET.Element, style: dict[str, str], viewport: tuple[float, float]) -> bool:
+    tag = _local_name(element.tag)
+    if tag in {"rect", "image"}:
+        return _geometry_length(element, style, "width", "x", viewport) <= 0 or _geometry_length(
+            element, style, "height", "y", viewport
+        ) <= 0
+    if tag == "circle":
+        return _geometry_length(element, style, "r", "diag", viewport) <= 0
+    if tag == "ellipse":
+        return _geometry_length(element, style, "rx", "x", viewport) <= 0 or _geometry_length(
+            element, style, "ry", "y", viewport
+        ) <= 0
+    return False
+
+
+def _geometry_length(element: ET.Element, style: dict[str, str], attr: str, axis: str, viewport: tuple[float, float]) -> float:
+    return _length(style.get(attr, element.get(attr)), 0, axis, viewport)
 
 
 def _gradient_fallback_is_supported(element: ET.Element, refs: dict[str, ET.Element], css: list[CssRule]) -> bool:
