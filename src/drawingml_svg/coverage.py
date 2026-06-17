@@ -17,6 +17,7 @@ from .converter import (
     _marker_is_supported,
     _matrix_multiply,
     _optional_length,
+    _paint_server_value,
     _parse_linear_path,
     _parse_transform,
     _root_viewbox_matrix,
@@ -173,7 +174,7 @@ def _walk(
         stats.add_unsupported_element(tag)
 
     matrix = _matrix_multiply(inherited_matrix, _parse_transform(element.get("transform", "")))
-    _inspect_attributes(element, style, specified_style, refs, matrix, stats)
+    _inspect_attributes(element, style, specified_style, refs, css, matrix, stats)
 
     if tag == "path":
         _inspect_path(element.get("d", ""), stats)
@@ -199,6 +200,7 @@ def _inspect_attributes(
     style: dict[str, str],
     specified_style: dict[str, str],
     refs: dict[str, ET.Element],
+    css: list[CssRule],
     matrix: tuple[float, float, float, float, float, float],
     stats: _CoverageStats,
 ) -> None:
@@ -234,7 +236,9 @@ def _inspect_attributes(
             if match and not match.group(2).strip():
                 paint_server_tag = _local_name(refs.get(match.group(1), ET.Element("")).tag)
                 if paint_server_tag == "pattern":
-                    stats.add_unsupported_attribute(f"{attr}:pattern")
+                    color, _ = _paint_server_value(refs.get(match.group(1)), refs, style.get("color"), css)
+                    if not color:
+                        stats.add_unsupported_attribute(f"{attr}:pattern")
                 elif paint_server_tag not in {"linearGradient", "radialGradient"}:
                     stats.add_unsupported_attribute(f"{attr}:paint-server")
 

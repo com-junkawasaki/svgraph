@@ -2232,19 +2232,87 @@ def _paint_server_colors(
     if element is None:
         return []
     tag = _local_name(element.tag)
-    if tag not in {"linearGradient", "radialGradient"}:
-        return []
     element_id = element.get("id")
     if element_id:
         if element_id in seen:
             return []
         seen = seen | {element_id}
+    if tag == "pattern":
+        return _pattern_colors(element, refs, current_color, css, seen)
+    if tag not in {"linearGradient", "radialGradient"}:
+        return []
     colors: list[tuple[str, float | None]] = []
     href = _href(element)
     if href and href.startswith("#"):
         colors.extend(_paint_server_colors(refs.get(href[1:]), refs, current_color, css, seen))
     colors.extend(_gradient_stops(element, current_color, css))
     return colors
+
+
+def _pattern_colors(
+    element: ET.Element,
+    refs: dict[str, ET.Element],
+    current_color: str | None,
+    css: list[CssRule],
+    seen: set[str],
+) -> list[tuple[str, float | None]]:
+    pattern_style = _computed_style(element, css, {}, ())
+    return _pattern_child_colors(element, refs, current_color, css, pattern_style, (element,), seen)
+
+
+def _pattern_child_colors(
+    parent: ET.Element,
+    refs: dict[str, ET.Element],
+    current_color: str | None,
+    css: list[CssRule],
+    inherited_style: dict[str, str],
+    ancestors: tuple[ET.Element, ...],
+    seen: set[str],
+) -> list[tuple[str, float | None]]:
+    colors = []
+    for child in parent:
+        tag = _local_name(child.tag)
+        style = _computed_style(child, css, inherited_style, ancestors)
+        if tag in {"g", "svg", "a"}:
+            colors.extend(_pattern_child_colors(child, refs, current_color, css, style, ancestors + (child,), seen))
+            continue
+        if tag in {"rect", "circle", "ellipse", "path", "polygon", "polyline", "text", "tspan", "line"}:
+            if tag != "line":
+                colors.extend(_pattern_paint_colors(style.get("fill", "#000000"), refs, current_color, css, seen, style, "fill"))
+            colors.extend(_pattern_paint_colors(style.get("stroke"), refs, current_color, css, seen, style, "stroke"))
+        colors.extend(_pattern_child_colors(child, refs, current_color, css, style, ancestors + (child,), seen))
+    return colors
+
+
+def _pattern_paint_colors(
+    value: str | None,
+    refs: dict[str, ET.Element],
+    current_color: str | None,
+    css: list[CssRule],
+    seen: set[str],
+    style: dict[str, str],
+    channel: str,
+) -> list[tuple[str, float | None]]:
+    if value is None:
+        return []
+    value = current_color or "black" if value == "currentColor" else value
+    match = re.match(r"^url\((?:['\"])?#([^'\")]+)(?:['\"])?\)(.*)$", value.strip())
+    if match:
+        colors = _paint_server_colors(refs.get(match.group(1)), refs, current_color, css, seen)
+        fallback = match.group(2).strip()
+        if colors:
+            return colors
+        if not fallback:
+            return []
+        color, color_alpha = _parse_color(fallback)
+    else:
+        color, color_alpha = _parse_color(value)
+    if not color or color == "none":
+        return []
+    alpha = _combined_alpha(_alpha(style, channel), color_alpha)
+    if alpha is not None and alpha <= 0:
+        return []
+    return [(color, alpha)]
 
 
 def _gradient_stops(element: ET.Element, current_color: str | None = None, css: list[CssRule] | None = None) -> list[tuple[str, float | None]]:

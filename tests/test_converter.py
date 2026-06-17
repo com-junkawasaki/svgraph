@@ -806,19 +806,32 @@ def test_analyze_svg_reports_missing_paint_server() -> None:
     assert report.unsupported_attributes == {"fill:paint-server": 1}
 
 
-def test_analyze_svg_reports_pattern_paint_servers() -> None:
+def test_pattern_paint_server_falls_back_to_representative_color() -> None:
     svg = """<svg>
+      <style>.dot { fill: #000000; }</style>
       <defs>
         <pattern id="dots" width="4" height="4">
-          <circle cx="2" cy="2" r="1"/>
+          <rect width="4" height="4" fill="#ffffff"/>
+          <circle class="dot" cx="2" cy="2" r="1"/>
         </pattern>
       </defs>
-      <rect width="10" height="8" fill="url(#dots)" stroke="url(#dots)"/>
+      <rect width="10" height="8" fill="url(#dots)"/>
     </svg>"""
 
+    dml = svg_to_drawingml(svg)
     report = analyze_svg(svg)
 
-    assert report.unsupported_attributes == {"fill:pattern": 1, "stroke:pattern": 1}
+    assert 'val="808080"' in dml
+    assert report.unsupported_attributes == {}
+
+
+def test_analyze_svg_reports_pattern_without_paint_fallback() -> None:
+    svg = """<svg>
+      <defs><pattern id="empty" width="4" height="4"/></defs>
+      <rect width="10" height="8" fill="url(#empty)" stroke="url(#empty)"/>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {"fill:pattern": 1, "stroke:pattern": 1}
 
 
 def test_paint_server_fallback_color_is_used_when_server_is_missing() -> None:
