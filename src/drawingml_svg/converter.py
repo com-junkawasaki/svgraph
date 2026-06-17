@@ -146,7 +146,7 @@ def _svg_shapes_walk(
     if _is_display_none(style):
         return
     visibility_hidden = _is_visibility_hidden(style)
-    matrix = _matrix_multiply(inherited_matrix, _parse_transform(style.get("transform", "")))
+    matrix = _matrix_multiply(inherited_matrix, _style_transform_matrix(style, viewport))
     child_viewport = viewport
     if tag == "svg" and ancestors:
         svg_width = _optional_length(element.get("width"), "x", viewport)
@@ -2620,6 +2620,7 @@ def _computed_style(
 ) -> dict[str, str]:
     style = dict(inherited)
     style.pop("transform", None)
+    style.pop("transform-origin", None)
     css_priorities: dict[str, tuple[int, tuple[int, int, int, int], int]] = {}
 
     def apply_declaration(key: str, value: str, important: bool, specificity: tuple[int, int, int, int], order: int) -> None:
@@ -2681,6 +2682,7 @@ def _computed_style(
         "vector-effect",
         "text-rendering",
         "transform",
+        "transform-origin",
         "word-spacing",
     ):
         if element.get(attr) is not None:
@@ -3468,6 +3470,30 @@ def _parse_transform(value: str) -> tuple[float, float, float, float, float, flo
             item = (1.0, math.tan(math.radians(angle_degrees)), 0.0, 1.0, 0.0, 0.0)
         matrix = _matrix_multiply(matrix, item)
     return matrix
+
+
+def _style_transform_matrix(style: dict[str, str], viewport: tuple[float, float]) -> tuple[float, float, float, float, float, float]:
+    matrix = _parse_transform(style.get("transform", ""))
+    origin = _transform_origin(style.get("transform-origin"), viewport)
+    if origin is None:
+        return matrix
+    return _matrix_multiply(
+        _matrix_multiply((1.0, 0.0, 0.0, 1.0, origin[0], origin[1]), matrix),
+        (1.0, 0.0, 0.0, 1.0, -origin[0], -origin[1]),
+    )
+
+
+def _transform_origin(value: str | None, viewport: tuple[float, float]) -> tuple[float, float] | None:
+    if value is None:
+        return None
+    parts = _css_value_tokens(value)
+    if len(parts) != 2 or any("%" in part for part in parts):
+        return None
+    x = _optional_length(parts[0], "x", viewport)
+    y = _optional_length(parts[1], "y", viewport)
+    if x is None or y is None:
+        return None
+    return x, y
 
 
 def _transform_arguments(value: str) -> list[str]:

@@ -22,9 +22,9 @@ from .converter import (
     _paint_server_value,
     _parse_linear_path,
     _parse_points,
-    _parse_transform,
     _previous_element_siblings,
     _root_viewbox_matrix,
+    _style_transform_matrix,
     _supported_data_image,
     _svg_paint,
     _svg_text_content,
@@ -33,6 +33,7 @@ from .converter import (
     _svg_dasharray_numbers,
     _svg_dashoffset_is_supported,
     _svg_rotation_values,
+    _transform_origin,
     _switch_selected_child,
     _url_ref,
     _viewport_size,
@@ -89,6 +90,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "textLength",
     "text-rendering",
     "text-transform",
+    "transform-origin",
     "vector-effect",
     "word-spacing",
 }
@@ -202,7 +204,7 @@ def _walk(
     if display_none or non_rendering_geometry or no_visible_paint:
         return
 
-    matrix = _matrix_multiply(inherited_matrix, _parse_transform(style.get("transform", "")))
+    matrix = _matrix_multiply(inherited_matrix, _style_transform_matrix(style, viewport))
     child_viewport = viewport
     if tag == "svg" and ancestors:
         child_viewport = _viewport_size(
@@ -300,6 +302,8 @@ def _inspect_attributes(
         ):
             continue
         if attr == "text-transform" and _text_transform_is_supported(element, specified_style):
+            continue
+        if attr == "transform-origin" and _transform_origin_is_supported(specified_style, viewport):
             continue
         if attr == "word-spacing" and _word_spacing_has_no_effect(element, specified_style):
             continue
@@ -437,6 +441,13 @@ def _text_rotate_is_supported(element: ET.Element, style: dict[str, str]) -> boo
 def _text_transform_is_supported(element: ET.Element, style: dict[str, str]) -> bool:
     value = style.get("text-transform")
     return value is not None and value.strip().lower() in {"normal", "none", "uppercase", "lowercase", "capitalize"}
+
+
+def _transform_origin_is_supported(style: dict[str, str], viewport: tuple[float, float]) -> bool:
+    value = style.get("transform-origin")
+    if value is None:
+        return False
+    return _transform_origin(value, viewport) is not None
 
 
 def _letter_spacing_is_supported(style: dict[str, str]) -> bool:
