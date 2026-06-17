@@ -303,12 +303,20 @@ def test_compound_child_selectors_hidden_shapes_and_scientific_numbers() -> None
 
 
 def test_text_position_can_come_from_first_tspan() -> None:
-    dml = svg_to_drawingml('<svg><text font-size="10" fill="#111"><tspan x="20" y="40">From tspan</tspan></text></svg>')
+    dml = svg_to_drawingml('<svg><text font-size="10" fill="#111"><tspan x="20" y="40" dx="5" dy="7">From tspan</tspan></text></svg>')
 
     root = ET.fromstring(dml)
     shape_off = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
-    assert shape_off.attrib == {"x": "190500", "y": "285750"}
+    assert shape_off.attrib == {"x": "238125", "y": "352425"}
     assert "<a:t>From tspan</a:t>" in dml
+
+
+def test_text_position_applies_text_dx_dy() -> None:
+    dml = svg_to_drawingml('<svg><text x="10" y="20" dx="4" dy="6" font-size="10" fill="#111">Shifted</text></svg>')
+
+    root = ET.fromstring(dml)
+    shape_off = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    assert shape_off.attrib == {"x": "133350", "y": "152400"}
 
 
 def test_xml_space_preserve_keeps_text_whitespace() -> None:

@@ -1026,8 +1026,10 @@ def _xml_space_preserve(element: ET.Element) -> bool:
 def _svg_text_position(element: ET.Element, viewport: tuple[float, float] = (0.0, 0.0)) -> tuple[float, float]:
     x = _optional_length(element.get("x"), "x", viewport)
     y = _optional_length(element.get("y"), "y", viewport)
+    dx = _first_optional_length(element.get("dx"), "x", viewport)
+    dy = _first_optional_length(element.get("dy"), "y", viewport)
     if x is not None and y is not None:
-        return x, y
+        return x + (dx or 0.0), y + (dy or 0.0)
     for child in element:
         if _local_name(child.tag) != "tspan":
             continue
@@ -1035,9 +1037,20 @@ def _svg_text_position(element: ET.Element, viewport: tuple[float, float] = (0.0
             x = _optional_length(child.get("x"), "x", viewport)
         if y is None:
             y = _optional_length(child.get("y"), "y", viewport)
+        if dx is None:
+            dx = _first_optional_length(child.get("dx"), "x", viewport)
+        if dy is None:
+            dy = _first_optional_length(child.get("dy"), "y", viewport)
         if x is not None and y is not None:
             break
-    return x or 0.0, y or 0.0
+    return (x or 0.0) + (dx or 0.0), (y or 0.0) + (dy or 0.0)
+
+
+def _first_optional_length(value: str | None, axis: str, viewport: tuple[float, float]) -> float | None:
+    if value is None:
+        return None
+    first = re.split(r"[\s,]+", value.strip(), maxsplit=1)[0]
+    return _optional_length(first or None, axis, viewport)
 
 
 def _is_bold(value: str | None) -> bool:
