@@ -3031,6 +3031,8 @@ def _pattern_child_colors(
     for child in parent:
         tag = _local_name(child.tag)
         style = _computed_style(child, css, inherited_style, ancestors)
+        if _is_hidden(style):
+            continue
         if tag in {"g", "svg", "a"}:
             colors.extend(_pattern_child_colors(child, refs, current_color, css, style, ancestors + (child,), seen))
             continue

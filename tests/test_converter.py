@@ -2016,6 +2016,25 @@ def test_pattern_paint_server_falls_back_to_representative_color() -> None:
     assert report.unsupported_attributes == {}
 
 
+def test_pattern_representative_color_ignores_hidden_content() -> None:
+    svg = """<svg>
+      <defs>
+        <pattern id="dots" width="4" height="4">
+          <rect width="4" height="4" fill="#ff0000" display="none"/>
+          <g visibility="hidden"><rect width="4" height="4" fill="#00ff00"/></g>
+          <rect width="4" height="4" fill="#0000ff"/>
+        </pattern>
+      </defs>
+      <rect width="10" height="8" fill="url(#dots)"/>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert 'val="0000FF"' in dml
+    assert 'val="800080"' not in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_analyze_svg_reports_pattern_without_paint_fallback() -> None:
     svg = """<svg>
       <defs><pattern id="empty" width="4" height="4"/></defs>
