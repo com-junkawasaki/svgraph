@@ -434,7 +434,7 @@ def _text_rotate_is_supported(element: ET.Element, style: dict[str, str]) -> boo
 
 def _text_transform_is_supported(element: ET.Element, style: dict[str, str]) -> bool:
     value = style.get("text-transform")
-    return value is not None and value.strip().lower() in {"none", "uppercase", "lowercase", "capitalize"}
+    return value is not None and value.strip().lower() in {"normal", "none", "uppercase", "lowercase", "capitalize"}
 
 
 def _letter_spacing_is_supported(style: dict[str, str]) -> bool:

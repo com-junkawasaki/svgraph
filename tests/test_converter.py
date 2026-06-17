@@ -1005,6 +1005,14 @@ def test_css_tspan_text_transform_overrides_parent_transform() -> None:
     assert analyze_svg(source).unsupported_attributes == {}
 
 
+def test_normal_text_transform_value_is_supported_as_noop() -> None:
+    source = '<svg><text x="10" y="20" text-transform=" NORMAL " font-size="10" fill="#111">MiXeD</text></svg>'
+    dml = svg_to_drawingml(source)
+
+    assert "<a:t>MiXeD</a:t>" in dml
+    assert analyze_svg(source).unsupported_attributes == {}
+
+
 def test_unsupported_text_transform_value_is_reported() -> None:
     source = '<svg><text x="10" y="20" font-size="10" fill="#111"><tspan text-transform="full-width">wide</tspan></text></svg>'
     dml = svg_to_drawingml(source)
