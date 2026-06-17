@@ -30,14 +30,25 @@ def test_svg_rect_to_drawingml_preserves_geometry_and_paint() -> None:
 def test_drawingml_to_svg_rect_round_trip() -> None:
     svg = drawingml_to_svg(svg_to_drawingml('<svg><rect x="5" y="6" width="7" height="8" fill="none"/></svg>'))
 
-    assert '<rect fill="none" x="5" y="6" width="7" height="8"/>' in svg
+    assert '<rect fill="none" stroke="none" x="5" y="6" width="7" height="8"/>' in svg
     assert 'viewBox="0 0 12 14"' in svg
 
 
 def test_svg_line_round_trip_keeps_direction_with_flips() -> None:
     svg = drawingml_to_svg(svg_to_drawingml('<svg><line x1="20" y1="30" x2="5" y2="10" stroke="#ff0000"/></svg>'))
 
-    assert '<line stroke="#ff0000" x1="20" y1="30" x2="5" y2="10" fill="none"/>' in svg
+    assert '<line fill="none" stroke="#ff0000" x1="20" y1="30" x2="5" y2="10"/>' in svg
+
+
+def test_svg_default_paint_is_explicitly_converted() -> None:
+    dml = svg_to_drawingml('<svg><rect x="0" y="0" width="10" height="8"/><line x1="0" y1="12" x2="10" y2="12"/></svg>')
+
+    assert 'val="000000"' in dml
+    assert dml.count("<a:noFill/>") >= 2
+
+    svg = drawingml_to_svg(dml)
+    assert '<rect fill="#000000" stroke="none" x="0" y="0" width="10" height="8"/>' in svg
+    assert '<line fill="none" stroke="none" x1="0" y1="12" x2="10" y2="12"/>' in svg
 
 
 def test_converted_shapes_can_be_embedded_in_slide_xml() -> None:

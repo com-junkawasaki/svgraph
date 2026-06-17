@@ -163,7 +163,7 @@ def _svg_shape_from_element(
     refs: dict[str, ET.Element] | None = None,
 ) -> Shape | None:
     refs = refs or {}
-    paint = _svg_paint(style, refs)
+    paint = _svg_paint(style, refs, default_fill=tag != "line")
     plain_paint = _paint_without_markers(paint)
     if tag == "rect":
         x = _num(element.get("x"), 0)
@@ -507,10 +507,14 @@ def _svg_text_y(shape: Shape) -> float:
     return shape.y + (shape.font_size or shape.height / 1.4)
 
 
-def _svg_paint(style: dict[str, str], refs: dict[str, ET.Element] | None = None) -> Paint:
+def _svg_paint(style: dict[str, str], refs: dict[str, ET.Element] | None = None, default_fill: bool = True) -> Paint:
     refs = refs or {}
     fill, fill_color_alpha = _paint_value(style.get("fill"), refs, style.get("color"))
     stroke, stroke_color_alpha = _paint_value(style.get("stroke"), refs, style.get("color"))
+    if fill is None:
+        fill = "#000000" if default_fill else "none"
+    if stroke is None:
+        stroke = "none"
     stroke_width = style.get("stroke-width")
     parsed_stroke_width = _num(stroke_width, 1) if stroke_width not in {None, "", "none"} else None
     if parsed_stroke_width is not None and parsed_stroke_width <= 0:
