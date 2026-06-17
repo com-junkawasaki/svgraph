@@ -313,8 +313,6 @@ def _inspect_attributes(
     elif _local_name(element.tag) in {"linearGradient", "radialGradient"} and href is not None:
         if not href.startswith("#") or href[1:] not in refs:
             stats.add_unsupported_attribute("href")
-    elif _local_name(element.tag) != "use" and href is not None:
-        stats.add_unsupported_attribute("href")
     for attr in ("fill", "stroke"):
         value = style.get(attr)
         if value:

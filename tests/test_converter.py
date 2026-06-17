@@ -2097,7 +2097,7 @@ def test_analyze_svg_reports_unsupported_use_references() -> None:
     assert external["unsupported_attributes"] == {"href": 1}
 
 
-def test_link_wrapper_converts_child_shapes_and_reports_href_only() -> None:
+def test_link_wrapper_converts_child_shapes_without_reporting_hyperlink_href() -> None:
     svg = """<svg>
       <a href="https://example.test" fill="#dbeafe" stroke="#1d4ed8">
         <rect x="4" y="6" width="20" height="10"/>
@@ -2111,7 +2111,7 @@ def test_link_wrapper_converts_child_shapes_and_reports_href_only() -> None:
     assert 'val="1D4ED8"' in dml
     assert report["estimated_element_coverage"] == 1.0
     assert report["unsupported_elements"] == {}
-    assert report["unsupported_attributes"] == {"href": 1}
+    assert report["unsupported_attributes"] == {}
 
 
 def test_switch_renders_first_supported_branch_only() -> None:
