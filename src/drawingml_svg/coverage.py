@@ -23,6 +23,7 @@ from .converter import (
     _root_viewbox_matrix,
     _supported_data_image,
     _svg_text_content,
+    _svg_text_length_spacing_is_supported,
     _switch_selected_child,
 )
 
@@ -227,6 +228,10 @@ def _inspect_attributes(
             continue
         if attr == "letter-spacing" and _letter_spacing_is_supported(specified_style):
             continue
+        if attr in {"lengthAdjust", "textLength"} and _text_length_spacing_is_supported(
+            element, specified_style
+        ):
+            continue
         if attr == "mix-blend-mode" and _mix_blend_mode_has_no_effect(specified_style):
             continue
         if attr == "rotate" and _text_rotate_is_supported(element, specified_style):
@@ -334,6 +339,12 @@ def _letter_spacing_is_supported(style: dict[str, str]) -> bool:
     if value.strip().lower() == "normal":
         return True
     return _optional_length(value, "x", (0.0, 0.0)) is not None
+
+
+def _text_length_spacing_is_supported(element: ET.Element, style: dict[str, str]) -> bool:
+    if _local_name(element.tag) != "text":
+        return False
+    return _svg_text_length_spacing_is_supported(style, _svg_text_content(element), (0.0, 0.0))
 
 
 def _attribute_has_no_effect(attr: str, style: dict[str, str]) -> bool:

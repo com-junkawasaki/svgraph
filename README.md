@@ -17,7 +17,7 @@ It targets the practical subset needed for generated Office graphics and simple 
 - Analysis: unsupported visual/layout attributes such as filters, masks, blend/isolation, fill/clip rules, paint order, shape/text/raster/color rendering hints, vector effects, word spacing, dash offsets, multi-value text rotation, text/path length adjustments, unsupported markers, and unresolved paint servers are reported, while default no-op values are ignored
 - Transforms: inherited `transform` on elements and groups for `matrix`, `translate`, `scale`, `rotate`, `skewX`, `skewY`
 - Reuse: local `defs`/`use` expansion for referenced shapes, groups, and basic `symbol viewBox` scaling, with unsupported missing/external use references reported by the analyzer
-- Text: basic font size, weight, italic style, font family, `small-caps` and `all-small-caps` font variants, solid text outline, underline/strike decoration, horizontal/vertical anchor, `xml:space="preserve"`, single-value `rotate`, `letter-spacing`, `dx`/`dy` positioning, first-`tspan` positioning fallback, and multi-line `tspan` extraction
+- Text: basic font size, weight, italic style, font family, `small-caps` and `all-small-caps` font variants, solid text outline, underline/strike decoration, horizontal/vertical anchor, `xml:space="preserve"`, single-value `rotate`, `letter-spacing`, simple `textLength` spacing adjustment, `dx`/`dy` positioning, first-`tspan` positioning fallback, and multi-line `tspan` extraction
 
 The converter accepts fragments, not complete `.pptx` or `.docx` packages. It is intended as a reusable core that can later be wrapped by OOXML package readers/writers.
 
