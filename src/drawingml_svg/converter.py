@@ -929,6 +929,10 @@ def _dml_text_paint(element: ET.Element, sp_pr: ET.Element) -> Paint:
         stroke_width=_dml_line_width(ln) if ln is not None else shape_paint.stroke_width,
         fill_alpha=_dml_alpha(solid_fill) if solid_fill is not None else shape_paint.fill_alpha,
         stroke_alpha=_dml_line_alpha(ln) if ln is not None else shape_paint.stroke_alpha,
+        stroke_linecap=_dml_linecap(ln.get("cap")) if ln is not None else shape_paint.stroke_linecap,
+        stroke_linejoin=_dml_linejoin(ln) if ln is not None else shape_paint.stroke_linejoin,
+        stroke_dasharray=_dml_dasharray(ln) if ln is not None else shape_paint.stroke_dasharray,
+        stroke_miterlimit=_dml_miterlimit(ln) if ln is not None else shape_paint.stroke_miterlimit,
     )
 
 

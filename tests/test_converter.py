@@ -1202,6 +1202,41 @@ def test_text_stroke_maps_to_run_outline() -> None:
     assert 'stroke-opacity="0.5"' in round_trip
 
 
+def test_drawingml_text_outline_style_round_trips_to_svg() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="285750"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        <p:txBody>
+          <a:bodyPr/><a:lstStyle/>
+          <a:p>
+            <a:r>
+              <a:rPr sz="1200">
+                <a:solidFill><a:srgbClr val="111111"/></a:solidFill>
+                <a:ln w="19050" cap="sq">
+                  <a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>
+                  <a:custDash><a:ds d="200000" sp="100000"/></a:custDash>
+                  <a:miter lim="600000"/>
+                </a:ln>
+              </a:rPr>
+              <a:t>Outlined</a:t>
+            </a:r>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'stroke="#ffffff"' in svg
+    assert 'stroke-width="2"' in svg
+    assert 'stroke-linecap="square"' in svg
+    assert 'stroke-linejoin="miter"' in svg
+    assert 'stroke-dasharray="4 2"' in svg
+    assert 'stroke-miterlimit="6"' in svg
+
+
 def test_text_stroke_width_scales_with_transform() -> None:
     svg = '<svg><text x="0" y="10" fill="#111111" stroke="#ffffff" stroke-width="2" transform="scale(2)">Outlined</text></svg>'
 
