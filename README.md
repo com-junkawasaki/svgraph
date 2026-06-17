@@ -11,6 +11,7 @@ It targets the practical subset needed for generated Office graphics and simple 
 - Styling: inline presentation attributes, inline `style`, simple `<style>` rules for element/class/id, compound class, child, and descendant selectors
 - Coordinate systems: root and symbol `viewBox` normalization with `preserveAspectRatio` support
 - Visibility: `display:none` and `visibility:hidden` are skipped during conversion and analysis
+- Clipping: rectangular `clipPath` on `rect` and `text` is converted as bounding-box intersection
 - Transforms: inherited `transform` on elements and groups for `matrix`, `translate`, `scale`, `rotate`, `skewX`, `skewY`
 - Reuse: local `defs`/`use` expansion for referenced shapes, groups, and basic `symbol viewBox` scaling
 - Text: basic font size, weight, anchor, first-`tspan` positioning fallback, and multi-line `tspan` extraction

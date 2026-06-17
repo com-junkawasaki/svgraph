@@ -8,6 +8,7 @@ from .converter import (
     _collect_css,
     _collect_refs,
     _computed_style,
+    _clip_path_is_supported,
     _is_hidden,
     _local_name,
     _matrix_multiply,
@@ -131,7 +132,7 @@ def _walk(
         stats.add_unsupported_element(tag)
 
     matrix = _matrix_multiply(inherited_matrix, _parse_transform(element.get("transform", "")))
-    _inspect_attributes(element, style, refs, stats)
+    _inspect_attributes(element, style, refs, matrix, stats)
 
     if tag == "path":
         _inspect_path(element.get("d", ""), stats)
@@ -143,8 +144,16 @@ def _walk(
         _walk(child, css, refs, style, matrix, stats, ancestors + (element,))
 
 
-def _inspect_attributes(element: ET.Element, style: dict[str, str], refs: dict[str, ET.Element], stats: _CoverageStats) -> None:
+def _inspect_attributes(
+    element: ET.Element,
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+    matrix: tuple[float, float, float, float, float, float],
+    stats: _CoverageStats,
+) -> None:
     for attr in UNSUPPORTED_ATTRIBUTES:
+        if attr == "clip-path" and _clip_path_is_supported(element, style, refs, matrix):
+            continue
         if element.get(attr) is not None or style.get(attr) is not None:
             stats.add_unsupported_attribute(attr)
     if _local_name(element.tag) != "use" and (element.get("href") is not None or element.get("{http://www.w3.org/1999/xlink}href") is not None):

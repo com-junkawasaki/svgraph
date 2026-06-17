@@ -132,6 +132,8 @@ def _svg_shapes_walk(
 
     shape = _svg_shape_from_element(element, tag, style, matrix, refs)
     if shape is not None:
+        shape = _apply_rect_clip(shape, style, refs, matrix)
+    if shape is not None:
         yield shape
 
     for child in element:
@@ -1085,6 +1087,7 @@ def _computed_style(
         "color",
         "display",
         "visibility",
+        "clip-path",
     ):
         if element.get(attr) is not None:
             style[attr] = element.get(attr, "")
@@ -1098,6 +1101,95 @@ def _computed_style(
 
 def _is_hidden(style: dict[str, str]) -> bool:
     return style.get("display") == "none" or style.get("visibility") in {"hidden", "collapse"}
+
+
+def _apply_rect_clip(
+    shape: Shape,
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+    matrix: tuple[float, float, float, float, float, float],
+) -> Shape | None:
+    if shape.kind not in {"rect", "roundRect", "text"}:
+        return shape
+    clip_bounds = _rect_clip_bounds(style, refs, matrix)
+    if clip_bounds is None:
+        return shape
+    clip_x, clip_y, clip_width, clip_height = clip_bounds
+    x1 = max(shape.x, clip_x)
+    y1 = max(shape.y, clip_y)
+    x2 = min(shape.x + shape.width, clip_x + clip_width)
+    y2 = min(shape.y + shape.height, clip_y + clip_height)
+    if x2 <= x1 or y2 <= y1:
+        return None
+    return Shape(
+        shape.kind,
+        x1,
+        y1,
+        x2 - x1,
+        y2 - y1,
+        shape.paint,
+        shape.flip_h,
+        shape.flip_v,
+        shape.points,
+        shape.closed,
+        shape.text,
+        shape.font_size,
+        shape.font_weight,
+        shape.text_anchor,
+        min(shape.rx or 0, (x2 - x1) / 2) if shape.rx is not None else None,
+        min(shape.ry or 0, (y2 - y1) / 2) if shape.ry is not None else None,
+    )
+
+
+def _rect_clip_bounds(
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+    matrix: tuple[float, float, float, float, float, float],
+) -> tuple[float, float, float, float] | None:
+    clip_path = style.get("clip-path")
+    if not clip_path or clip_path == "none":
+        return None
+    match = re.fullmatch(r"url\((?:['\"])?#([^'\")]+)(?:['\"])?\)", clip_path.strip())
+    if not match:
+        return None
+    clip = refs.get(match.group(1))
+    if clip is None or _local_name(clip.tag) != "clipPath":
+        return None
+    if clip.get("clipPathUnits", "userSpaceOnUse") != "userSpaceOnUse":
+        return None
+    rect = next((child for child in clip if _local_name(child.tag) == "rect"), None)
+    if rect is None:
+        return None
+    x = _num(rect.get("x"), 0)
+    y = _num(rect.get("y"), 0)
+    width = _num(rect.get("width"), 0)
+    height = _num(rect.get("height"), 0)
+    if width <= 0 or height <= 0:
+        return None
+    clip_matrix = _matrix_multiply(matrix, _parse_transform(clip.get("transform", "")))
+    clip_matrix = _matrix_multiply(clip_matrix, _parse_transform(rect.get("transform", "")))
+    points = _transform_points(_rect_points(x, y, width, height), clip_matrix)
+    xs = {round(px, 9) for px, _ in points}
+    ys = {round(py, 9) for _, py in points}
+    if len(xs) != 2 or len(ys) != 2:
+        return None
+    min_x = min(x for x, _ in points)
+    min_y = min(y for _, y in points)
+    max_x = max(x for x, _ in points)
+    max_y = max(y for _, y in points)
+    return min_x, min_y, max_x - min_x, max_y - min_y
+
+
+def _clip_path_is_supported(
+    element: ET.Element,
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+    matrix: tuple[float, float, float, float, float, float],
+) -> bool:
+    clip_path = style.get("clip-path")
+    if not clip_path or clip_path == "none":
+        return True
+    return _local_name(element.tag) in {"rect", "text"} and _rect_clip_bounds(style, refs, matrix) is not None
 
 
 def _selector_matches(selector: str, element: ET.Element, ancestors: tuple[ET.Element, ...]) -> bool:

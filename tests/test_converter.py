@@ -160,6 +160,30 @@ def test_text_position_can_come_from_first_tspan() -> None:
     assert "<a:t>From tspan</a:t>" in dml
 
 
+def test_rectangular_clip_path_clips_rect_geometry() -> None:
+    svg = """<svg>
+      <defs><clipPath id="crop"><rect x="10" y="12" width="20" height="10"/></clipPath></defs>
+      <rect x="0" y="0" width="50" height="50" fill="#f97316" clip-path="url(#crop)"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    shape_off = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    shape_ext = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    assert shape_off.attrib == {"x": "95250", "y": "114300"}
+    assert shape_ext.attrib == {"cx": "190500", "cy": "95250"}
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_non_rectangular_clip_targets_remain_reported_as_unsupported() -> None:
+    svg = """<svg>
+      <defs><clipPath id="crop"><rect x="10" y="12" width="20" height="10"/></clipPath></defs>
+      <ellipse cx="20" cy="20" rx="15" ry="10" clip-path="url(#crop)"/>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {"clip-path": 1}
+
+
 def test_root_viewbox_offsets_and_scales_coordinates() -> None:
     dml = svg_to_drawingml(
         '<svg viewBox="-10 -20 100 50" width="200" height="100"><rect x="-10" y="-20" width="10" height="10"/></svg>'
