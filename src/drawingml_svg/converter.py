@@ -919,6 +919,8 @@ def _append_dml_dash(ln: ET.Element, value: str | None, stroke_width: float | No
     if not value or value == "none":
         return
     nums = _svg_dasharray_numbers(value)
+    if nums and sum(nums) <= 0:
+        return
     if nums and stroke_width and stroke_width > 0:
         if len(nums) % 2 == 1:
             nums = nums * 2
@@ -954,6 +956,8 @@ def _svg_dasharray_numbers(value: str) -> list[float] | None:
 def _svg_dasharray_to_dml(value: str) -> str | None:
     nums = _svg_dasharray_numbers(value)
     if not nums:
+        return None
+    if sum(nums) <= 0:
         return None
     if len(nums) == 1:
         return "dot"
