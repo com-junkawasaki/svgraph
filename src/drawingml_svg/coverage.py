@@ -229,6 +229,10 @@ def _inspect_attributes(
             stats.add_unsupported_attribute("href")
     elif _local_name(element.tag) != "use" and href is not None:
         stats.add_unsupported_attribute("href")
+    if _local_name(element.tag) == "text" and _text_stroke_is_visible(style):
+        stats.add_unsupported_attribute("text:stroke")
+        if style.get("stroke-width") is not None:
+            stats.add_unsupported_attribute("text:stroke-width")
     for attr in ("fill", "stroke"):
         value = style.get(attr)
         if value:
@@ -250,6 +254,14 @@ def _inspect_path(path_data: str, stats: _CoverageStats) -> None:
     for command in path_data:
         if command.isalpha() and command not in supported:
             stats.add_unsupported_path_command(command)
+
+
+def _text_stroke_is_visible(style: dict[str, str]) -> bool:
+    stroke = style.get("stroke")
+    if stroke is None or stroke.strip().lower() in {"", "none", "transparent"}:
+        return False
+    stroke_width = style.get("stroke-width")
+    return stroke_width is None or _optional_length(stroke_width, "x", (0.0, 0.0)) != 0
 
 
 def _text_rotate_is_supported(element: ET.Element, style: dict[str, str]) -> bool:
