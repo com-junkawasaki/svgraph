@@ -209,7 +209,10 @@ def _inspect_attributes(
     stats: _CoverageStats,
     ancestors: tuple[ET.Element, ...],
 ) -> None:
+    no_effect_attrs = {"clip-rule", "fill-rule", "paint-order", "shape-rendering", "text-rendering", "vector-effect"}
     for attr in UNSUPPORTED_ATTRIBUTES:
+        if attr in no_effect_attrs and _attribute_has_no_effect(attr, specified_style):
+            continue
         if attr == "clip-path" and _clip_path_is_supported(element, style, refs, matrix):
             continue
         if attr in {"marker-start", "marker-end"} and _marker_is_supported(element, style, refs):
@@ -331,6 +334,22 @@ def _letter_spacing_is_supported(style: dict[str, str]) -> bool:
     if value.strip().lower() == "normal":
         return True
     return _optional_length(value, "x", (0.0, 0.0)) is not None
+
+
+def _attribute_has_no_effect(attr: str, style: dict[str, str]) -> bool:
+    value = style.get(attr)
+    if value is None:
+        return False
+    normalized = " ".join(value.strip().lower().split())
+    if attr in {"clip-rule", "fill-rule"}:
+        return normalized == "nonzero"
+    if attr == "paint-order":
+        return normalized in {"normal", "fill", "fill stroke", "fill stroke markers"}
+    if attr in {"shape-rendering", "text-rendering"}:
+        return normalized == "auto"
+    if attr == "vector-effect":
+        return normalized == "none"
+    return False
 
 
 def _word_spacing_has_no_effect(element: ET.Element, style: dict[str, str]) -> bool:

@@ -636,6 +636,22 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
     }
 
 
+def test_analyze_svg_ignores_default_visual_attribute_values() -> None:
+    svg = """<svg>
+      <path
+        d="M0 0 H10 V10 Z"
+        clip-rule="nonzero"
+        fill-rule="nonzero"
+        paint-order="fill stroke markers"
+        shape-rendering="auto"
+        vector-effect="none"
+      />
+      <text x="0" y="20" text-rendering="auto">Auto</text>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_analyze_svg_deduplicates_isolation_when_blend_is_reported() -> None:
     svg = """<svg>
       <g isolation="isolate">
