@@ -716,6 +716,19 @@ def test_symbol_use_viewbox_width_height_preserves_aspect_ratio_by_default() -> 
     assert shape_ext.attrib == {"cx": "190500", "cy": "190500"}
 
 
+def test_xlink_use_reference_converts() -> None:
+    svg = """<svg xmlns:xlink="http://www.w3.org/1999/xlink">
+      <defs><g id="glyph"><rect x="0" y="0" width="10" height="8" fill="#123456"/></g></defs>
+      <use xlink:href="#glyph" x="20" y="30"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert 'val="123456"' in dml
+    assert 'x="190500"' in dml
+    assert 'y="285750"' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_analyze_svg_reports_coverage_and_unsupported_features() -> None:
     report = analyze_svg(
         """<svg>
@@ -1043,6 +1056,26 @@ def test_gradient_href_inherits_stop_list_before_fallback_average() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_xlink_gradient_href_inherits_stop_list_before_fallback_average() -> None:
+    svg = """<svg xmlns:xlink="http://www.w3.org/1999/xlink">
+      <defs>
+        <linearGradient id="base">
+          <stop offset="0%" stop-color="#ff0000"/>
+          <stop offset="50%" stop-color="#00ff00"/>
+        </linearGradient>
+        <linearGradient id="derived" xlink:href="#base">
+          <stop offset="100%" stop-color="#0000ff"/>
+        </linearGradient>
+      </defs>
+      <rect width="10" height="8" fill="url(#derived)"/>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert 'val="555555"' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_gradient_href_cycle_can_use_fallback_color() -> None:
     svg = """<svg>
       <defs>
@@ -1248,6 +1281,24 @@ def test_data_uri_image_converts_to_picture_and_round_trips() -> None:
     round_trip = drawingml_to_svg(dml)
     assert "<image" in round_trip
     assert f'href="{PNG_DATA_URI}"' in round_trip
+
+
+def test_xlink_data_uri_image_converts_to_picture_media() -> None:
+    svg = f'<svg xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="{PNG_DATA_URI}" x="10" y="12" width="20" height="16"/></svg>'
+    fragment = ET.fromstring(svg_to_drawingml(svg))
+    pictures = [
+        child
+        for child in fragment
+        if child.tag == "{http://schemas.openxmlformats.org/presentationml/2006/main}pic"
+    ]
+    prepared_slide, rels, media = prepare_slide_media(build_slide_xml(pictures))
+
+    assert len(pictures) == 1
+    assert len(media) == 1
+    assert media[0][0] == "ppt/media/image1.png"
+    assert b"data:image/png" not in prepared_slide
+    assert 'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"' in rels
+    assert analyze_svg(svg).unsupported_attributes == {}
 
 
 def test_unsupported_marker_usage_is_reported() -> None:
