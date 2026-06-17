@@ -1783,6 +1783,21 @@ def test_css_color_functions_named_colors_and_gradient_fallback() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_invalid_css_color_functions_do_not_crash() -> None:
+    svg = """<svg>
+      <rect width="10" height="8" fill="rgb(1e999 0 0)" stroke="hsl(1e999turn 100% 50%)"/>
+      <rect x="12" width="10" height="8" fill="rgb(255 0 0 / 1e999)"/>
+      <rect x="24" width="10" height="8" fill="#22c55e"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+    report = analyze_svg(svg)
+
+    assert dml.count("<p:sp>") == 3
+    assert dml.count('val="000000"') == 2
+    assert 'val="22C55E"' in dml
+    assert report.unsupported_attributes == {}
+
+
 def test_inherit_paint_values_use_parent_computed_style() -> None:
     svg = """<svg>
       <style>

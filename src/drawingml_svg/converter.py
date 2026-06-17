@@ -3034,9 +3034,12 @@ def _parse_color(value: str | None) -> tuple[str | None, float | None]:
     if rgb_match:
         parts = [part.strip() for part in re.split(r"[,\s/]+", rgb_match.group(1)) if part.strip()]
         if len(parts) >= 3:
-            rgb = tuple(_css_channel(part) for part in parts[:3])
-            alpha = _css_alpha(parts[3]) if len(parts) >= 4 else None
-            return _rgb_to_hex(rgb), alpha
+            try:
+                rgb = tuple(_css_channel(part) for part in parts[:3])
+                alpha = _css_alpha(parts[3]) if len(parts) >= 4 else None
+                return _rgb_to_hex(rgb), alpha
+            except ValueError:
+                return None, None
     hsl_match = re.fullmatch(r"hsla?\(([^)]+)\)", value, flags=re.I)
     if hsl_match:
         parts = [part.strip() for part in re.split(r"[,\s/]+", hsl_match.group(1)) if part.strip()]
@@ -3066,14 +3069,16 @@ def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
 
 def _css_channel(value: str) -> int:
     if value.endswith("%"):
-        return round(max(0.0, min(float(value[:-1]), 100.0)) * 2.55)
-    return round(max(0.0, min(float(value), 255.0)))
+        number = _finite_float(value[:-1])
+        return round(max(0.0, min(number, 100.0)) * 2.55)
+    number = _finite_float(value)
+    return round(max(0.0, min(number, 255.0)))
 
 
 def _css_alpha(value: str) -> float:
     if value.endswith("%"):
-        return max(0.0, min(float(value[:-1]) / 100, 1.0))
-    return max(0.0, min(float(value), 1.0))
+        return max(0.0, min(_finite_float(value[:-1]) / 100, 1.0))
+    return max(0.0, min(_finite_float(value), 1.0))
 
 
 def _hsl_to_rgb(hue_value: str, saturation_value: str, lightness_value: str) -> tuple[int, int, int]:
@@ -3105,12 +3110,19 @@ def _hsl_to_rgb(hue_value: str, saturation_value: str, lightness_value: str) -> 
 
 def _css_hue_degrees(value: str) -> float:
     if value.endswith("turn"):
-        return float(value[:-4]) * 360
+        return _finite_float(value[:-4]) * 360
     if value.endswith("rad"):
-        return math.degrees(float(value[:-3]))
+        return math.degrees(_finite_float(value[:-3]))
     if value.endswith("deg"):
-        return float(value[:-3])
-    return float(value)
+        return _finite_float(value[:-3])
+    return _finite_float(value)
+
+
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(value)
+    return number
 
 
 def _num(value: str | None, default: float) -> float:
