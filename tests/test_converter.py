@@ -1430,7 +1430,7 @@ def test_css_transform_property_is_applied_without_inheritance() -> None:
 
 
 def test_absolute_transform_origin_is_applied_to_css_transform() -> None:
-    svg = '<svg><rect x="10" y="12" width="20" height="16" fill="#111111" style="transform-origin: 20px 20px; transform: rotate(90deg)"/></svg>'
+    svg = '<svg><rect x="10" y="12" width="20" height="16" fill="#111111" style="transform-origin: 20px 20px 0; transform: rotate(90deg)"/></svg>'
     dml = svg_to_drawingml(svg)
 
     root = ET.fromstring(dml)
@@ -1446,11 +1446,12 @@ def test_absolute_transform_origin_is_applied_to_css_transform() -> None:
 
 def test_unsupported_transform_origin_values_are_reported() -> None:
     svg = """<svg>
-      <rect width="10" height="8" style="transform-origin: center; transform: rotate(90deg)"/>
+      <rect width="10" height="8" style="transform-origin: left top; transform: rotate(90deg)"/>
       <rect x="12" width="10" height="8" style="transform-origin: 50% 50%; transform: rotate(90deg)"/>
+      <rect x="24" width="10" height="8" style="transform-origin: 5px 4px 1px; transform: rotate(90deg)"/>
     </svg>"""
 
-    assert analyze_svg(svg).unsupported_attributes == {"transform-origin": 2}
+    assert analyze_svg(svg).unsupported_attributes == {"transform-origin": 3}
 
 
 def test_reflected_rect_stays_as_editable_rect() -> None:

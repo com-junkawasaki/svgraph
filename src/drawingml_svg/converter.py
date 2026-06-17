@@ -3487,13 +3487,28 @@ def _transform_origin(value: str | None, viewport: tuple[float, float]) -> tuple
     if value is None:
         return None
     parts = _css_value_tokens(value)
-    if len(parts) != 2 or any("%" in part for part in parts):
+    if len(parts) not in {2, 3}:
         return None
-    x = _optional_length(parts[0], "x", viewport)
-    y = _optional_length(parts[1], "y", viewport)
+    x = _absolute_origin_length(parts[0], "x", viewport)
+    y = _absolute_origin_length(parts[1], "y", viewport)
     if x is None or y is None:
         return None
+    if len(parts) == 3:
+        z = _absolute_origin_length(parts[2], "x", viewport)
+        if z is None or not _close(z, 0):
+            return None
     return x, y
+
+
+def _absolute_origin_length(value: str, axis: str, viewport: tuple[float, float]) -> float | None:
+    stripped = value.strip()
+    lower = stripped.lower()
+    if "%" in stripped:
+        return None
+    length_re = rf"{NUMBER_RE}(?:px|pt|pc|in|cm|mm|q)?"
+    if not re.fullmatch(length_re, lower) and not re.match(r"^(?:calc|min|max|clamp)\(", lower):
+        return None
+    return _optional_length(stripped, axis, viewport)
 
 
 def _transform_arguments(value: str) -> list[str]:
