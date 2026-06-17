@@ -211,6 +211,10 @@ def _inspect_attributes(
             continue
         if attr == "font-variant" and _font_variant_is_supported(specified_style):
             continue
+        if attr in {"gradientTransform", "gradientUnits", "spreadMethod"} and _gradient_fallback_is_supported(
+            element, refs, css
+        ):
+            continue
         if attr == "letter-spacing" and _letter_spacing_is_supported(specified_style):
             continue
         if attr == "rotate" and _text_rotate_is_supported(element, specified_style):
@@ -239,7 +243,11 @@ def _inspect_attributes(
                     color, _ = _paint_server_value(refs.get(match.group(1)), refs, style.get("color"), css)
                     if not color:
                         stats.add_unsupported_attribute(f"{attr}:pattern")
-                elif paint_server_tag not in {"linearGradient", "radialGradient"}:
+                elif paint_server_tag in {"linearGradient", "radialGradient"}:
+                    color, _ = _paint_server_value(refs.get(match.group(1)), refs, style.get("color"), css)
+                    if not color:
+                        stats.add_unsupported_attribute(f"{attr}:paint-server")
+                else:
                     stats.add_unsupported_attribute(f"{attr}:paint-server")
 
 
@@ -252,6 +260,13 @@ def _inspect_path(path_data: str, stats: _CoverageStats) -> None:
     for command in path_data:
         if command.isalpha() and command not in supported:
             stats.add_unsupported_path_command(command)
+
+
+def _gradient_fallback_is_supported(element: ET.Element, refs: dict[str, ET.Element], css: list[CssRule]) -> bool:
+    if _local_name(element.tag) not in {"linearGradient", "radialGradient"}:
+        return False
+    color, _ = _paint_server_value(element, refs, element.get("color"), css)
+    return bool(color)
 
 
 def _text_rotate_is_supported(element: ET.Element, style: dict[str, str]) -> bool:

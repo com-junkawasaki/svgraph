@@ -564,14 +564,27 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
         "clip-rule": 1,
         "color-rendering": 1,
         "fill-rule": 1,
-        "gradientTransform": 1,
-        "gradientUnits": 1,
         "image-rendering": 1,
         "isolation": 1,
         "mix-blend-mode": 1,
         "paint-order": 1,
-        "spreadMethod": 1,
         "vector-effect": 1,
+    }
+
+
+def test_analyze_svg_reports_gradient_attributes_without_color_fallback() -> None:
+    svg = """<svg>
+      <defs>
+        <linearGradient id="empty" spreadMethod="repeat" gradientUnits="userSpaceOnUse" gradientTransform="rotate(15)"/>
+      </defs>
+      <rect width="10" height="8" fill="url(#empty)"/>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {
+        "fill:paint-server": 1,
+        "gradientTransform": 1,
+        "gradientUnits": 1,
+        "spreadMethod": 1,
     }
 
 
