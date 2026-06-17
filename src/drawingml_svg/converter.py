@@ -199,6 +199,8 @@ def _svg_shape_from_element(
         y = _length(element.get("y"), 0, "y", viewport)
         width = _length(element.get("width"), 0, "x", viewport)
         height = _length(element.get("height"), 0, "y", viewport)
+        if width <= 0 or height <= 0:
+            return None
         rx = _length(element.get("rx"), _length(element.get("ry"), 0, "y", viewport), "x", viewport)
         ry = _length(element.get("ry"), rx, "y", viewport)
         if _is_identity_matrix(matrix):
@@ -209,12 +211,16 @@ def _svg_shape_from_element(
         cx = _length(element.get("cx"), 0, "x", viewport)
         cy = _length(element.get("cy"), 0, "y", viewport)
         r = _length(element.get("r"), 0, "diag", viewport)
+        if r <= 0:
+            return None
         return _ellipse_shape(cx, cy, r, r, plain_paint, matrix)
     if tag == "ellipse":
         cx = _length(element.get("cx"), 0, "x", viewport)
         cy = _length(element.get("cy"), 0, "y", viewport)
         rx = _length(element.get("rx"), 0, "x", viewport)
         ry = _length(element.get("ry"), 0, "y", viewport)
+        if rx <= 0 or ry <= 0:
+            return None
         return _ellipse_shape(cx, cy, rx, ry, plain_paint, matrix)
     if tag == "line":
         p1 = _apply_matrix(matrix, (_length(element.get("x1"), 0, "x", viewport), _length(element.get("y1"), 0, "y", viewport)))
@@ -284,6 +290,8 @@ def _svg_shape_from_element(
             y = _length(element.get("y"), 0, "y", viewport)
             width = _length(element.get("width"), 0, "x", viewport)
             height = _length(element.get("height"), 0, "y", viewport)
+            if width <= 0 or height <= 0:
+                return None
             points = _transform_points(_rect_points(x, y, width, height), matrix)
             min_x = min(px for px, _ in points)
             min_y = min(py for _, py in points)

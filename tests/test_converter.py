@@ -68,6 +68,21 @@ def test_svg_default_paint_is_explicitly_converted() -> None:
     assert '<line fill="none" stroke="none" x1="0" y1="12" x2="10" y2="12"/>' in svg
 
 
+def test_non_rendering_non_positive_dimension_shapes_are_skipped() -> None:
+    dml = svg_to_drawingml(
+        f"""<svg>
+          <rect x="0" y="0" width="0" height="8"/>
+          <rect x="0" y="10" width="8" height="-2"/>
+          <circle cx="10" cy="10" r="0"/>
+          <ellipse cx="20" cy="20" rx="8" ry="0"/>
+          <image href="{PNG_DATA_URI}" x="0" y="0" width="10" height="0"/>
+        </svg>"""
+    )
+
+    assert "<p:sp>" not in dml
+    assert "<p:pic>" not in dml
+
+
 def test_default_stroke_linecap_is_explicitly_flat() -> None:
     dml = svg_to_drawingml('<svg><line x1="0" y1="0" x2="10" y2="0" stroke="#111111"/></svg>')
 
