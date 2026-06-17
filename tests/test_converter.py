@@ -1,9 +1,15 @@
+from importlib import resources
 from xml.etree import ElementTree as ET
 
+import drawingml_svg
 from drawingml_svg import analyze_svg, drawingml_to_svg, svg_to_drawingml
 from examples.make_pptx import build_slide_xml, prepare_slide_media
 
 PNG_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg=="
+
+
+def test_package_declares_inline_types() -> None:
+    assert resources.files(drawingml_svg).joinpath("py.typed").is_file()
 
 
 def test_svg_rect_to_drawingml_preserves_geometry_and_paint() -> None:
