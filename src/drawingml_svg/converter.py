@@ -767,10 +767,13 @@ def _svg_dasharray_numbers(value: str) -> list[float] | None:
     parts = [part for part in re.split(r"[\s,]+", value.strip()) if part]
     if not parts:
         return None
-    try:
-        return [float(part) for part in parts]
-    except ValueError:
-        return None
+    nums = []
+    for part in parts:
+        number = _num(part, math.nan)
+        if math.isnan(number):
+            return None
+        nums.append(number)
+    return nums
 
 
 def _svg_dasharray_to_dml(value: str) -> str | None:

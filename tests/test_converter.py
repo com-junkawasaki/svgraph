@@ -381,12 +381,13 @@ def test_analyze_svg_reports_missing_paint_server() -> None:
 
 def test_round_rect_and_stroke_style_convert() -> None:
     dml = svg_to_drawingml(
-        '<svg><rect x="1" y="2" width="30" height="20" rx="5" fill="white" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="6" stroke-dasharray="8 4"/></svg>'
+        '<svg><rect x="1" y="2" width="30" height="20" rx="5" fill="white" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="6" stroke-dasharray="8px, 4px"/></svg>'
     )
 
     assert 'prst="roundRect"' in dml
     assert 'cap="rnd"' in dml
     assert '<a:miter lim="600000"/>' in dml
+    assert '<a:custDash>' in dml
     assert '<a:ds d="400000" sp="200000"/>' in dml
 
     svg = drawingml_to_svg(dml)
