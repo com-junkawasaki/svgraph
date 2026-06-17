@@ -3265,6 +3265,22 @@ def test_alignment_baseline_maps_to_text_anchor_when_dominant_baseline_is_absent
     assert 'dominant-baseline="text-before-edge"' in svg
 
 
+def test_tspan_baseline_controls_are_reported_as_unconverted() -> None:
+    svg = """<svg>
+      <text x="0" y="20" font-size="10" fill="#111111">
+        <tspan alignment-baseline="hanging">Top</tspan>
+        <tspan dominant-baseline="middle">Mid</tspan>
+        <tspan alignment-baseline="baseline" dominant-baseline="auto">Noop</tspan>
+      </text>
+      <text x="0" y="40" alignment-baseline="hanging" dominant-baseline="middle">Whole box</text>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {
+        "alignment-baseline": 1,
+        "dominant-baseline": 1,
+    }
+
+
 def test_font_weight_and_style_values_are_normalized() -> None:
     source = '<svg><text x="0" y="20" font-size="10" font-weight=" BOLD " font-style=" oblique 10deg " fill="#111111">Bold Italic</text></svg>'
     dml = svg_to_drawingml(source)

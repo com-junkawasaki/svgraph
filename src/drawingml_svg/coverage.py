@@ -356,7 +356,7 @@ def _inspect_attributes(
             continue
         if attr == "baseline-shift" and _baseline_shift_has_no_effect(specified_style):
             continue
-        if attr == "alignment-baseline" and _alignment_baseline_is_supported_or_noop(specified_style):
+        if attr == "alignment-baseline" and _alignment_baseline_is_supported_or_noop(element, specified_style):
             continue
         if attr == "direction" and _direction_has_no_effect(specified_style):
             continue
@@ -364,7 +364,7 @@ def _inspect_attributes(
             continue
         if attr == "writing-mode" and _writing_mode_has_no_effect(specified_style):
             continue
-        if attr == "dominant-baseline" and _dominant_baseline_is_supported_or_noop(specified_style):
+        if attr == "dominant-baseline" and _dominant_baseline_is_supported_or_noop(element, specified_style):
             continue
         if attr == "word-spacing" and _word_spacing_has_no_effect(element, specified_style):
             continue
@@ -558,23 +558,27 @@ def _baseline_shift_has_no_effect(style: dict[str, str]) -> bool:
     return value.strip().lower() in {"", "baseline", "0", "0px", "0pt", "0pc", "0in", "0cm", "0mm", "0q"}
 
 
-def _alignment_baseline_is_supported_or_noop(style: dict[str, str]) -> bool:
+def _alignment_baseline_is_supported_or_noop(element: ET.Element, style: dict[str, str]) -> bool:
     value = style.get("alignment-baseline")
     if value is None:
         return False
     normalized = value.strip().lower()
     if normalized in {"", "auto", "baseline", "alphabetic"}:
         return True
+    if _local_name(element.tag) != "text":
+        return False
     return _dominant_baseline(value) is not None
 
 
-def _dominant_baseline_is_supported_or_noop(style: dict[str, str]) -> bool:
+def _dominant_baseline_is_supported_or_noop(element: ET.Element, style: dict[str, str]) -> bool:
     value = style.get("dominant-baseline")
     if value is None:
         return False
     normalized = value.strip().lower()
     if normalized in {"", "auto", "baseline", "alphabetic"}:
         return True
+    if _local_name(element.tag) != "text":
+        return False
     return _dominant_baseline(value) is not None
 
 
