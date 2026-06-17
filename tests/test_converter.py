@@ -827,7 +827,6 @@ def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     assert report.unsupported_attributes == {
         "pathLength": 1,
         "rotate": 1,
-        "stroke-dashoffset": 1,
         "word-spacing": 1,
     }
 
@@ -1096,6 +1095,25 @@ def test_round_rect_and_stroke_style_convert() -> None:
     assert 'stroke-linejoin="miter"' in svg
     assert 'stroke-miterlimit="6"' in svg
     assert 'stroke-dasharray="8 4"' in svg
+
+
+def test_dash_offset_inside_dash_is_approximated_with_shifted_custom_dash() -> None:
+    source = '<svg><line x1="0" y1="0" x2="40" y2="0" stroke="#111111" stroke-width="2" stroke-dasharray="8 4" stroke-dashoffset="2"/></svg>'
+    dml = svg_to_drawingml(source)
+
+    assert '<a:custDash>' in dml
+    assert '<a:ds d="300000" sp="200000"/>' in dml
+    assert '<a:ds d="100000" sp="0"/>' in dml
+    assert analyze_svg(source).unsupported_attributes == {}
+
+    svg = drawingml_to_svg(dml)
+    assert 'stroke-dasharray="6 4 2 0"' in svg
+
+
+def test_dash_offset_inside_gap_is_reported_as_unsupported() -> None:
+    source = '<svg><line x1="0" y1="0" x2="40" y2="0" stroke="#111111" stroke-width="2" stroke-dasharray="8 4" stroke-dashoffset="10"/></svg>'
+
+    assert analyze_svg(source).unsupported_attributes == {"stroke-dashoffset": 1}
 
 
 def test_zero_dasharray_is_treated_as_no_dash() -> None:

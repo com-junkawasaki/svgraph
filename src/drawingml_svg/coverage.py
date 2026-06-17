@@ -27,6 +27,7 @@ from .converter import (
     _svg_text_length_spacing_is_supported,
     _svg_word_spacing_is_supported,
     _svg_dasharray_numbers,
+    _svg_dashoffset_is_supported,
     _switch_selected_child,
     _viewport_size,
 )
@@ -264,7 +265,7 @@ def _inspect_attributes(
             continue
         if attr == "rotate" and _text_rotate_is_supported(element, specified_style):
             continue
-        if attr == "stroke-dashoffset" and _stroke_dashoffset_has_no_effect(style):
+        if attr == "stroke-dashoffset" and (_stroke_dashoffset_has_no_effect(style) or _svg_dashoffset_is_supported(style)):
             continue
         if attr == "word-spacing" and _word_spacing_has_no_effect(element, specified_style):
             continue

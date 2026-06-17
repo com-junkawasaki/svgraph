@@ -633,7 +633,7 @@ def _svg_paint(
         stroke_alpha=stroke_alpha,
         stroke_linecap=stroke_linecap,
         stroke_linejoin=stroke_linejoin,
-        stroke_dasharray=style.get("stroke-dasharray"),
+        stroke_dasharray=_svg_effective_dasharray(style),
         stroke_miterlimit=stroke_miterlimit,
         marker_start=_svg_marker_value(style.get("marker-start"), refs),
         marker_end=_svg_marker_value(style.get("marker-end"), refs),
@@ -978,6 +978,62 @@ def _append_dml_dash(ln: ET.Element, value: str | None, stroke_width: float | No
     dash = _svg_dasharray_to_dml(value)
     if dash:
         ET.SubElement(ln, qn(NS_A, "prstDash"), {"val": dash})
+
+
+def _svg_effective_dasharray(style: dict[str, str]) -> str | None:
+    dasharray = style.get("stroke-dasharray")
+    if dasharray is None:
+        return None
+    offset = _optional_length(style.get("stroke-dashoffset"), "x", (0.0, 0.0))
+    if offset is None or offset == 0:
+        return dasharray
+    shifted = _svg_dasharray_with_offset(dasharray, offset)
+    if shifted is None:
+        return dasharray
+    return " ".join(_fmt(number) for number in shifted)
+
+
+def _svg_dashoffset_is_supported(style: dict[str, str]) -> bool:
+    offset = _optional_length(style.get("stroke-dashoffset"), "x", (0.0, 0.0))
+    dasharray = style.get("stroke-dasharray")
+    return offset is not None and offset != 0 and dasharray is not None and _svg_dasharray_with_offset(dasharray, offset) is not None
+
+
+def _svg_dasharray_with_offset(value: str, offset: float) -> list[float] | None:
+    nums = _svg_dasharray_numbers(value)
+    if not nums or sum(nums) <= 0:
+        return None
+    if len(nums) % 2 == 1:
+        nums = nums * 2
+    period = sum(nums)
+    if period <= 0:
+        return None
+    offset = offset % period
+    if _close(offset, 0):
+        return nums
+
+    cursor = 0.0
+    for index, length in enumerate(nums):
+        end = cursor + length
+        if offset < end or _close(offset, end):
+            if index % 2 == 1:
+                return None
+            remaining = end - offset
+            if _close(remaining, 0):
+                return None
+            shifted = [remaining, *nums[index + 1 :], *nums[:index]]
+            consumed = offset - cursor
+            if not _close(consumed, 0):
+                shifted.append(consumed)
+            if len(shifted) % 2 == 1:
+                shifted.append(0.0)
+            return shifted
+        cursor = end
+    return None
+
+
+def _close(left: float, right: float, tolerance: float = 1e-9) -> bool:
+    return abs(left - right) < tolerance
 
 
 def _svg_dasharray_numbers(value: str) -> list[float] | None:
