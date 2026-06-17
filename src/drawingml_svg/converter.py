@@ -58,6 +58,7 @@ class Shape:
     font_weight: str | None = None
     font_style: str | None = None
     font_family: str | None = None
+    text_decoration: str | None = None
     text_anchor: str | None = None
     rx: float | None = None
     ry: float | None = None
@@ -227,6 +228,7 @@ def _svg_shape_from_element(
                 font_weight=style.get("font-weight"),
                 font_style=style.get("font-style"),
                 font_family=_font_family(style.get("font-family")),
+                text_decoration=style.get("text-decoration"),
                 text_anchor=anchor,
             )
     if tag == "image":
@@ -277,6 +279,7 @@ def _dml_shapes(root: ET.Element) -> Iterable[Shape]:
                 font_weight=_dml_font_weight(element),
                 font_style=_dml_font_style(element),
                 font_family=_dml_font_family(element),
+                text_decoration=_dml_text_decoration(element),
             )
             continue
         cust = sp_pr.find(qn(NS_A, "custGeom"))
@@ -392,6 +395,8 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
             attrs["font-style"] = shape.font_style
         if shape.font_family:
             attrs["font-family"] = shape.font_family
+        if shape.text_decoration:
+            attrs["text-decoration"] = shape.text_decoration
         if shape.text_anchor:
             attrs["text-anchor"] = shape.text_anchor
         element = ET.Element(qn(NS_SVG, "text"), attrs)
@@ -638,6 +643,10 @@ def _append_text_body(parent: ET.Element, shape: Shape) -> None:
         r_pr_attrs["b"] = "1"
     if _is_italic(shape.font_style):
         r_pr_attrs["i"] = "1"
+    if _has_text_decoration(shape.text_decoration, "underline"):
+        r_pr_attrs["u"] = "sng"
+    if _has_text_decoration(shape.text_decoration, "line-through"):
+        r_pr_attrs["strike"] = "sngStrike"
     r_pr = ET.SubElement(run, qn(NS_A, "rPr"), r_pr_attrs)
     _append_text_run_properties(r_pr, shape)
     lines = (shape.text or "").split("\n")
@@ -802,6 +811,18 @@ def _dml_font_family(element: ET.Element) -> str | None:
     return None
 
 
+def _dml_text_decoration(element: ET.Element) -> str | None:
+    r_pr = element.find(f".//{qn(NS_A, 'rPr')}")
+    if r_pr is None:
+        return None
+    values = []
+    if r_pr.get("u") and r_pr.get("u") != "none":
+        values.append("underline")
+    if r_pr.get("strike") and r_pr.get("strike") != "noStrike":
+        values.append("line-through")
+    return " ".join(values) or None
+
+
 def _svg_text_content(element: ET.Element) -> str:
     if not any(_local_name(child.tag) == "tspan" for child in element):
         return "".join(element.itertext()).strip()
@@ -847,6 +868,12 @@ def _is_bold(value: str | None) -> bool:
 
 def _is_italic(value: str | None) -> bool:
     return value is not None and value.lower() in {"italic", "oblique"}
+
+
+def _has_text_decoration(value: str | None, decoration: str) -> bool:
+    if value is None:
+        return False
+    return decoration in {part.lower() for part in re.split(r"\s+", value.strip())}
 
 
 def _dml_custom_points(cust: ET.Element, x: float, y: float) -> tuple[list[tuple[float, float]], bool]:
@@ -1294,6 +1321,7 @@ def _computed_style(
         "font-family",
         "font-weight",
         "font-style",
+        "text-decoration",
         "text-anchor",
         "color",
         "display",
@@ -1351,6 +1379,7 @@ def _apply_rect_clip(
         font_weight=shape.font_weight,
         font_style=shape.font_style,
         font_family=shape.font_family,
+        text_decoration=shape.text_decoration,
         text_anchor=shape.text_anchor,
         rx=min(shape.rx or 0, (x2 - x1) / 2) if shape.rx is not None else None,
         ry=min(shape.ry or 0, (y2 - y1) / 2) if shape.ry is not None else None,
