@@ -524,6 +524,27 @@ def test_link_wrapper_converts_child_shapes_and_reports_href_only() -> None:
     assert report["unsupported_attributes"] == {"href": 1}
 
 
+def test_switch_renders_first_supported_branch_only() -> None:
+    svg = """<svg>
+      <switch>
+        <rect requiredExtensions="https://example.test/ext" x="0" y="0" width="10" height="10" fill="#123abc"/>
+        <rect x="0" y="0" width="10" height="10" fill="#16a34a"/>
+        <rect x="0" y="0" width="10" height="10" fill="#2563eb"/>
+      </switch>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+    report = analyze_svg(svg).to_dict()
+
+    assert dml.count("<p:sp>") == 1
+    assert 'val="16A34A"' in dml
+    assert 'val="123ABC"' not in dml
+    assert 'val="2563EB"' not in dml
+    assert report["estimated_element_coverage"] == 1.0
+    assert report["total_elements"] == 3
+    assert report["unsupported_elements"] == {}
+    assert report["unsupported_attributes"] == {}
+
+
 def test_opacity_is_written_as_drawingml_alpha() -> None:
     dml = svg_to_drawingml(
         '<svg><rect x="0" y="0" width="10" height="8" fill="#f008" stroke="#0000ff" opacity="0.25"/></svg>'

@@ -4,7 +4,7 @@
 
 It targets the practical subset needed for generated Office graphics and simple round-trips:
 
-- SVG: `rect`, `circle`, `ellipse`, `line`, `polygon`, `polyline`, linear/quadratic/cubic/arc `path`, `text`, simple `tspan`, and link/group containers
+- SVG: `rect`, `circle`, `ellipse`, `line`, `polygon`, `polyline`, linear/quadratic/cubic/arc `path`, `text`, simple `tspan`, link/group containers, and basic `switch` fallback selection
 - DrawingML: preset geometry shapes, custom geometry paths, and text boxes under `p:sp`
 - Geometry: position, size, percent geometry lengths, rounded rectangles, line endpoints, horizontal/vertical flips for lines
 - Images: embedded SVG `image` elements with base64 data URI sources

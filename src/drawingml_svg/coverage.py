@@ -19,6 +19,7 @@ from .converter import (
     _parse_transform,
     _root_viewbox_matrix,
     _supported_data_image,
+    _switch_selected_child,
 )
 
 SUPPORTED_ELEMENTS = {
@@ -33,6 +34,7 @@ SUPPORTED_ELEMENTS = {
     "polyline",
     "rect",
     "style",
+    "switch",
     "use",
     "svg",
     "symbol",
@@ -134,13 +136,16 @@ def _walk(
     use_supported = True
     if tag == "use":
         use_supported = _use_href_is_supported(element, refs)
+    switch_supported = True
+    if tag == "switch":
+        switch_supported = _switch_selected_child(element) is not None or len(element) == 0
 
     if tag in IGNORED_ELEMENTS or hidden:
         stats.ignored_elements += 1
-    elif tag in SUPPORTED_ELEMENTS and path_supported and use_supported:
+    elif tag in SUPPORTED_ELEMENTS and path_supported and use_supported and switch_supported:
         stats.convertible_elements += 1
     elif tag in SUPPORTED_ELEMENTS:
-        stats.add_unsupported_element(f"{tag}:unsupported-command" if tag == "path" else f"{tag}:unsupported-reference")
+        stats.add_unsupported_element(_supported_element_issue(tag))
     else:
         stats.add_unsupported_element(tag)
 
@@ -151,6 +156,11 @@ def _walk(
         _inspect_path(element.get("d", ""), stats)
 
     if tag == "defs" or hidden:
+        return
+    if tag == "switch":
+        selected = _switch_selected_child(element)
+        if selected is not None:
+            _walk(selected, css, refs, style, matrix, stats, ancestors + (element,))
         return
 
     for child in element:
@@ -210,3 +220,11 @@ def _path_is_supported(path_data: str) -> bool:
 def _use_href_is_supported(element: ET.Element, refs: dict[str, ET.Element]) -> bool:
     href = _href(element)
     return bool(href and href.startswith("#") and href[1:] in refs)
+
+
+def _supported_element_issue(tag: str) -> str:
+    if tag == "path":
+        return "path:unsupported-command"
+    if tag == "switch":
+        return "switch:unsupported-branch"
+    return f"{tag}:unsupported-reference"

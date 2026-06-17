@@ -162,6 +162,11 @@ def _svg_shapes_walk(
                 ref_viewport = _viewport_size(ref, use_width, use_height)
             yield from _svg_shapes_walk(ref, css, refs, style, use_matrix, ref_stack | {href[1:]}, ancestors + (element,), ref_viewport)
         return
+    if tag == "switch":
+        selected = _switch_selected_child(element)
+        if selected is not None:
+            yield from _svg_shapes_walk(selected, css, refs, style, matrix, ref_stack, ancestors + (element,), child_viewport)
+        return
 
     shape = _svg_shape_from_element(element, tag, style, matrix, refs, viewport)
     if shape is not None:
@@ -1825,6 +1830,17 @@ def _attribute_value(element: ET.Element, name: str) -> str | None:
 
 def _href(element: ET.Element) -> str | None:
     return element.get("href") or element.get("{http://www.w3.org/1999/xlink}href")
+
+
+def _switch_selected_child(element: ET.Element) -> ET.Element | None:
+    return next((child for child in element if _switch_child_is_supported(child)), None)
+
+
+def _switch_child_is_supported(element: ET.Element) -> bool:
+    for attr in ("requiredExtensions", "requiredFeatures", "requiredFormats"):
+        if element.get(attr, "").strip():
+            return False
+    return not element.get("systemLanguage", "").strip()
 
 
 def _supported_data_image(value: str) -> bool:
