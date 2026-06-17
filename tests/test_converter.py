@@ -552,7 +552,7 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
 
 def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     svg = """<svg>
-      <path d="M0 0 L10 0" pathLength="100" stroke="#111111"/>
+      <path d="M0 0 L10 0" pathLength="100" stroke="#111111" stroke-dashoffset="2"/>
       <text x="0" y="10" textLength="80" lengthAdjust="spacingAndGlyphs" font-variant="all-small-caps" word-spacing="4">
         <tspan rotate="15 0">Fit</tspan>
       </text>
@@ -566,6 +566,7 @@ def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
         "font-variant": 1,
         "pathLength": 1,
         "rotate": 1,
+        "stroke-dashoffset": 1,
         "textLength": 1,
         "word-spacing": 1,
     }

@@ -28,7 +28,7 @@
   <polygon points="316,74 344,104 332,144 292,144 280,104" fill="#fee2e2" stroke="#991b1b" stroke-width="3"/>
   <g transform="translate(34 18) rotate(-8 620 278)">
     <rect class="accent-box" x="596" y="246" width="76" height="46" fill="url(#panel-gradient)"/>
-    <path class="soft-line" d="M590 320 L632 306 L676 324" stroke-dasharray="8 4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="soft-line" d="M590 320 L632 306 L676 324" stroke-dasharray="8 4" stroke-dashoffset="2" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
   <use href="#reused-mark" x="640" y="70"/>
   <use href="#reused-mark" x="650" y="128" transform="scale(.82)"/>

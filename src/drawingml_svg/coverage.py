@@ -61,6 +61,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "paint-order",
     "pathLength",
     "rotate",
+    "stroke-dashoffset",
     "textLength",
     "vector-effect",
     "word-spacing",
