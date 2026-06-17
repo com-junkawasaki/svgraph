@@ -3438,27 +3438,64 @@ def _percentage_basis(axis: str, viewport: tuple[float, float]) -> float:
 
 
 def _calc_length(body: str, axis: str, viewport: tuple[float, float], allow_percent: bool) -> float | None:
-    terms = _calc_terms(body)
+    terms = _calc_additive_terms(body)
     if not terms:
         return None
     total = 0.0
     for sign, value in terms:
-        value = value.strip()
-        if not value:
+        number = _calc_product(value, axis, viewport, allow_percent)
+        if number is None:
             return None
-        if value.endswith("%"):
-            if not allow_percent:
-                return None
-            try:
-                number = _finite_float(value[:-1]) / 100 * _percentage_basis(axis, viewport)
-            except ValueError:
-                return None
-        else:
-            number = _num(value, math.nan)
-            if not math.isfinite(number):
-                return None
         total += sign * number
     return total if math.isfinite(total) else None
+
+
+def _calc_product(body: str, axis: str, viewport: tuple[float, float], allow_percent: bool) -> float | None:
+    factors = _calc_multiplicative_terms(body)
+    if not factors:
+        return None
+    total = _calc_factor(factors[0][1], axis, viewport, allow_percent)
+    if total is None:
+        return None
+    for operator, value in factors[1:]:
+        number = _calc_factor(value, axis, viewport, allow_percent)
+        if number is None:
+            return None
+        if operator == "*":
+            total *= number
+        else:
+            if number == 0:
+                return None
+            total /= number
+    return total if math.isfinite(total) else None
+
+
+def _calc_factor(value: str, axis: str, viewport: tuple[float, float], allow_percent: bool) -> float | None:
+    value = value.strip()
+    if not value:
+        return None
+    if value[0] in {"+", "-"}:
+        number = _calc_factor(value[1:], axis, viewport, allow_percent)
+        if number is None:
+            return None
+        return -number if value[0] == "-" else number
+    inner = _strip_enclosing_parens(value)
+    if inner is not None:
+        return _calc_length(inner, axis, viewport, allow_percent)
+    if value.lower().startswith("calc(") and value.endswith(")"):
+        return _calc_length(value[5:-1], axis, viewport, allow_percent)
+    if value.endswith("%"):
+        if not allow_percent:
+            return None
+        try:
+            return _finite_float(value[:-1]) / 100 * _percentage_basis(axis, viewport)
+        except ValueError:
+            return None
+    function_result = _css_length_function(value, axis, viewport, allow_percent)
+    if function_result is not None:
+        return function_result
+    number = _num(value, math.nan)
+    return number if math.isfinite(number) else None
 
 
 def _css_length_function(value: str, axis: str, viewport: tuple[float, float], allow_percent: bool) -> float | None:
@@ -3514,12 +3551,30 @@ def _css_function_args(body: str) -> list[str]:
     return args
 
 
-def _calc_terms(body: str) -> list[tuple[float, str]]:
+def _calc_additive_terms(body: str) -> list[tuple[float, str]]:
     terms: list[tuple[float, str]] = []
     current: list[str] = []
     sign = 1.0
+    depth = 0
+    quote: str | None = None
     for index, char in enumerate(body):
-        if char in {"+", "-"} and (index == 0 or body[index - 1] not in {"e", "E"}):
+        if quote is not None:
+            current.append(char)
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")" and depth:
+            depth -= 1
+        if (
+            char in {"+", "-"}
+            and depth == 0
+            and not _calc_sign_is_exponent(body, index)
+            and not _calc_sign_is_unary(body, index)
+        ):
             if current:
                 terms.append((sign, "".join(current)))
                 current = []
@@ -3529,6 +3584,67 @@ def _calc_terms(body: str) -> list[tuple[float, str]]:
     if current:
         terms.append((sign, "".join(current)))
     return terms
+
+
+def _calc_multiplicative_terms(body: str) -> list[tuple[str, str]]:
+    terms: list[tuple[str, str]] = []
+    current: list[str] = []
+    operator = "*"
+    depth = 0
+    quote: str | None = None
+    for char in body:
+        if quote is not None:
+            current.append(char)
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")" and depth:
+            depth -= 1
+        if char in {"*", "/"} and depth == 0:
+            if not current:
+                return []
+            terms.append((operator, "".join(current)))
+            current = []
+            operator = char
+            continue
+        current.append(char)
+    if current:
+        terms.append((operator, "".join(current)))
+    return terms
+
+
+def _calc_sign_is_exponent(body: str, index: int) -> bool:
+    return index > 0 and body[index - 1] in {"e", "E"}
+
+
+def _calc_sign_is_unary(body: str, index: int) -> bool:
+    previous = body[:index].rstrip()
+    return not previous or previous[-1] in {"(", "*", "/"}
+
+
+def _strip_enclosing_parens(value: str) -> str | None:
+    if not (value.startswith("(") and value.endswith(")")):
+        return None
+    depth = 0
+    quote: str | None = None
+    for index, char in enumerate(value):
+        if quote is not None:
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0 and index != len(value) - 1:
+                return None
+    return value[1:-1] if depth == 0 else None
 
 
 def _emu(px: float) -> int:
