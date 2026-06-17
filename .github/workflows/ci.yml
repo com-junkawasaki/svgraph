@@ -51,8 +51,6 @@ jobs:
           assert complex_report.unsupported_attributes == {
               "mix-blend-mode": 1,
               "rotate": 1,
-              "shape-rendering": 1,
-              "text-rendering": 1,
           }, complex_report
           PY
 

@@ -227,8 +227,10 @@ def _inspect_attributes(
     no_effect_attrs = {
         "clip-path",
         "clip-rule",
+        "color-rendering",
         "fill-rule",
         "filter",
+        "image-rendering",
         "marker-end",
         "marker-mid",
         "marker-start",
@@ -408,8 +410,17 @@ def _attribute_has_no_effect(attr: str, style: dict[str, str]) -> bool:
         return normalized == "nonzero"
     if attr == "paint-order":
         return normalized in {"normal", "fill", "fill stroke", "fill stroke markers"}
-    if attr in {"shape-rendering", "text-rendering"}:
-        return normalized == "auto"
+    if attr in {"color-rendering", "image-rendering", "shape-rendering", "text-rendering"}:
+        return normalized in {
+            "auto",
+            "crisp-edges",
+            "crispedges",
+            "geometricprecision",
+            "optimizelegibility",
+            "optimizequality",
+            "optimizespeed",
+            "pixelated",
+        }
     if attr == "vector-effect":
         return normalized == "none"
     return False

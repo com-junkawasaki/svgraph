@@ -764,16 +764,12 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
     assert report.unsupported_elements == {}
     assert report.unsupported_attributes == {
         "clip-rule": 1,
-        "color-rendering": 1,
         "fill-rule": 1,
         "filter": 1,
-        "image-rendering": 1,
         "isolation": 1,
         "mask": 1,
         "mix-blend-mode": 1,
         "paint-order": 1,
-        "shape-rendering": 1,
-        "text-rendering": 1,
         "vector-effect": 1,
     }
 
@@ -806,6 +802,16 @@ def test_analyze_svg_ignores_default_visual_attribute_values() -> None:
     </svg>"""
 
     assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_analyze_svg_ignores_rendering_quality_hints() -> None:
+    svg = """<svg>
+      <path d="M0 0 H10 V10 Z" color-rendering="optimizeQuality" shape-rendering="crispEdges"/>
+      <image href="photo.png" x="0" y="0" width="10" height="8" image-rendering="pixelated"/>
+      <text x="0" y="20" text-rendering="geometricPrecision">Hint</text>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {"href": 1}
 
 
 def test_analyze_svg_deduplicates_isolation_when_blend_is_reported() -> None:
