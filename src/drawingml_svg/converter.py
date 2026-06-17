@@ -180,7 +180,7 @@ def _svg_shapes_walk(
             yield from _svg_shapes_walk(selected, css, refs, style, matrix, ref_stack, ancestors + (element,), child_viewport)
         return
 
-    shape = _svg_shape_from_element(element, tag, style, matrix, refs, viewport, css)
+    shape = _svg_shape_from_element(element, tag, style, matrix, refs, viewport, css, ancestors)
     if shape is not None:
         shape = _apply_rect_clip(shape, style, refs, matrix)
     if shape is not None:
@@ -198,6 +198,7 @@ def _svg_shape_from_element(
     refs: dict[str, ET.Element] | None = None,
     viewport: tuple[float, float] = (0.0, 0.0),
     css: list[CssRule] | None = None,
+    ancestors: tuple[ET.Element, ...] = (),
 ) -> Shape | None:
     refs = refs or {}
     css = css or []
@@ -273,7 +274,7 @@ def _svg_shape_from_element(
             points, closed = path
             return _freeform_shape(_transform_points(points, matrix), plain_paint if closed else scaled_paint, closed=closed)
     if tag == "text":
-        text = _apply_text_transform(_svg_text_content(element), style.get("text-transform"))
+        text = _svg_text_content(element, style, css, ancestors)
         if text:
             font_size = _num(style.get("font-size"), 16) * _matrix_scale(matrix)
             x, y = _apply_matrix(matrix, _svg_text_position(element, viewport))
@@ -1482,26 +1483,46 @@ def _dominant_baseline(value: str | None) -> str | None:
     return None
 
 
-def _svg_text_content(element: ET.Element) -> str:
+def _svg_text_content(
+    element: ET.Element,
+    style: dict[str, str] | None = None,
+    css: list[CssRule] | None = None,
+    ancestors: tuple[ET.Element, ...] = (),
+) -> str:
+    style = style or {}
+    css = css or []
     preserve_space = _xml_space_preserve(element)
     if not any(_local_name(child.tag) == "tspan" for child in element):
         text = "".join(element.itertext())
-        return text if preserve_space else text.strip()
+        text = text if preserve_space else text.strip()
+        return _apply_text_transform(text, style.get("text-transform"))
     lines = []
     leading = element.text or ""
     if not preserve_space:
         leading = leading.strip()
     if leading:
-        lines.append(leading)
+        lines.append(_apply_text_transform(leading, style.get("text-transform")))
     for child in element:
         if _local_name(child.tag) == "tspan":
             child_preserve_space = preserve_space or _xml_space_preserve(child)
+            child_style = _computed_style(child, css, style, ancestors + (element,)) if css else _presentation_style(child, style)
             text = "".join(child.itertext())
             if not child_preserve_space:
                 text = text.strip()
             if text:
-                lines.append(text)
+                lines.append(_apply_text_transform(text, child_style.get("text-transform")))
     return "\n".join(lines)
+
+
+def _presentation_style(element: ET.Element, inherited: dict[str, str]) -> dict[str, str]:
+    style = dict(inherited)
+    value = element.get("text-transform")
+    if value is not None:
+        style["text-transform"] = value
+    for key, (value, _) in _parse_style_declarations(element.get("style", "")).items():
+        if key == "text-transform":
+            style[key] = value
+    return style
 
 
 def _apply_text_transform(text: str, value: str | None) -> str:

@@ -702,13 +702,35 @@ def test_css_text_transform_capitalize_maps_to_literal_text() -> None:
     assert analyze_svg(source).unsupported_attributes == {}
 
 
-def test_tspan_text_transform_is_reported_as_unsupported() -> None:
+def test_tspan_text_transform_maps_to_literal_text() -> None:
     source = '<svg><text x="10" y="20" font-size="10" fill="#111">Keep <tspan text-transform="uppercase">small</tspan></text></svg>'
     dml = svg_to_drawingml(source)
 
     assert "<a:t>Keep</a:t>" in dml
-    assert "<a:t>small</a:t>" in dml
-    assert "<a:t>SMALL</a:t>" not in dml
+    assert "<a:t>SMALL</a:t>" in dml
+    assert analyze_svg(source).unsupported_attributes == {}
+
+
+def test_css_tspan_text_transform_overrides_parent_transform() -> None:
+    source = """<svg>
+      <style>tspan.keep { text-transform: none; }</style>
+      <text x="10" y="20" text-transform="uppercase" font-size="10" fill="#111">
+        <tspan>loud</tspan>
+        <tspan class="keep">MiXeD</tspan>
+      </text>
+    </svg>"""
+    dml = svg_to_drawingml(source)
+
+    assert "<a:t>LOUD</a:t>" in dml
+    assert "<a:t>MiXeD</a:t>" in dml
+    assert analyze_svg(source).unsupported_attributes == {}
+
+
+def test_unsupported_text_transform_value_is_reported() -> None:
+    source = '<svg><text x="10" y="20" font-size="10" fill="#111"><tspan text-transform="full-width">wide</tspan></text></svg>'
+    dml = svg_to_drawingml(source)
+
+    assert "<a:t>wide</a:t>" in dml
     assert analyze_svg(source).unsupported_attributes == {"text-transform": 1}
 
 

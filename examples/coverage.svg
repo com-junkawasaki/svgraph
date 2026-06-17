@@ -41,7 +41,7 @@
     <rect class="hidden-probe" x="-40" y="-30" width="400" height="240"/>
     <text class="title" x="160" y="46">
       <tspan>Coverage</tspan>
-      <tspan x="160" dy="24">fixture</tspan>
+      <tspan x="160" dy="24" text-transform="uppercase">fixture</tspan>
     </text>
     <text x="96" y="66" dx="4" dy="2" rotate="3" letter-spacing="2px" font-variant="small-caps" xml:space="preserve" font-size="9" fill="#334155">  spaced  </text>
     <text x="24" y="154" font-variant="all-small-caps" font-size="8" fill="#0f172a" text-rendering="auto">caps mode</text>

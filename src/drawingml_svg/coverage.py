@@ -388,8 +388,6 @@ def _text_rotate_is_supported(element: ET.Element, style: dict[str, str]) -> boo
 
 
 def _text_transform_is_supported(element: ET.Element, style: dict[str, str]) -> bool:
-    if _local_name(element.tag) == "tspan":
-        return False
     value = style.get("text-transform")
     return value is not None and value.strip().lower() in {"none", "uppercase", "lowercase", "capitalize"}
 
