@@ -292,7 +292,7 @@ def _svg_shape_from_element(
                 y,
                 width,
                 height,
-                _text_paint(style, refs, css),
+                _text_paint(style, refs, css, _stroke_transform_scale(style, matrix)),
                 text=text,
                 font_size=font_size,
                 font_weight=style.get("font-weight"),
@@ -777,14 +777,19 @@ def _svg_marker_value(value: str | None, refs: dict[str, ET.Element]) -> str | N
     return marker_id
 
 
-def _text_paint(style: dict[str, str], refs: dict[str, ET.Element], css: list[CssRule] | None = None) -> Paint:
+def _text_paint(
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+    css: list[CssRule] | None = None,
+    stroke_scale: float = 1.0,
+) -> Paint:
     fill, color_alpha = _paint_value(style.get("fill"), refs, style.get("color"), css or [])
     stroke, stroke_color_alpha = _paint_value(style.get("stroke"), refs, style.get("color"), css or [])
     stroke_width = _optional_length(style.get("stroke-width"), "x", (0.0, 0.0))
     return Paint(
         fill=fill or "#000000",
         stroke=stroke,
-        stroke_width=stroke_width,
+        stroke_width=stroke_width * stroke_scale if stroke_width is not None else None,
         fill_alpha=_combined_alpha(_alpha(style, "fill"), color_alpha),
         stroke_alpha=_combined_alpha(_alpha(style, "stroke"), stroke_color_alpha),
     )

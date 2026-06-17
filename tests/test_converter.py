@@ -1202,6 +1202,33 @@ def test_text_stroke_maps_to_run_outline() -> None:
     assert 'stroke-opacity="0.5"' in round_trip
 
 
+def test_text_stroke_width_scales_with_transform() -> None:
+    svg = '<svg><text x="0" y="10" fill="#111111" stroke="#ffffff" stroke-width="2" transform="scale(2)">Outlined</text></svg>'
+
+    dml = svg_to_drawingml(svg)
+
+    assert '<a:rPr sz="3200">' in dml
+    assert '<a:ln w="38100">' in dml
+
+    round_trip = drawingml_to_svg(dml)
+    assert 'font-size="32"' in round_trip
+    assert 'stroke-width="4"' in round_trip
+
+
+def test_text_non_scaling_stroke_width_survives_transform() -> None:
+    svg = '<svg><text x="0" y="10" fill="#111111" stroke="#ffffff" stroke-width="2" vector-effect="non-scaling-stroke" transform="scale(2)">Outlined</text></svg>'
+
+    dml = svg_to_drawingml(svg)
+
+    assert '<a:rPr sz="3200">' in dml
+    assert '<a:ln w="19050">' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+    round_trip = drawingml_to_svg(dml)
+    assert 'font-size="32"' in round_trip
+    assert 'stroke-width="2"' in round_trip
+
+
 def test_quadratic_path_is_approximated_as_custom_geometry() -> None:
     dml = svg_to_drawingml('<svg><path d="M0 0 Q10 20 30 0 T60 0" fill="none" stroke="#be123c"/></svg>')
 

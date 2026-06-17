@@ -72,6 +72,7 @@ jobs:
           assert '<a:alphaModFix amt="65000"' in slide, "image opacity was not written to DrawingML"
           assert "<a:headEnd type=\"triangle\"" in slide, "line marker was not converted to a DrawingML arrow"
           assert "<a:custDash>" in slide, "non-zero custom dash was not written"
+          assert '<a:ln w="14288">' in slide, "transformed text outline width was not scaled"
           assert "<a:ds d=\"0\" sp=\"0\"" not in slide, "zero dasharray should remain a solid line"
           assert "cap=\"all\"" in slide, "all-small-caps text was not preserved"
           assert "spc=\"" in slide, "text spacing adjustments were not written"
