@@ -331,6 +331,20 @@ def test_text_single_rotate_maps_to_shape_rotation() -> None:
     assert 'rotate="30"' in svg
 
 
+def test_text_letter_spacing_maps_to_character_spacing() -> None:
+    source = '<svg><text x="10" y="20" letter-spacing="2px" font-size="10" fill="#111">Spaced</text></svg>'
+    dml = svg_to_drawingml(source)
+
+    root = ET.fromstring(dml)
+    run_pr = root.find(".//{http://schemas.openxmlformats.org/drawingml/2006/main}rPr")
+    assert run_pr is not None
+    assert run_pr.get("spc") == "150"
+    assert analyze_svg(source).unsupported_attributes == {}
+
+    svg = drawingml_to_svg(dml)
+    assert 'letter-spacing="2"' in svg
+
+
 def test_xml_space_preserve_keeps_text_whitespace() -> None:
     dml = svg_to_drawingml(
         '<svg><text x="0" y="20" xml:space="preserve" fill="#111111">  padded  <tspan> kept </tspan></text></svg>'
@@ -525,7 +539,7 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
 def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     svg = """<svg>
       <path d="M0 0 L10 0" pathLength="100" stroke="#111111"/>
-      <text x="0" y="10" textLength="80" lengthAdjust="spacingAndGlyphs" letter-spacing="2" word-spacing="4">
+      <text x="0" y="10" textLength="80" lengthAdjust="spacingAndGlyphs" word-spacing="4">
         <tspan rotate="15 0">Fit</tspan>
       </text>
     </svg>"""
@@ -535,7 +549,6 @@ def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     assert report.unsupported_elements == {}
     assert report.unsupported_attributes == {
         "lengthAdjust": 1,
-        "letter-spacing": 1,
         "pathLength": 1,
         "rotate": 1,
         "textLength": 1,

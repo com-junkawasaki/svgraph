@@ -61,6 +61,7 @@ class Shape:
     text_decoration: str | None = None
     text_anchor: str | None = None
     text_baseline: str | None = None
+    letter_spacing: float | None = None
     rx: float | None = None
     ry: float | None = None
     image_href: str | None = None
@@ -267,6 +268,7 @@ def _svg_shape_from_element(
                 text_decoration=style.get("text-decoration"),
                 text_anchor=anchor,
                 text_baseline=baseline,
+                letter_spacing=_svg_letter_spacing(style, viewport),
                 rotation=_svg_text_rotation(element, style),
             )
     if tag == "image":
@@ -321,6 +323,7 @@ def _dml_shapes(root: ET.Element) -> Iterable[Shape]:
                 text_decoration=_dml_text_decoration(element),
                 text_anchor=_dml_text_anchor(element),
                 text_baseline=_dml_text_baseline(element),
+                letter_spacing=_dml_letter_spacing(element),
                 rotation=rotation,
             )
             continue
@@ -445,6 +448,8 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
             attrs["text-anchor"] = shape.text_anchor
         if shape.text_baseline:
             attrs["dominant-baseline"] = shape.text_baseline
+        if shape.letter_spacing is not None:
+            attrs["letter-spacing"] = _fmt(shape.letter_spacing)
         if shape.rotation is not None:
             attrs["rotate"] = _fmt(shape.rotation)
         element = ET.Element(qn(NS_SVG, "text"), attrs)
@@ -753,6 +758,8 @@ def _append_text_body(parent: ET.Element, shape: Shape) -> None:
         r_pr_attrs["u"] = "sng"
     if _has_text_decoration(shape.text_decoration, "line-through"):
         r_pr_attrs["strike"] = "sngStrike"
+    if shape.letter_spacing is not None:
+        r_pr_attrs["spc"] = str(round(shape.letter_spacing * 0.75 * 100))
     r_pr = ET.SubElement(run, qn(NS_A, "rPr"), r_pr_attrs)
     _append_text_run_properties(r_pr, shape)
     lines = (shape.text or "").split("\n")
@@ -960,6 +967,16 @@ def _dml_font_family(element: ET.Element) -> str | None:
     return None
 
 
+def _dml_letter_spacing(element: ET.Element) -> float | None:
+    r_pr = element.find(f".//{qn(NS_A, 'rPr')}")
+    if r_pr is None or r_pr.get("spc") is None:
+        return None
+    try:
+        return int(r_pr.get("spc", "0")) / 100 / 0.75
+    except ValueError:
+        return None
+
+
 def _dml_text_decoration(element: ET.Element) -> str | None:
     r_pr = element.find(f".//{qn(NS_A, 'rPr')}")
     if r_pr is None:
@@ -1079,6 +1096,13 @@ def _single_svg_rotation(value: str | None) -> float | None:
     if len(numbers) != 1:
         return None
     return float(numbers[0])
+
+
+def _svg_letter_spacing(style: dict[str, str], viewport: tuple[float, float]) -> float | None:
+    value = style.get("letter-spacing")
+    if value is None or value.strip().lower() == "normal":
+        return None
+    return _optional_length(value, "x", viewport)
 
 
 def _is_bold(value: str | None) -> bool:
@@ -1668,8 +1692,10 @@ def _apply_rect_clip(
         text_decoration=shape.text_decoration,
         text_anchor=shape.text_anchor,
         text_baseline=shape.text_baseline,
+        letter_spacing=shape.letter_spacing,
         rx=min(shape.rx or 0, (x2 - x1) / 2) if shape.rx is not None else None,
         ry=min(shape.ry or 0, (y2 - y1) / 2) if shape.ry is not None else None,
+        rotation=shape.rotation,
     )
 
 

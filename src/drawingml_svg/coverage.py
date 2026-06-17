@@ -16,6 +16,7 @@ from .converter import (
     _local_name,
     _marker_is_supported,
     _matrix_multiply,
+    _optional_length,
     _parse_linear_path,
     _parse_transform,
     _root_viewbox_matrix,
@@ -192,6 +193,8 @@ def _inspect_attributes(
             continue
         if attr in {"marker-start", "marker-end"} and _marker_is_supported(element, style, refs):
             continue
+        if attr == "letter-spacing" and _letter_spacing_is_supported(specified_style):
+            continue
         if attr == "rotate" and _text_rotate_is_supported(element, specified_style):
             continue
         if specified_style.get(attr) is not None:
@@ -233,6 +236,15 @@ def _text_rotate_is_supported(element: ET.Element, style: dict[str, str]) -> boo
         return False
     value = style.get("rotate")
     return value is not None and len(re.findall(NUMBER_RE, value)) == 1
+
+
+def _letter_spacing_is_supported(style: dict[str, str]) -> bool:
+    value = style.get("letter-spacing")
+    if value is None:
+        return False
+    if value.strip().lower() == "normal":
+        return True
+    return _optional_length(value, "x", (0.0, 0.0)) is not None
 
 
 def _path_is_supported(path_data: str) -> bool:
