@@ -1474,6 +1474,20 @@ def test_data_uri_image_converts_to_picture_and_round_trips() -> None:
     assert f'href="{PNG_DATA_URI}"' in round_trip
 
 
+def test_data_uri_image_opacity_maps_to_picture_alpha_and_round_trips() -> None:
+    svg = f'<svg><image href="{PNG_DATA_URI}" x="10" y="12" width="20" height="16" opacity="0.35"/></svg>'
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    alpha = root.find(".//{http://schemas.openxmlformats.org/drawingml/2006/main}alphaModFix")
+    assert alpha is not None
+    assert alpha.attrib == {"amt": "35000"}
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+    round_trip = drawingml_to_svg(dml)
+    assert 'opacity="0.35"' in round_trip
+
+
 def test_xlink_data_uri_image_converts_to_picture_media() -> None:
     svg = f'<svg xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="{PNG_DATA_URI}" x="10" y="12" width="20" height="16"/></svg>'
     fragment = ET.fromstring(svg_to_drawingml(svg))

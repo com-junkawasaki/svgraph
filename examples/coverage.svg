@@ -84,7 +84,7 @@
     <svg x="296" y="116" width="32" height="36" viewBox="0 0 16 8" preserveAspectRatio="xMaxYMax slice">
       <rect x="0" y="0" width="16" height="8" rx="2" fill="#fee2e2" stroke="#991b1b" stroke-width="1"/>
     </svg>
-    <image xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg==" x="286" y="36" width="28" height="28" clip-path="url(#object-crop)"/>
+    <image xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg==" x="286" y="36" width="28" height="28" opacity=".65" clip-path="url(#object-crop)"/>
     <use xlink:href="#pin" x="276" y="78" width="40" height="40" color="#2563eb"/>
   </g>
 </svg>

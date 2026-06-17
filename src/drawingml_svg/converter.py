@@ -318,7 +318,7 @@ def _svg_shape_from_element(
             min_y = min(py for _, py in points)
             max_x = max(px for px, _ in points)
             max_y = max(py for _, py in points)
-            return Shape("image", min_x, min_y, max_x - min_x, max_y - min_y, Paint(), image_href=href)
+            return Shape("image", min_x, min_y, max_x - min_x, max_y - min_y, Paint(fill_alpha=_image_alpha(style)), image_href=href)
     return None
 
 
@@ -436,16 +436,16 @@ def _shape_to_dml(shape: Shape, shape_id: int) -> ET.Element:
 def _shape_to_svg(shape: Shape) -> ET.Element:
     attrs = _svg_paint_attrs(shape.paint)
     if shape.kind == "image":
-        return ET.Element(
-            qn(NS_SVG, "image"),
-            {
-                "href": shape.image_href or "",
-                "x": _fmt(shape.x),
-                "y": _fmt(shape.y),
-                "width": _fmt(shape.width),
-                "height": _fmt(shape.height),
-            },
-        )
+        attrs = {
+            "href": shape.image_href or "",
+            "x": _fmt(shape.x),
+            "y": _fmt(shape.y),
+            "width": _fmt(shape.width),
+            "height": _fmt(shape.height),
+        }
+        if shape.paint.fill_alpha is not None and shape.paint.fill_alpha < 1:
+            attrs["opacity"] = _fmt(shape.paint.fill_alpha)
+        return ET.Element(qn(NS_SVG, "image"), attrs)
     if shape.kind in {"rect", "roundRect"}:
         attrs.update(
             {
@@ -522,7 +522,9 @@ def _image_to_dml(shape: Shape, shape_id: int) -> ET.Element:
     ET.SubElement(nv_pic_pr, qn(NS_P, "cNvPicPr"))
     ET.SubElement(nv_pic_pr, qn(NS_P, "nvPr"))
     blip_fill = ET.SubElement(pic, qn(NS_P, "blipFill"))
-    ET.SubElement(blip_fill, qn(NS_A, "blip"), {qn(NS_R, "embed"): shape.image_href or ""})
+    blip = ET.SubElement(blip_fill, qn(NS_A, "blip"), {qn(NS_R, "embed"): shape.image_href or ""})
+    if shape.paint.fill_alpha is not None and shape.paint.fill_alpha < 1:
+        ET.SubElement(blip, qn(NS_A, "alphaModFix"), {"amt": str(round(max(0.0, min(shape.paint.fill_alpha, 1.0)) * 100000))})
     stretch = ET.SubElement(blip_fill, qn(NS_A, "stretch"))
     ET.SubElement(stretch, qn(NS_A, "fillRect"))
     sp_pr = ET.SubElement(pic, qn(NS_P, "spPr"))
@@ -543,7 +545,7 @@ def _dml_picture_shape(element: ET.Element) -> Shape | None:
     if not href:
         return None
     x, y, width, height, flip_h, flip_v, rotation = _dml_xfrm(sp_pr.find(qn(NS_A, "xfrm")))
-    return Shape("image", x, y, width, height, Paint(), flip_h, flip_v, image_href=href, rotation=rotation)
+    return Shape("image", x, y, width, height, Paint(fill_alpha=_dml_blip_alpha(blip)), flip_h, flip_v, image_href=href, rotation=rotation)
 
 
 def _append_svg_marker_defs(svg: ET.Element, shapes: list[Shape]) -> None:
@@ -875,6 +877,16 @@ def _dml_alpha(parent: ET.Element) -> float | None:
     if alpha is not None and alpha.get("val"):
         return int(alpha.get("val", "100000")) / 100000
     return None
+
+
+def _dml_blip_alpha(blip: ET.Element) -> float | None:
+    alpha_mod_fix = blip.find(qn(NS_A, "alphaModFix"))
+    if alpha_mod_fix is None or alpha_mod_fix.get("amt") is None:
+        return None
+    try:
+        return int(alpha_mod_fix.get("amt", "100000")) / 100000
+    except ValueError:
+        return None
 
 
 def _dml_line_width(ln: ET.Element | None) -> float | None:
@@ -2246,6 +2258,12 @@ def _alpha(style: dict[str, str], channel: str) -> float | None:
     for value in values:
         alpha *= value
     return alpha
+
+
+def _image_alpha(style: dict[str, str]) -> float | None:
+    if style.get("opacity") is None:
+        return None
+    return _clamped_num(style.get("opacity"), 1.0)
 
 
 def _combined_alpha(*values: float | None) -> float | None:
