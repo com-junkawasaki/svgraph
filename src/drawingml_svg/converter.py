@@ -2821,7 +2821,7 @@ def _rect_clip_bounds(
     clip = refs.get(ref[0])
     if clip is None or _local_name(clip.tag) != "clipPath":
         return None
-    units = clip.get("clipPathUnits", "userSpaceOnUse")
+    units = _clip_path_units(clip)
     if units not in {"userSpaceOnUse", "objectBoundingBox"}:
         return None
     rect = next((child for child in clip if _local_name(child.tag) == "rect"), None)
@@ -2878,12 +2878,17 @@ def _rect_clip_path_has_object_bbox_rect(style: dict[str, str], refs: dict[str, 
     if ref is None or ref[1].strip():
         return False
     clip = refs.get(ref[0])
-    if clip is None or _local_name(clip.tag) != "clipPath" or clip.get("clipPathUnits") != "objectBoundingBox":
+    if clip is None or _local_name(clip.tag) != "clipPath" or _clip_path_units(clip) != "objectBoundingBox":
         return False
     if clip.get("transform") is not None:
         return False
     rect = next((child for child in clip if _local_name(child.tag) == "rect"), None)
     return rect is not None and rect.get("transform") is None and _num(rect.get("width"), 0) > 0 and _num(rect.get("height"), 0) > 0
+
+
+def _clip_path_units(clip: ET.Element) -> str:
+    normalized = clip.get("clipPathUnits", "userSpaceOnUse").strip().lower()
+    return {"userspaceonuse": "userSpaceOnUse", "objectboundingbox": "objectBoundingBox"}.get(normalized, "")
 
 
 def _marker_is_supported(element: ET.Element, style: dict[str, str], refs: dict[str, ET.Element]) -> bool:

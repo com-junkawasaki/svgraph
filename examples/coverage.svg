@@ -37,7 +37,7 @@
     <clipPath id="badge-crop">
       <rect x="214" y="24" width="58" height="38"/>
     </clipPath>
-    <clipPath id="object-crop" clipPathUnits="objectBoundingBox">
+    <clipPath id="object-crop" clipPathUnits=" OBJECTBOUNDINGBOX ">
       <rect x=".15" y=".2" width=".7" height=".55"/>
     </clipPath>
   </defs>

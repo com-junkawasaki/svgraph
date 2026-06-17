@@ -1147,6 +1147,21 @@ def test_object_bounding_box_clip_path_clips_rect_geometry() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_clip_path_units_values_are_normalized() -> None:
+    svg = """<svg>
+      <defs><clipPath id="crop" clipPathUnits=" OBJECTBOUNDINGBOX "><rect x=".25" y=".2" width=".5" height=".4"/></clipPath></defs>
+      <rect x="10" y="20" width="80" height="50" fill="#f97316" clip-path="url(#crop)"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    shape_off = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    shape_ext = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    assert shape_off.attrib == {"x": "285750", "y": "285750"}
+    assert shape_ext.attrib == {"cx": "381000", "cy": "190500"}
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_clip_path_url_allows_whitespace_around_reference() -> None:
     svg = """<svg>
       <defs><clipPath id="crop"><rect x="2" y="1" width="5" height="4"/></clipPath></defs>
