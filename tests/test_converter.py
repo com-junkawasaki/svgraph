@@ -345,6 +345,12 @@ def test_text_letter_spacing_maps_to_character_spacing() -> None:
     assert 'letter-spacing="2"' in svg
 
 
+def test_word_spacing_without_spaces_is_not_reported_as_unsupported() -> None:
+    source = '<svg><text x="10" y="20" word-spacing="4px" font-size="10" fill="#111">Compact<tspan>Label</tspan></text></svg>'
+
+    assert analyze_svg(source).unsupported_attributes == {}
+
+
 def test_text_small_caps_maps_to_drawingml_caps() -> None:
     source = '<svg><text x="10" y="20" font-variant="small-caps" font-size="10" fill="#111">Caps</text></svg>'
     dml = svg_to_drawingml(source)
@@ -592,7 +598,7 @@ def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     svg = """<svg>
       <path d="M0 0 L10 0" pathLength="100" stroke="#111111" stroke-dashoffset="2"/>
       <text x="0" y="10" textLength="80" lengthAdjust="spacingAndGlyphs" font-variant="all-small-caps" word-spacing="4">
-        <tspan rotate="15 0">Fit</tspan>
+        <tspan rotate="15 0">Fit word</tspan>
       </text>
     </svg>"""
 

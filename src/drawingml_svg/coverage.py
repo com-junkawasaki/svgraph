@@ -22,6 +22,7 @@ from .converter import (
     _parse_transform,
     _root_viewbox_matrix,
     _supported_data_image,
+    _svg_text_content,
     _switch_selected_child,
 )
 
@@ -219,6 +220,8 @@ def _inspect_attributes(
             continue
         if attr == "rotate" and _text_rotate_is_supported(element, specified_style):
             continue
+        if attr == "word-spacing" and _word_spacing_has_no_effect(element, specified_style):
+            continue
         if specified_style.get(attr) is not None:
             stats.add_unsupported_attribute(attr)
     href = _href(element)
@@ -283,6 +286,21 @@ def _letter_spacing_is_supported(style: dict[str, str]) -> bool:
     if value.strip().lower() == "normal":
         return True
     return _optional_length(value, "x", (0.0, 0.0)) is not None
+
+
+def _word_spacing_has_no_effect(element: ET.Element, style: dict[str, str]) -> bool:
+    value = style.get("word-spacing")
+    if value is None:
+        return False
+    if value.strip().lower() == "normal":
+        return True
+    if _optional_length(value, "x", (0.0, 0.0)) == 0:
+        return True
+    if _local_name(element.tag) == "text":
+        return not re.search(r"[ \t\f\v]", _svg_text_content(element))
+    if _local_name(element.tag) == "tspan":
+        return not re.search(r"[ \t\f\v]", "".join(element.itertext()))
+    return False
 
 
 def _font_variant_is_supported(style: dict[str, str]) -> bool:
