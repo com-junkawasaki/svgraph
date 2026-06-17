@@ -1324,11 +1324,25 @@ def _svg_dasharray_with_offset(value: str, offset: float, viewport: tuple[float,
     for index, length in enumerate(nums):
         end = cursor + length
         if offset < end or _close(offset, end):
+            if _close(offset, end):
+                cursor = end
+                continue
             if index % 2 == 1:
-                return None
+                remaining_gap = end - offset
+                if _close(remaining_gap, 0):
+                    cursor = end
+                    continue
+                shifted = [0.0, remaining_gap, *nums[index + 1 :], *nums[:index]]
+                consumed_gap = offset - cursor
+                if not _close(consumed_gap, 0):
+                    shifted.append(consumed_gap)
+                if len(shifted) % 2 == 1:
+                    shifted.append(0.0)
+                return shifted
             remaining = end - offset
             if _close(remaining, 0):
-                return None
+                cursor = end
+                continue
             shifted = [remaining, *nums[index + 1 :], *nums[:index]]
             consumed = offset - cursor
             if not _close(consumed, 0):
