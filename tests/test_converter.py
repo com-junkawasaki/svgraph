@@ -3137,6 +3137,26 @@ def test_data_uri_image_preserve_aspect_ratio_slice_crops_picture_source() -> No
     assert src_rect.attrib == {"t": "25000", "b": "25000"}
     assert analyze_svg(svg).unsupported_attributes == {}
 
+    round_trip = drawingml_to_svg(dml)
+    assert 'preserveAspectRatio="xMidYMid slice"' in round_trip
+
+
+def test_drawingml_picture_source_crop_round_trips_to_svg_preserve_aspect_ratio() -> None:
+    dml = f"""<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+      xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <p:pic>
+        <p:nvPicPr><p:cNvPr id="2" name="image"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>
+        <p:blipFill><a:blip r:embed="{PNG_DATA_URI}"/><a:srcRect t="25000" b="25000"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>
+        <p:spPr><a:xfrm><a:off x="95250" y="190500"/><a:ext cx="190500" cy="95250"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+      </p:pic>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'preserveAspectRatio="xMidYMid slice"' in svg
+    assert analyze_svg(svg).unsupported_attributes == {}
+
 
 def test_webp_data_uri_dimensions_support_preserve_aspect_ratio() -> None:
     webp = _webp_data_uri(32, 16)

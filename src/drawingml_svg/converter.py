@@ -491,6 +491,9 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
         }
         if shape.paint.fill_alpha is not None and shape.paint.fill_alpha < 1:
             attrs["opacity"] = _fmt(shape.paint.fill_alpha)
+        preserve_aspect_ratio = _svg_image_preserve_aspect_ratio(shape)
+        if preserve_aspect_ratio is not None:
+            attrs["preserveAspectRatio"] = preserve_aspect_ratio
         transform = _svg_image_transform(shape)
         if transform:
             attrs["transform"] = transform
@@ -711,6 +714,27 @@ def _svg_shape_transform(shape: Shape) -> str | None:
 
 def _svg_image_transform(shape: Shape) -> str | None:
     return _svg_shape_transform(shape)
+
+
+def _svg_image_preserve_aspect_ratio(shape: Shape) -> str | None:
+    if shape.image_src_rect is None:
+        return None
+    left, top, right, bottom = shape.image_src_rect
+    x_align = _svg_crop_alignment(left, right, "x")
+    y_align = _svg_crop_alignment(top, bottom, "y")
+    if x_align is None or y_align is None:
+        return None
+    return f"{x_align}{y_align} slice"
+
+
+def _svg_crop_alignment(before: int, after: int, axis: str) -> str | None:
+    if before == 0 and after == 0:
+        return "xMid" if axis == "x" else "YMid"
+    if before == 0:
+        return "xMin" if axis == "x" else "YMin"
+    if after == 0:
+        return "xMax" if axis == "x" else "YMax"
+    return "xMid" if axis == "x" else "YMid"
 
 
 def _svg_line_transform(shape: Shape) -> str | None:
