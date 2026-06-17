@@ -2395,6 +2395,24 @@ def test_calc_lengths_are_resolved_for_geometry_strokes_and_text() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_css_length_functions_are_resolved_for_geometry_strokes_and_text() -> None:
+    svg = """<svg width="100" height="50">
+      <rect x="min(20px, 12px)" y="max(2px, 5px)" width="min(50%, 30px)" height="clamp(10px, 100%, 25px)" fill="#dc2626"/>
+      <line x1="0" y1="40" x2="40" y2="40" stroke="#111111" stroke-width="max(1px, 2px)"/>
+      <text x="0" y="20" font-size="clamp(8px, 12px, 16px)" fill="#111111">Hi</text>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    offsets = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")
+    extents = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")
+    assert offsets[1].attrib == {"x": "114300", "y": "47625"}
+    assert extents[1].attrib == {"cx": "285750", "cy": "238125"}
+    assert '<a:ln w="19050" cap="flat">' in dml
+    assert 'sz="1200"' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_line_markers_convert_to_drawingml_arrows_and_round_trip() -> None:
     svg = """<svg>
       <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>

@@ -3374,6 +3374,9 @@ def _num(value: str | None, default: float) -> float:
     if stripped.lower().startswith("calc(") and stripped.endswith(")"):
         result = _calc_length(stripped[5:-1], "x", (0.0, 0.0), allow_percent=False)
         return result if result is not None else float(default)
+    function_result = _css_length_function(stripped, "x", (0.0, 0.0), allow_percent=False)
+    if function_result is not None:
+        return function_result
     scale = 1.0
     for suffix, unit_scale in (
         ("px", 1.0),
@@ -3408,6 +3411,9 @@ def _length(value: str | None, default: float, axis: str, viewport: tuple[float,
     if stripped.lower().startswith("calc(") and stripped.endswith(")"):
         result = _calc_length(stripped[5:-1], axis, viewport, allow_percent=True)
         return result if result is not None else float(default)
+    function_result = _css_length_function(stripped, axis, viewport, allow_percent=True)
+    if function_result is not None:
+        return function_result
     if stripped.endswith("%"):
         try:
             number = float(stripped[:-1]) / 100 * _percentage_basis(axis, viewport)
@@ -3453,6 +3459,59 @@ def _calc_length(body: str, axis: str, viewport: tuple[float, float], allow_perc
                 return None
         total += sign * number
     return total if math.isfinite(total) else None
+
+
+def _css_length_function(value: str, axis: str, viewport: tuple[float, float], allow_percent: bool) -> float | None:
+    match = re.fullmatch(r"(min|max|clamp)\((.*)\)", value.strip(), flags=re.I)
+    if not match:
+        return None
+    name = match.group(1).lower()
+    args = _css_function_args(match.group(2))
+    values = [_css_length_function_arg(arg, axis, viewport, allow_percent) for arg in args]
+    if any(item is None for item in values):
+        return None
+    numbers = [item for item in values if item is not None]
+    if name == "min" and len(numbers) >= 1:
+        return min(numbers)
+    if name == "max" and len(numbers) >= 1:
+        return max(numbers)
+    if name == "clamp" and len(numbers) == 3:
+        return max(numbers[0], min(numbers[1], numbers[2]))
+    return None
+
+
+def _css_length_function_arg(value: str, axis: str, viewport: tuple[float, float], allow_percent: bool) -> float | None:
+    value = value.strip()
+    if value.endswith("%") and not allow_percent:
+        return None
+    result = _length(value, math.nan, axis, viewport) if allow_percent else _num(value, math.nan)
+    return result if math.isfinite(result) else None
+
+
+def _css_function_args(body: str) -> list[str]:
+    args: list[str] = []
+    current: list[str] = []
+    depth = 0
+    quote: str | None = None
+    for char in body:
+        if quote is not None:
+            current.append(char)
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")" and depth:
+            depth -= 1
+        if char == "," and depth == 0:
+            args.append("".join(current))
+            current = []
+            continue
+        current.append(char)
+    args.append("".join(current))
+    return args
 
 
 def _calc_terms(body: str) -> list[tuple[float, str]]:
