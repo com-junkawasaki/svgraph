@@ -1264,7 +1264,7 @@ def _svg_text_length_spacing_is_supported(style: dict[str, str], text: str, view
         return False
     if style.get("letter-spacing") not in {None, "", "normal"}:
         return False
-    if (style.get("lengthAdjust") or "spacing").strip() != "spacing":
+    if (style.get("lengthAdjust") or "spacing").strip() not in {"spacing", "spacingAndGlyphs"}:
         return False
     line = text.strip()
     return "\n" not in text and len(line) > 1 and _optional_length(style.get("textLength"), "x", viewport) is not None

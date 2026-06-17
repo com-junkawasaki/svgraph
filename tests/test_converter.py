@@ -471,6 +471,19 @@ def test_text_length_spacing_maps_to_character_spacing() -> None:
     assert 'letter-spacing="4"' in svg
 
 
+def test_text_length_spacing_and_glyphs_is_approximated_with_character_spacing() -> None:
+    source = '<svg><text x="10" y="20" textLength="48" lengthAdjust="spacingAndGlyphs" font-size="10" fill="#111">Wide</text></svg>'
+    dml = svg_to_drawingml(source)
+
+    root = ET.fromstring(dml)
+    run_pr = root.find(".//{http://schemas.openxmlformats.org/drawingml/2006/main}rPr")
+    shape_ext = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    assert run_pr is not None
+    assert run_pr.get("spc") == "300"
+    assert shape_ext.get("cx") == "457200"
+    assert analyze_svg(source).unsupported_attributes == {}
+
+
 def test_word_spacing_without_spaces_is_not_reported_as_unsupported() -> None:
     source = '<svg><text x="10" y="20" word-spacing="4px" font-size="10" fill="#111">Compact<tspan>Label</tspan></text></svg>'
 
@@ -812,11 +825,9 @@ def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
 
     assert report.unsupported_elements == {}
     assert report.unsupported_attributes == {
-        "lengthAdjust": 1,
         "pathLength": 1,
         "rotate": 1,
         "stroke-dashoffset": 1,
-        "textLength": 1,
         "word-spacing": 1,
     }
 
