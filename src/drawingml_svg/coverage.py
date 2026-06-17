@@ -31,6 +31,7 @@ from .converter import (
     _svg_dasharray_numbers,
     _svg_dashoffset_is_supported,
     _switch_selected_child,
+    _url_ref,
     _viewport_size,
 )
 
@@ -307,15 +308,15 @@ def _inspect_attributes(
     for attr in ("fill", "stroke"):
         value = style.get(attr)
         if value:
-            match = re.match(r"^url\((?:['\"])?#([^'\")]+)(?:['\"])?\)(.*)$", value.strip())
-            if match and not match.group(2).strip():
-                paint_server_tag = _local_name(refs.get(match.group(1), ET.Element("")).tag)
+            ref = _url_ref(value)
+            if ref is not None and not ref[1].strip():
+                paint_server_tag = _local_name(refs.get(ref[0], ET.Element("")).tag)
                 if paint_server_tag == "pattern":
-                    color, _ = _paint_server_value(refs.get(match.group(1)), refs, style.get("color"), css)
+                    color, _ = _paint_server_value(refs.get(ref[0]), refs, style.get("color"), css)
                     if not color:
                         stats.add_unsupported_attribute(f"{attr}:pattern")
                 elif paint_server_tag in {"linearGradient", "radialGradient"}:
-                    color, _ = _paint_server_value(refs.get(match.group(1)), refs, style.get("color"), css)
+                    color, _ = _paint_server_value(refs.get(ref[0]), refs, style.get("color"), css)
                     if not color:
                         stats.add_unsupported_attribute(f"{attr}:paint-server")
                 else:

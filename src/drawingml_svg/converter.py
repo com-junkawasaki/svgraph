@@ -847,10 +847,10 @@ def _stroke_transform_scale(style: dict[str, str], matrix: tuple[float, float, f
 def _svg_marker_value(value: str | None, refs: dict[str, ET.Element]) -> str | None:
     if not value or value == "none":
         return None
-    match = re.fullmatch(r"url\((?:['\"])?#([^'\")]+)(?:['\"])?\)", value.strip())
-    if not match:
+    ref = _url_ref(value)
+    if ref is None or ref[1].strip():
         return None
-    marker_id = match.group(1)
+    marker_id = ref[0]
     marker = refs.get(marker_id)
     if marker is None or _local_name(marker.tag) != "marker":
         return None
@@ -2489,10 +2489,10 @@ def _rect_clip_bounds(
     clip_path = style.get("clip-path")
     if not clip_path or clip_path == "none":
         return None
-    match = re.fullmatch(r"url\((?:['\"])?#([^'\")]+)(?:['\"])?\)", clip_path.strip())
-    if not match:
+    ref = _url_ref(clip_path)
+    if ref is None or ref[1].strip():
         return None
-    clip = refs.get(match.group(1))
+    clip = refs.get(ref[0])
     if clip is None or _local_name(clip.tag) != "clipPath":
         return None
     units = clip.get("clipPathUnits", "userSpaceOnUse")
@@ -2548,10 +2548,10 @@ def _rect_clip_path_has_object_bbox_rect(style: dict[str, str], refs: dict[str, 
     clip_path = style.get("clip-path")
     if not clip_path or clip_path == "none":
         return False
-    match = re.fullmatch(r"url\((?:['\"])?#([^'\")]+)(?:['\"])?\)", clip_path.strip())
-    if not match:
+    ref = _url_ref(clip_path)
+    if ref is None or ref[1].strip():
         return False
-    clip = refs.get(match.group(1))
+    clip = refs.get(ref[0])
     if clip is None or _local_name(clip.tag) != "clipPath" or clip.get("clipPathUnits") != "objectBoundingBox":
         return False
     if clip.get("transform") is not None:
@@ -2757,6 +2757,15 @@ def _href(element: ET.Element) -> str | None:
     return element.get("href") or element.get("{http://www.w3.org/1999/xlink}href")
 
 
+def _url_ref(value: str | None) -> tuple[str, str] | None:
+    if value is None:
+        return None
+    match = re.match(r"^url\(\s*(?:['\"])?\s*#([^'\"\)\s]+)\s*(?:['\"])?\s*\)(.*)$", value.strip())
+    if not match:
+        return None
+    return match.group(1), match.group(2)
+
+
 def _switch_selected_child(element: ET.Element) -> ET.Element | None:
     return next((child for child in element if _switch_child_is_supported(child)), None)
 
@@ -2955,12 +2964,12 @@ def _paint_value(
     if value is None:
         return None, None
     stripped = value.strip()
-    match = re.match(r"^url\((?:['\"])?#([^'\")]+)(?:['\"])?\)(.*)$", stripped)
-    if match:
-        color, alpha = _paint_server_value(refs.get(match.group(1)), refs, current_color, css or [])
+    ref = _url_ref(stripped)
+    if ref is not None:
+        color, alpha = _paint_server_value(refs.get(ref[0]), refs, current_color, css or [])
         if color:
             return color, alpha
-        fallback = match.group(2).strip()
+        fallback = ref[1].strip()
         if fallback:
             return _parse_color(fallback)
         return None, None
@@ -3067,10 +3076,10 @@ def _pattern_paint_colors(
     if value is None:
         return []
     value = (current_color or "black") if _is_current_color(value) else value
-    match = re.match(r"^url\((?:['\"])?#([^'\")]+)(?:['\"])?\)(.*)$", value.strip())
-    if match:
-        colors = _paint_server_colors(refs.get(match.group(1)), refs, current_color, css, seen)
-        fallback = match.group(2).strip()
+    ref = _url_ref(value)
+    if ref is not None:
+        colors = _paint_server_colors(refs.get(ref[0]), refs, current_color, css, seen)
+        fallback = ref[1].strip()
         if colors:
             return colors
         if not fallback:

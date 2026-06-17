@@ -902,6 +902,21 @@ def test_object_bounding_box_clip_path_clips_rect_geometry() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_clip_path_url_allows_whitespace_around_reference() -> None:
+    svg = """<svg>
+      <defs><clipPath id="crop"><rect x="2" y="1" width="5" height="4"/></clipPath></defs>
+      <rect width="10" height="8" fill="#f97316" clip-path="url( #crop )"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    shape_off = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    shape_ext = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    assert shape_off.attrib == {"x": "19050", "y": "9525"}
+    assert shape_ext.attrib == {"cx": "47625", "cy": "38100"}
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_rectangular_clip_path_clips_image_geometry() -> None:
     svg = f"""<svg>
       <defs><clipPath id="crop"><rect x="4" y="3" width="6" height="5"/></clipPath></defs>
@@ -2017,6 +2032,22 @@ def test_gradient_href_inherits_stop_list_before_fallback_average() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_paint_server_url_allows_whitespace_around_reference() -> None:
+    svg = """<svg>
+      <defs>
+        <linearGradient id="grad">
+          <stop stop-color="#000000"/>
+          <stop stop-color="#ffffff"/>
+        </linearGradient>
+      </defs>
+      <rect width="10" height="8" fill='url( "#grad" )' stroke="url( #grad )"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert dml.count('val="808080"') == 2
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_xlink_gradient_href_inherits_stop_list_before_fallback_average() -> None:
     svg = """<svg xmlns:xlink="http://www.w3.org/1999/xlink">
       <defs>
@@ -2273,6 +2304,18 @@ def test_line_markers_convert_to_drawingml_arrows_and_round_trip() -> None:
     assert '<marker id="drawingml-svg-arrow"' in round_trip
     assert 'marker-start="url(#drawingml-svg-arrow)"' in round_trip
     assert 'marker-end="url(#drawingml-svg-arrow)"' in round_trip
+
+
+def test_marker_url_allows_whitespace_around_reference() -> None:
+    svg = """<svg>
+      <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <line x1="0" y1="0" x2="40" y2="10" stroke="#111111" stroke-width="2" marker-start='url( "#arrow" )' marker-end="url( #arrow )"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert '<a:tailEnd type="triangle"/>' in dml
+    assert '<a:headEnd type="triangle"/>' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
 
 
 def test_marker_shorthand_converts_to_drawingml_arrows_when_no_mid_marker_is_needed() -> None:
