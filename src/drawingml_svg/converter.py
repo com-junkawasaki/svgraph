@@ -146,7 +146,7 @@ def _svg_shapes_walk(
     if _is_display_none(style):
         return
     visibility_hidden = _is_visibility_hidden(style)
-    matrix = _matrix_multiply(inherited_matrix, _parse_transform(element.get("transform", "")))
+    matrix = _matrix_multiply(inherited_matrix, _parse_transform(style.get("transform", "")))
     child_viewport = viewport
     if tag == "svg" and ancestors:
         svg_width = _optional_length(element.get("width"), "x", viewport)
@@ -2619,6 +2619,7 @@ def _computed_style(
     previous_siblings: tuple[ET.Element, ...] = (),
 ) -> dict[str, str]:
     style = dict(inherited)
+    style.pop("transform", None)
     css_priorities: dict[str, tuple[int, tuple[int, int, int, int], int]] = {}
 
     def apply_declaration(key: str, value: str, important: bool, specificity: tuple[int, int, int, int], order: int) -> None:
@@ -2679,6 +2680,7 @@ def _computed_style(
         "spreadMethod",
         "vector-effect",
         "text-rendering",
+        "transform",
         "word-spacing",
     ):
         if element.get(attr) is not None:

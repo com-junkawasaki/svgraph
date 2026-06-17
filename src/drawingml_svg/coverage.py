@@ -202,7 +202,7 @@ def _walk(
     if display_none or non_rendering_geometry or no_visible_paint:
         return
 
-    matrix = _matrix_multiply(inherited_matrix, _parse_transform(element.get("transform", "")))
+    matrix = _matrix_multiply(inherited_matrix, _parse_transform(style.get("transform", "")))
     child_viewport = viewport
     if tag == "svg" and ancestors:
         child_viewport = _viewport_size(

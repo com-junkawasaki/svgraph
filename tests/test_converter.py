@@ -1400,6 +1400,35 @@ def test_transform_function_names_are_normalized() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_css_transform_property_is_applied_without_inheritance() -> None:
+    svg = """<svg>
+      <style>
+        .rule-move { transform: translate(30px, 40px); }
+      </style>
+      <rect width="10" height="8" fill="#111111" style="transform: translate(10px, 20px)"/>
+      <rect class="rule-move" width="10" height="8" fill="#222222"/>
+      <g style="transform: translate(50px, 60px)">
+        <rect width="10" height="8" fill="#333333"/>
+      </g>
+      <g style="transform: translate(70px, 80px)">
+        <rect width="10" height="8" fill="#444444" style="transform: translate(5px, 6px)"/>
+      </g>
+      <g style="transform: translate(90px, 100px)">
+        <g><rect width="10" height="8" fill="#555555"/></g>
+      </g>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    offsets = [off.attrib for off in root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")]
+    assert {"x": "95250", "y": "190500"} in offsets
+    assert {"x": "285750", "y": "381000"} in offsets
+    assert {"x": "476250", "y": "571500"} in offsets
+    assert {"x": "714375", "y": "819150"} in offsets
+    assert {"x": "857250", "y": "952500"} in offsets
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_reflected_rect_stays_as_editable_rect() -> None:
     svg = '<svg><rect x="10" y="12" width="20" height="16" fill="#f97316" transform="scale(-1 1)"/></svg>'
     dml = svg_to_drawingml(svg)

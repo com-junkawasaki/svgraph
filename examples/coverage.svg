@@ -46,6 +46,7 @@
     <rect class="hidden-probe" x="-40" y="-30" width="400" height="240"/>
     <path display=" NONE " d="M0 0 R10 20" filter="url(#hidden-filter)"/>
     <g visibility="hidden"><rect x="4" y="134" width="16" height="10" fill="#dcfce7" visibility="visible"/></g>
+    <rect x="24" y="134" width="16" height="10" fill="#bfdbfe" style="transform: translate(4px, 0)"/>
     <text class="title" x="160" y="46">
       <tspan>Coverage</tspan>
       <tspan x="160" dy="24" text-transform="uppercase">fixture</tspan>
