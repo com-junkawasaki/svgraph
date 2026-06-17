@@ -549,6 +549,29 @@ def test_css_attribute_selectors_are_applied() -> None:
     assert analyze_svg(svg).estimated_element_coverage == 1.0
 
 
+def test_css_not_pseudo_class_selectors_are_applied() -> None:
+    svg = """<svg>
+      <style>
+        rect:not(.skip) { fill: #dc2626; stroke: #1d4ed8; stroke-width: 2; }
+        rect:not([data-muted]) { opacity: 50%; }
+        rect:not(#target) { stroke: #16a34a; }
+        rect:not([data-name="a,b"]) { fill-opacity: 25%; }
+      </style>
+      <rect id="target" data-name="a,b" width="10" height="8"/>
+      <rect class="skip" x="12" width="10" height="8"/>
+      <rect data-muted="1" x="24" width="10" height="8"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert 'val="DC2626"' in dml
+    assert 'val="1D4ED8"' in dml
+    assert 'val="16A34A"' in dml
+    assert dml.count('val="50000"') == 3
+    assert dml.count('val="25000"') == 1
+    assert dml.count('val="12500"') == 1
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_css_specificity_wins_over_later_lower_specificity_rules() -> None:
     svg = """<svg>
       <style>

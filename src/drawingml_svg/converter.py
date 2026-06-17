@@ -2612,7 +2612,7 @@ def _selector_matches(selector: str, element: ET.Element, ancestors: tuple[ET.El
 
 
 def _selector_specificity(selector: str) -> tuple[int, int, int]:
-    selector_without_attrs = _selector_without_attribute_selectors(selector)
+    selector_without_attrs = _selector_without_attribute_selectors(_selector_without_supported_pseudo_classes(selector))
     if any(mark in selector_without_attrs for mark in ("+", "~", ":")):
         return (0, 0, 0)
     id_count = len(re.findall(r"#[A-Za-z_][\w:-]*", selector))
@@ -2632,12 +2632,17 @@ def _selector_parts(selector: str) -> list[str]:
     parts: list[str] = []
     current: list[str] = []
     attribute_depth = 0
+    paren_depth = 0
     for char in selector.strip():
         if char == "[":
             attribute_depth += 1
         elif char == "]" and attribute_depth:
             attribute_depth -= 1
-        if attribute_depth == 0 and char in {" ", ">"}:
+        elif char == "(":
+            paren_depth += 1
+        elif char == ")" and paren_depth:
+            paren_depth -= 1
+        if attribute_depth == 0 and paren_depth == 0 and char in {" ", ">"}:
             if current:
                 parts.append("".join(current))
                 current = []
@@ -2654,6 +2659,7 @@ def _selector_list(selector: str) -> list[str]:
     parts: list[str] = []
     current: list[str] = []
     attribute_depth = 0
+    paren_depth = 0
     quote: str | None = None
     for char in selector:
         if quote is not None:
@@ -2667,7 +2673,11 @@ def _selector_list(selector: str) -> list[str]:
             attribute_depth += 1
         elif char == "]" and attribute_depth:
             attribute_depth -= 1
-        if char == "," and attribute_depth == 0:
+        elif char == "(":
+            paren_depth += 1
+        elif char == ")" and paren_depth:
+            paren_depth -= 1
+        if char == "," and attribute_depth == 0 and paren_depth == 0:
             parts.append("".join(current))
             current = []
             continue
@@ -2678,6 +2688,10 @@ def _selector_list(selector: str) -> list[str]:
 
 def _simple_selector_matches(selector: str, element: ET.Element) -> bool:
     selector = selector.strip()
+    not_selectors = _selector_not_arguments(selector)
+    if any(_simple_selector_matches(not_selector, element) for not_selector in not_selectors):
+        return False
+    selector = _selector_without_supported_pseudo_classes(selector)
     selector_without_attrs = _selector_without_attribute_selectors(selector)
     if not selector or any(mark in selector_without_attrs for mark in ("+", "~", ":")):
         return False
@@ -2707,6 +2721,14 @@ def _simple_selector_matches(selector: str, element: ET.Element) -> bool:
 
 def _selector_without_attribute_selectors(selector: str) -> str:
     return re.sub(r"\[[^\]]+\]", "", selector)
+
+
+def _selector_not_arguments(selector: str) -> list[str]:
+    return [match.group(1).strip() for match in re.finditer(r":not\(([^()]*)\)", selector) if match.group(1).strip()]
+
+
+def _selector_without_supported_pseudo_classes(selector: str) -> str:
+    return re.sub(r":not\([^()]*\)", "", selector)
 
 
 def _attribute_selector_matches(selector: str, element: ET.Element) -> bool:
