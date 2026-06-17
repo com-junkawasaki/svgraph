@@ -507,6 +507,23 @@ def test_analyze_svg_reports_unsupported_use_references() -> None:
     assert external["unsupported_attributes"] == {"href": 1}
 
 
+def test_link_wrapper_converts_child_shapes_and_reports_href_only() -> None:
+    svg = """<svg>
+      <a href="https://example.test" fill="#dbeafe" stroke="#1d4ed8">
+        <rect x="4" y="6" width="20" height="10"/>
+      </a>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+    report = analyze_svg(svg).to_dict()
+
+    assert dml.count("<p:sp>") == 1
+    assert 'val="DBEAFE"' in dml
+    assert 'val="1D4ED8"' in dml
+    assert report["estimated_element_coverage"] == 1.0
+    assert report["unsupported_elements"] == {}
+    assert report["unsupported_attributes"] == {"href": 1}
+
+
 def test_opacity_is_written_as_drawingml_alpha() -> None:
     dml = svg_to_drawingml(
         '<svg><rect x="0" y="0" width="10" height="8" fill="#f008" stroke="#0000ff" opacity="0.25"/></svg>'

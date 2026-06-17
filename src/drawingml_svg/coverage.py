@@ -22,6 +22,7 @@ from .converter import (
 )
 
 SUPPORTED_ELEMENTS = {
+    "a",
     "circle",
     "ellipse",
     "g",
