@@ -2293,6 +2293,9 @@ def _parse_font_shorthand(value: str) -> dict[str, str]:
             result["font-weight"] = normalized
     if size_index is None:
         return {}
+    result.setdefault("font-style", "normal")
+    result.setdefault("font-variant", "normal")
+    result.setdefault("font-weight", "normal")
     family = " ".join(tokens[size_index + 1 :]).strip()
     if family:
         result["font-family"] = family
@@ -2529,6 +2532,7 @@ def _computed_style(
         "stroke-linecap",
         "stroke-linejoin",
         "stroke-miterlimit",
+        "font",
         "font-size",
         "font-family",
         "font-weight",
@@ -2569,7 +2573,11 @@ def _computed_style(
         "word-spacing",
     ):
         if element.get(attr) is not None:
-            apply_declaration(attr, element.get(attr, ""), False, (0, 0, 0, 0), -1)
+            if attr == "font":
+                for font_key, font_value in _parse_font_shorthand(element.get(attr, "")).items():
+                    apply_declaration(font_key, font_value, False, (0, 0, 0, 0), -1)
+            else:
+                apply_declaration(attr, element.get(attr, ""), False, (0, 0, 0, 0), -1)
 
     for selector, declarations, specificity, order in css:
         if _selector_matches(selector, element, ancestors, previous_siblings):

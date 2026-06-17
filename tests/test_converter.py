@@ -2788,6 +2788,25 @@ def test_css_font_shorthand_expands_to_text_properties() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_font_presentation_attribute_expands_and_inherits() -> None:
+    svg = """<svg>
+      <g font='italic small-caps 700 18px "Aptos Display", Arial, sans-serif' fill="#111111">
+        <text x="0" y="20">Inherited</text>
+        <text x="0" y="48" font='normal 10px "Aptos"'>Own</text>
+      </g>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert 'sz="1800"' in dml
+    assert 'sz="1000"' in dml
+    assert dml.count('b="1"') == 1
+    assert dml.count('i="1"') == 1
+    assert dml.count('cap="small"') == 1
+    assert 'typeface="Aptos Display"' in dml
+    assert 'typeface="Aptos"' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_drawingml_multiple_text_paragraphs_round_trip_to_svg_lines() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
