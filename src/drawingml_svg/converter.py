@@ -1059,7 +1059,7 @@ def _append_text_run_properties(r_pr: ET.Element, shape: Shape) -> None:
 def _dml_color(parent: ET.Element) -> str | None:
     srgb = parent.find(qn(NS_A, "srgbClr"))
     if srgb is not None and srgb.get("val"):
-        return f"#{srgb.get('val', '').lower()}"
+        return _apply_dml_luminance_modifiers(f"#{srgb.get('val', '').lower()}", srgb)
     scheme = parent.find(qn(NS_A, "schemeClr"))
     if scheme is not None and scheme.get("val"):
         return _dml_scheme_color(scheme)

@@ -1310,6 +1310,26 @@ def test_drawingml_scheme_color_luminance_modifiers_round_trip_to_svg_hex_colors
     assert 'stroke="#666666"' in svg
 
 
+def test_drawingml_srgb_color_luminance_modifiers_round_trip_to_svg_hex_colors() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="shape"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="0"/><a:ext cx="95250" cy="95250"/></a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="336699"><a:lumMod val="50000"/></a:srgbClr></a:solidFill>
+          <a:ln><a:solidFill><a:srgbClr val="000000"><a:lumOff val="40000"/></a:srgbClr></a:solidFill></a:ln>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'fill="#1a334c"' in svg
+    assert 'stroke="#666666"' in svg
+
+
 def test_text_stroke_width_scales_with_transform() -> None:
     svg = '<svg><text x="0" y="10" fill="#111111" stroke="#ffffff" stroke-width="2" transform="scale(2)">Outlined</text></svg>'
 
