@@ -1237,6 +1237,76 @@ def test_quadratic_path_is_approximated_as_custom_geometry() -> None:
     assert analyze_svg('<svg><path d="M0 0 Q10 20 30 0 T60 0"/></svg>').estimated_element_coverage == 1.0
 
 
+def test_drawingml_quadratic_custom_geometry_round_trips_to_polyline() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="curve"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="0"/><a:ext cx="571500" cy="190500"/></a:xfrm>
+          <a:custGeom>
+            <a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="l" t="t" r="r" b="b"/>
+            <a:pathLst>
+              <a:path w="571500" h="190500">
+                <a:moveTo><a:pt x="0" y="0"/></a:moveTo>
+                <a:quadBezTo>
+                  <a:pt x="285750" y="190500"/>
+                  <a:pt x="571500" y="0"/>
+                </a:quadBezTo>
+              </a:path>
+            </a:pathLst>
+          </a:custGeom>
+          <a:ln><a:solidFill><a:srgbClr val="BE123C"/></a:solidFill></a:ln>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert "<polyline" in svg
+    assert 'stroke="#be123c"' in svg
+    assert svg.count(",") >= 12
+    assert "60,0" in svg
+
+
+def test_drawingml_cubic_custom_geometry_round_trips_to_polyline() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="curve"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="190500"/></a:xfrm>
+          <a:custGeom>
+            <a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="l" t="t" r="r" b="b"/>
+            <a:pathLst>
+              <a:path w="762000" h="190500">
+                <a:moveTo><a:pt x="0" y="0"/></a:moveTo>
+                <a:cubicBezTo>
+                  <a:pt x="95250" y="190500"/>
+                  <a:pt x="285750" y="190500"/>
+                  <a:pt x="381000" y="0"/>
+                </a:cubicBezTo>
+                <a:cubicBezTo>
+                  <a:pt x="476250" y="-190500"/>
+                  <a:pt x="666750" y="-190500"/>
+                  <a:pt x="762000" y="0"/>
+                </a:cubicBezTo>
+              </a:path>
+            </a:pathLst>
+          </a:custGeom>
+          <a:ln><a:solidFill><a:srgbClr val="0891B2"/></a:solidFill></a:ln>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert "<polyline" in svg
+    assert 'stroke="#0891b2"' in svg
+    assert svg.count(",") >= 32
+    assert "80,0" in svg
+
+
 def test_arc_path_is_approximated_as_custom_geometry() -> None:
     dml = svg_to_drawingml('<svg><path d="M0 20 A20 20 0 0 1 40 20" fill="none" stroke="#111111"/></svg>')
 

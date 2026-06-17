@@ -1605,9 +1605,24 @@ def _dml_custom_points(cust: ET.Element, x: float, y: float) -> tuple[list[tuple
             pt = child.find(qn(NS_A, "pt"))
             if pt is not None:
                 points.append((x + _px(int(pt.get("x", "0"))), y + _px(int(pt.get("y", "0")))))
+        elif tag == "quadBezTo" and points:
+            bezier_points = _dml_path_points(child, x, y)
+            if len(bezier_points) >= 2:
+                points.extend(_quadratic_points(points[-1], bezier_points[0], bezier_points[1]))
+        elif tag == "cubicBezTo" and points:
+            bezier_points = _dml_path_points(child, x, y)
+            if len(bezier_points) >= 3:
+                points.extend(_cubic_points(points[-1], bezier_points[0], bezier_points[1], bezier_points[2]))
         elif tag == "close":
             closed = True
     return points, closed
+
+
+def _dml_path_points(element: ET.Element, x: float, y: float) -> list[tuple[float, float]]:
+    points = []
+    for pt in element.findall(qn(NS_A, "pt")):
+        points.append((x + _px(int(pt.get("x", "0"))), y + _px(int(pt.get("y", "0")))))
+    return points
 
 
 def _transformed_rect_shape(
