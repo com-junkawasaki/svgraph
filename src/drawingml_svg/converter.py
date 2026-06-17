@@ -183,6 +183,8 @@ def _svg_shapes_walk(
     shape = _svg_shape_from_element(element, tag, style, matrix, refs, viewport, css, ancestors)
     if shape is not None:
         shape = _apply_rect_clip(shape, style, refs, matrix)
+    if shape is not None and not _shape_has_visible_content(shape):
+        shape = None
     if shape is not None:
         yield shape
 
@@ -335,6 +337,15 @@ def _geometry_length(
     viewport: tuple[float, float],
 ) -> float:
     return _length(style.get(attr, element.get(attr)), default, axis, viewport)
+
+
+def _shape_has_visible_content(shape: Shape) -> bool:
+    if shape.kind == "image":
+        return shape.paint.fill_alpha is None or shape.paint.fill_alpha > 0
+    paint = shape.paint
+    has_fill = paint.fill not in {None, "none"}
+    has_stroke = paint.stroke not in {None, "none"} and (paint.stroke_width or 0) > 0
+    return has_fill or has_stroke
 
 
 def _dml_shapes(root: ET.Element) -> Iterable[Shape]:

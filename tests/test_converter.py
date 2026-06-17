@@ -124,9 +124,9 @@ def test_svg_rect_to_drawingml_preserves_geometry_and_paint() -> None:
 
 
 def test_drawingml_to_svg_rect_round_trip() -> None:
-    svg = drawingml_to_svg(svg_to_drawingml('<svg><rect x="5" y="6" width="7" height="8" fill="none"/></svg>'))
+    svg = drawingml_to_svg(svg_to_drawingml('<svg><rect x="5" y="6" width="7" height="8" fill="none" stroke="#112233"/></svg>'))
 
-    assert '<rect fill="none" stroke="none" x="5" y="6" width="7" height="8"/>' in svg
+    assert '<rect fill="none" stroke="#112233" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" x="5" y="6" width="7" height="8"/>' in svg
     assert 'viewBox="0 0 12 14"' in svg
 
 
@@ -151,11 +151,12 @@ def test_svg_default_paint_is_explicitly_converted() -> None:
     dml = svg_to_drawingml('<svg><rect x="0" y="0" width="10" height="8"/><line x1="0" y1="12" x2="10" y2="12"/></svg>')
 
     assert 'val="000000"' in dml
-    assert dml.count("<a:noFill/>") >= 2
+    assert dml.count("<p:sp>") == 1
+    assert dml.count("<a:noFill/>") == 1
 
     svg = drawingml_to_svg(dml)
     assert '<rect fill="#000000" stroke="none" x="0" y="0" width="10" height="8"/>' in svg
-    assert '<line fill="none" stroke="none" x1="0" y1="12" x2="10" y2="12"/>' in svg
+    assert "<line" not in svg
 
 
 def test_non_rendering_non_positive_dimension_shapes_are_skipped() -> None:
@@ -185,6 +186,20 @@ def test_analyze_svg_ignores_non_rendering_non_positive_dimension_shapes() -> No
 
     assert report.convertible_elements == 1
     assert report.ignored_elements == 4
+    assert report.unsupported_attributes == {}
+
+
+def test_analyze_svg_ignores_invisible_paint_only_shapes() -> None:
+    report = analyze_svg(
+        f"""<svg>
+          <rect width="10" height="8" fill="none" stroke="none" filter="url(#blur)"/>
+          <line x1="0" y1="12" x2="10" y2="12" mix-blend-mode="multiply"/>
+          <image href="{PNG_DATA_URI}" x="0" y="0" width="10" height="8" opacity="0" mask="url(#fade)"/>
+        </svg>"""
+    )
+
+    assert report.convertible_elements == 1
+    assert report.ignored_elements == 3
     assert report.unsupported_attributes == {}
 
 
@@ -1694,19 +1709,17 @@ def test_opacity_is_written_as_drawingml_alpha() -> None:
     assert 'stroke-opacity="0.25"' in svg
 
 
-def test_zero_alpha_paint_is_converted_as_no_fill_and_no_line() -> None:
+def test_zero_alpha_paint_is_skipped_as_invisible() -> None:
     dml = svg_to_drawingml(
         '<svg><rect width="10" height="8" fill="#111111" fill-opacity="0" stroke="#222222" stroke-opacity="0" stroke-width="2"/></svg>'
     )
 
     assert 'val="111111"' not in dml
     assert 'val="222222"' not in dml
-    assert dml.count("<a:noFill/>") == 2
+    assert "<p:sp>" not in dml
 
     svg = drawingml_to_svg(dml)
-    assert 'fill="none"' in svg
-    assert 'stroke="none"' in svg
-    assert 'stroke-width="2"' in svg
+    assert 'viewBox="0 0 0 0"' in svg
 
 
 def test_css_color_functions_named_colors_and_gradient_fallback() -> None:

@@ -170,6 +170,7 @@ def _walk(
     specified_style = _computed_style(element, css, {}, ancestors)
     hidden = _is_hidden(style)
     non_rendering_geometry = _has_non_rendering_geometry(element, style, viewport)
+    no_visible_paint = _has_no_visible_paint(element, style, refs, css)
 
     use_supported = True
     if tag == "use":
@@ -178,7 +179,7 @@ def _walk(
     if tag == "switch":
         switch_supported = _switch_selected_child(element) is not None or len(element) == 0
 
-    if tag in IGNORED_ELEMENTS or hidden or non_rendering_geometry:
+    if tag in IGNORED_ELEMENTS or hidden or non_rendering_geometry or no_visible_paint:
         stats.ignored_elements += 1
     elif tag in SUPPORTED_ELEMENTS and path_supported and use_supported and switch_supported:
         stats.convertible_elements += 1
@@ -187,7 +188,7 @@ def _walk(
     else:
         stats.add_unsupported_element(tag)
 
-    if hidden or non_rendering_geometry:
+    if hidden or non_rendering_geometry or no_visible_paint:
         return
 
     matrix = _matrix_multiply(inherited_matrix, _parse_transform(element.get("transform", "")))
@@ -341,6 +342,25 @@ def _has_non_rendering_geometry(element: ET.Element, style: dict[str, str], view
             element, style, "ry", "y", viewport
         ) <= 0
     return False
+
+
+def _has_no_visible_paint(
+    element: ET.Element,
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+    css: list[CssRule],
+) -> bool:
+    tag = _local_name(element.tag)
+    if tag == "image":
+        return _alpha_is_zero(style.get("opacity"))
+    if tag not in {"circle", "ellipse", "line", "path", "polygon", "polyline", "rect", "text", "tspan"}:
+        return False
+    if tag in {"text", "tspan"} and not _svg_text_content(element):
+        return True
+    paint = _svg_paint(style, refs, default_fill=tag != "line", css=css)
+    has_fill = paint.fill not in {None, "none"}
+    has_stroke = paint.stroke not in {None, "none"} and (paint.stroke_width or 0) > 0
+    return not (has_fill or has_stroke)
 
 
 def _geometry_length(element: ET.Element, style: dict[str, str], attr: str, axis: str, viewport: tuple[float, float]) -> float:
