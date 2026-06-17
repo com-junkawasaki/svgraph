@@ -36,6 +36,7 @@
   </g>
   <use href="#reused-mark" x="640" y="70"/>
   <use href="#reused-mark" x="650" y="128" transform="scale(.82)"/>
+  <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg==" x="52" y="190" width="72" height="42" preserveAspectRatio="xMidYMid meet" opacity=".72"/>
   <text class="label" x="170" y="58" text-anchor="middle" font-weight="700">
     <tspan>Text</tspan>
     <tspan x="170" dy="20" rotate="0 8">converts</tspan>

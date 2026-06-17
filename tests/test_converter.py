@@ -1880,6 +1880,22 @@ def test_analyze_svg_reports_gradient_attributes_without_color_fallback() -> Non
     }
 
 
+def test_analyze_svg_reports_image_preserve_aspect_ratio_when_not_stretched() -> None:
+    svg = f"""<svg viewBox="0 0 100 50" width="200" height="200" preserveAspectRatio="xMaxYMax slice">
+      <svg x="0" y="0" width="20" height="20" viewBox="0 0 10 5" preserveAspectRatio="none">
+        <rect width="10" height="5"/>
+      </svg>
+      <image href="{PNG_DATA_URI}" x="0" y="0" width="10" height="8" preserveAspectRatio="none"/>
+      <image href="{PNG_DATA_URI}" x="12" y="0" width="10" height="8" preserveAspectRatio="xMidYMid meet"/>
+      <image href="{PNG_DATA_URI}" x="24" y="0" width="10" height="8" preserveAspectRatio="xMaxYMax slice"/>
+    </svg>"""
+
+    report = analyze_svg(svg)
+
+    assert report.unsupported_elements == {}
+    assert report.unsupported_attributes == {"preserveAspectRatio": 2}
+
+
 def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     svg = """<svg>
       <path d="M0 0 L10 0" pathLength="100" stroke="#111111" stroke-dasharray="4 2" stroke-dashoffset="2"/>

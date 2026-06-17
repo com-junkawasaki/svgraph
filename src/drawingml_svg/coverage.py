@@ -23,6 +23,7 @@ from .converter import (
     _paint_server_value,
     _parse_linear_path,
     _parse_points,
+    _preserve_aspect_ratio,
     _previous_element_siblings,
     _root_viewbox_matrix,
     _style_transform_matrix,
@@ -96,6 +97,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "mix-blend-mode",
     "paint-order",
     "pathLength",
+    "preserveAspectRatio",
     "rotate",
     "shape-rendering",
     "spreadMethod",
@@ -335,6 +337,8 @@ def _inspect_attributes(
         if attr == "paint-order" and _paint_order_has_no_effect(element, style, refs, css, viewport):
             continue
         if attr == "pathLength" and _path_length_has_no_effect(specified_style):
+            continue
+        if attr == "preserveAspectRatio" and _preserve_aspect_ratio_is_supported_or_noop(element, specified_style):
             continue
         if attr == "rotate" and _text_rotate_is_supported(element, specified_style):
             continue
@@ -739,6 +743,19 @@ def _path_length_has_no_effect(style: dict[str, str]) -> bool:
         return False
     dasharray = style.get("stroke-dasharray")
     return dasharray is None or dasharray.strip().lower() in {"", "none"}
+
+
+def _preserve_aspect_ratio_is_supported_or_noop(element: ET.Element, style: dict[str, str]) -> bool:
+    value = style.get("preserveAspectRatio")
+    if value is None:
+        return False
+    tag = _local_name(element.tag)
+    if tag in {"svg", "symbol"}:
+        return True
+    if tag == "image":
+        align, _ = _preserve_aspect_ratio(value)
+        return align == "none"
+    return False
 
 
 def _word_spacing_has_no_effect(element: ET.Element, style: dict[str, str]) -> bool:

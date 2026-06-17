@@ -2722,6 +2722,7 @@ def _computed_style(
         "mix-blend-mode",
         "paint-order",
         "pathLength",
+        "preserveAspectRatio",
         "rotate",
         "shape-rendering",
         "spreadMethod",
