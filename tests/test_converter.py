@@ -331,6 +331,12 @@ def test_text_single_rotate_maps_to_shape_rotation() -> None:
     assert 'rotate="30"' in svg
 
 
+def test_zero_multi_value_text_rotate_is_not_reported_as_unsupported() -> None:
+    svg = '<svg><text x="10" y="20"><tspan rotate="0 0 0">Flat</tspan></text></svg>'
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_text_letter_spacing_maps_to_character_spacing() -> None:
     source = '<svg><text x="10" y="20" letter-spacing="2px" font-size="10" fill="#111">Spaced</text></svg>'
     dml = svg_to_drawingml(source)
