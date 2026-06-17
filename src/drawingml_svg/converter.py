@@ -2952,7 +2952,7 @@ def _pattern_paint_colors(
 ) -> list[tuple[str, float | None]]:
     if value is None:
         return []
-    value = current_color or "black" if value == "currentColor" else value
+    value = (current_color or "black") if _is_current_color(value) else value
     match = re.match(r"^url\((?:['\"])?#([^'\")]+)(?:['\"])?\)(.*)$", value.strip())
     if match:
         colors = _paint_server_colors(refs.get(match.group(1)), refs, current_color, css, seen)
@@ -2980,7 +2980,7 @@ def _gradient_stops(element: ET.Element, current_color: str | None = None, css: 
             continue
         style = _computed_style(stop, css or [], gradient_style, (element,))
         stop_color = style.get("stop-color", "black")
-        if stop_color == "currentColor":
+        if _is_current_color(stop_color):
             stop_color = style.get("color") or element.get("color") or current_color or "black"
         color, color_alpha = _parse_color(stop_color)
         if color and color != "none":
@@ -3030,6 +3030,10 @@ def _parse_color(value: str | None) -> tuple[str | None, float | None]:
             except ValueError:
                 return None, None
     return None, None
+
+
+def _is_current_color(value: str | None) -> bool:
+    return value is not None and value.strip().lower() == "currentcolor"
 
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int] | None:

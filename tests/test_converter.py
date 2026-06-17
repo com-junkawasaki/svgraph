@@ -1681,7 +1681,7 @@ def test_zero_alpha_paint_is_converted_as_no_fill_and_no_line() -> None:
 def test_css_color_functions_named_colors_and_gradient_fallback() -> None:
     svg = """<svg>
       <style>
-        stop.start { stop-color: currentColor; stop-opacity: 0.5; }
+        stop.start { stop-color: currentcolor; stop-opacity: 0.5; }
         stop.end { stop-color: rgb(0, 0, 255); stop-opacity: .25; }
       </style>
       <defs>
@@ -1817,14 +1817,14 @@ def test_analyze_svg_reports_missing_paint_server() -> None:
 
 def test_pattern_paint_server_falls_back_to_representative_color() -> None:
     svg = """<svg>
-      <style>.dot { fill: #000000; }</style>
+      <style>.dot { fill: currentcolor; }</style>
       <defs>
         <pattern id="dots" width="4" height="4">
           <rect width="4" height="4" fill="#ffffff"/>
           <circle class="dot" cx="2" cy="2" r="1"/>
         </pattern>
       </defs>
-      <rect width="10" height="8" fill="url(#dots)"/>
+      <rect width="10" height="8" color="#000000" fill="url(#dots)"/>
     </svg>"""
 
     dml = svg_to_drawingml(svg)
