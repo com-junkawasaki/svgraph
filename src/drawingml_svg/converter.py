@@ -1542,9 +1542,13 @@ def _computed_style(
         "display",
         "visibility",
         "clip-path",
+        "clip-rule",
+        "fill-rule",
         "marker-start",
         "marker-mid",
         "marker-end",
+        "paint-order",
+        "vector-effect",
     ):
         if element.get(attr) is not None:
             apply_declaration(attr, element.get(attr, ""), False, (0, 0, 0, 0), -1)

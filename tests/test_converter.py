@@ -473,6 +473,25 @@ def test_analyze_svg_reports_coverage_and_unsupported_features() -> None:
     assert data["unsupported_path_commands"] == {"R": 1}
 
 
+def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
+    svg = """<svg>
+      <style>
+        path { clip-rule: evenodd; paint-order: stroke fill; vector-effect: non-scaling-stroke; }
+      </style>
+      <path d="M0 0 H10 V10 Z" fill-rule="evenodd"/>
+    </svg>"""
+
+    report = analyze_svg(svg)
+
+    assert report.unsupported_elements == {}
+    assert report.unsupported_attributes == {
+        "clip-rule": 1,
+        "fill-rule": 1,
+        "paint-order": 1,
+        "vector-effect": 1,
+    }
+
+
 def test_quadratic_path_is_approximated_as_custom_geometry() -> None:
     dml = svg_to_drawingml('<svg><path d="M0 0 Q10 20 30 0 T60 0" fill="none" stroke="#be123c"/></svg>')
 

@@ -46,11 +46,15 @@ IGNORED_ELEMENTS = {"defs", "desc", "metadata", "title"}
 
 UNSUPPORTED_ATTRIBUTES = {
     "clip-path",
+    "clip-rule",
+    "fill-rule",
     "filter",
     "marker-end",
     "marker-mid",
     "marker-start",
     "mask",
+    "paint-order",
+    "vector-effect",
 }
 
 
