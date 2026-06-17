@@ -38,11 +38,23 @@ jobs:
 
           from drawingml_svg import analyze_svg
 
-          report = analyze_svg(Path("examples/coverage.svg").read_text(encoding="utf-8"))
-          assert report.estimated_element_coverage == 1.0, report
-          assert report.unsupported_elements == {}, report
-          assert report.unsupported_attributes == {}, report
-          assert report.unsupported_path_commands == {}, report
+          coverage = analyze_svg(Path("examples/coverage.svg").read_text(encoding="utf-8"))
+          assert coverage.estimated_element_coverage == 1.0, coverage
+          assert coverage.unsupported_elements == {}, coverage
+          assert coverage.unsupported_attributes == {}, coverage
+          assert coverage.unsupported_path_commands == {}, coverage
+
+          complex_report = analyze_svg(Path("examples/complex.svg").read_text(encoding="utf-8"))
+          assert complex_report.estimated_element_coverage == 1.0, complex_report
+          assert complex_report.unsupported_elements == {}, complex_report
+          assert complex_report.unsupported_path_commands == {}, complex_report
+          assert complex_report.unsupported_attributes == {
+              "mix-blend-mode": 1,
+              "rotate": 1,
+              "shape-rendering": 1,
+              "stroke-dashoffset": 1,
+              "text-rendering": 1,
+          }, complex_report
           PY
 
       - name: Build PPTX smoke fixture

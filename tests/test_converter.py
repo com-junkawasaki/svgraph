@@ -630,6 +630,8 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
         "mask": 1,
         "mix-blend-mode": 1,
         "paint-order": 1,
+        "shape-rendering": 1,
+        "text-rendering": 1,
         "vector-effect": 1,
     }
 

@@ -70,9 +70,11 @@ UNSUPPORTED_ATTRIBUTES = {
     "paint-order",
     "pathLength",
     "rotate",
+    "shape-rendering",
     "spreadMethod",
     "stroke-dashoffset",
     "textLength",
+    "text-rendering",
     "vector-effect",
     "word-spacing",
 }
