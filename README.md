@@ -13,7 +13,7 @@ It targets the practical subset needed for generated Office graphics and simple 
 - Line markers: `marker-start` and `marker-end` arrow markers are converted to DrawingML line arrows
 - Coordinate systems: root, nested SVG, and symbol `viewBox` normalization with `preserveAspectRatio` support
 - Visibility: `display:none` and `visibility:hidden` are skipped during conversion and analysis
-- Clipping: rectangular `clipPath` on `rect` and `text` is converted as bounding-box intersection, including `userSpaceOnUse` and `objectBoundingBox` units
+- Clipping: rectangular `clipPath` on `rect`, `text`, and embedded `image` is converted as bounding-box intersection, including `userSpaceOnUse` and `objectBoundingBox` units
 - Analysis: unsupported visual/layout attributes such as filters, masks, blend/isolation, fill/clip rules, paint order, vector effects, word spacing conflicts, dash offsets that cannot be approximated, multi-value text rotation, unsupported text/path length adjustments, unsupported markers, and unresolved paint servers are reported, while default no-op values and rendering quality hints are ignored
 - Transforms: inherited `transform` on elements and groups for `matrix`, `translate`, `scale`, `rotate`, `skewX`, `skewY`
 - Reuse: local `defs`/`use` expansion for referenced shapes, groups, and basic `symbol viewBox` scaling, including legacy `xlink:href`, with unsupported missing/external use references reported by the analyzer

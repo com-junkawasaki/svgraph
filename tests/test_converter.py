@@ -738,6 +738,42 @@ def test_object_bounding_box_clip_path_clips_rect_geometry() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_rectangular_clip_path_clips_image_geometry() -> None:
+    svg = f"""<svg>
+      <defs><clipPath id="crop"><rect x="4" y="3" width="6" height="5"/></clipPath></defs>
+      <image href="{PNG_DATA_URI}" x="0" y="0" width="12" height="10" clip-path="url(#crop)"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    picture = root.find(".//{http://schemas.openxmlformats.org/presentationml/2006/main}pic")
+    assert picture is not None
+    shape_off = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    shape_ext = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    assert shape_off.attrib == {"x": "38100", "y": "28575"}
+    assert shape_ext.attrib == {"cx": "57150", "cy": "47625"}
+    assert PNG_DATA_URI in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_object_bounding_box_clip_path_clips_image_geometry() -> None:
+    svg = f"""<svg>
+      <defs><clipPath id="crop" clipPathUnits="objectBoundingBox"><rect x=".25" y=".2" width=".5" height=".4"/></clipPath></defs>
+      <image href="{PNG_DATA_URI}" x="10" y="20" width="80" height="50" clip-path="url(#crop)"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    picture = root.find(".//{http://schemas.openxmlformats.org/presentationml/2006/main}pic")
+    assert picture is not None
+    shape_off = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    shape_ext = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    assert shape_off.attrib == {"x": "285750", "y": "285750"}
+    assert shape_ext.attrib == {"cx": "381000", "cy": "190500"}
+    assert PNG_DATA_URI in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_non_rectangular_clip_targets_remain_reported_as_unsupported() -> None:
     svg = """<svg>
       <defs><clipPath id="crop"><rect x="10" y="12" width="20" height="10"/></clipPath></defs>

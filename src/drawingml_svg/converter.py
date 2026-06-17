@@ -1952,7 +1952,7 @@ def _apply_rect_clip(
     refs: dict[str, ET.Element],
     matrix: tuple[float, float, float, float, float, float],
 ) -> Shape | None:
-    if shape.kind not in {"rect", "roundRect", "text"}:
+    if shape.kind not in {"rect", "roundRect", "text", "image"}:
         return shape
     clip_bounds = _rect_clip_bounds(shape, style, refs, matrix)
     if clip_bounds is None:
@@ -1987,6 +1987,7 @@ def _apply_rect_clip(
         letter_spacing=shape.letter_spacing,
         rx=min(shape.rx or 0, (x2 - x1) / 2) if shape.rx is not None else None,
         ry=min(shape.ry or 0, (y2 - y1) / 2) if shape.ry is not None else None,
+        image_href=shape.image_href,
         rotation=shape.rotation,
     )
 
@@ -2050,7 +2051,7 @@ def _clip_path_is_supported(
     clip_path = style.get("clip-path")
     if not clip_path or clip_path == "none":
         return True
-    if _local_name(element.tag) not in {"rect", "text"}:
+    if _local_name(element.tag) not in {"rect", "text", "image"}:
         return False
     return _rect_clip_bounds(None, style, refs, matrix) is not None or _rect_clip_path_has_object_bbox_rect(style, refs)
 
