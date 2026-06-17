@@ -2216,7 +2216,7 @@ def _collect_css(root: ET.Element) -> list[CssRule]:
         text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
         for selector, body in re.findall(r"([^{}]+)\{([^{}]+)\}", text):
             declarations = _parse_style_declarations(body)
-            for item in selector.split(","):
+            for item in _selector_list(selector):
                 key = item.strip()
                 if key:
                     css.append((key, declarations, _selector_specificity(key), order))
@@ -2616,6 +2616,32 @@ def _selector_parts(selector: str) -> list[str]:
         current.append(char)
     if current:
         parts.append("".join(current))
+    return parts
+
+
+def _selector_list(selector: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    attribute_depth = 0
+    quote: str | None = None
+    for char in selector:
+        if quote is not None:
+            current.append(char)
+            if char == quote:
+                quote = None
+            continue
+        if char in {"'", '"'}:
+            quote = char
+        elif char == "[":
+            attribute_depth += 1
+        elif char == "]" and attribute_depth:
+            attribute_depth -= 1
+        if char == "," and attribute_depth == 0:
+            parts.append("".join(current))
+            current = []
+            continue
+        current.append(char)
+    parts.append("".join(current))
     return parts
 
 
