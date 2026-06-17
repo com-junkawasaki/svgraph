@@ -9,6 +9,7 @@ It targets the practical subset needed for generated Office graphics and simple 
 - Geometry: position, size, rounded rectangles, line endpoints, horizontal/vertical flips for lines
 - Paint: solid fill, stroke color, stroke width, line cap/join/dash, fill/stroke alpha, CSS color functions, named colors, gradient fallback
 - Styling: inline presentation attributes, inline `style`, simple `<style>` rules for element/class/id, compound class, child, and descendant selectors
+- Line markers: `marker-start` and `marker-end` arrow markers are converted to DrawingML line arrows
 - Coordinate systems: root and symbol `viewBox` normalization with `preserveAspectRatio` support
 - Visibility: `display:none` and `visibility:hidden` are skipped during conversion and analysis
 - Clipping: rectangular `clipPath` on `rect` and `text` is converted as bounding-box intersection, including `userSpaceOnUse` and `objectBoundingBox` units

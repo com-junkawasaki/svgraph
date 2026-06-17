@@ -34,6 +34,8 @@ class Paint:
     stroke_linecap: str | None = None
     stroke_linejoin: str | None = None
     stroke_dasharray: str | None = None
+    marker_start: str | None = None
+    marker_end: str | None = None
 
 
 @dataclass(frozen=True)
@@ -89,6 +91,7 @@ def drawingml_to_svg(drawingml_text: str) -> str:
             "height": _fmt(height),
         },
     )
+    _append_svg_marker_defs(svg, shapes)
     for shape in shapes:
         svg.append(_shape_to_svg(shape))
     return _pretty_xml(svg)
@@ -149,6 +152,7 @@ def _svg_shape_from_element(
 ) -> Shape | None:
     refs = refs or {}
     paint = _svg_paint(style, refs)
+    plain_paint = _paint_without_markers(paint)
     if tag == "rect":
         x = _num(element.get("x"), 0)
         y = _num(element.get("y"), 0)
@@ -157,20 +161,20 @@ def _svg_shape_from_element(
         rx = _num(element.get("rx"), _num(element.get("ry"), 0))
         ry = _num(element.get("ry"), rx)
         if _is_identity_matrix(matrix):
-            return Shape("roundRect" if rx or ry else "rect", x, y, width, height, paint, rx=rx or None, ry=ry or None)
+            return Shape("roundRect" if rx or ry else "rect", x, y, width, height, plain_paint, rx=rx or None, ry=ry or None)
         points = _transform_points(_rect_points(x, y, width, height), matrix)
-        return _freeform_shape(points, paint, closed=True)
+        return _freeform_shape(points, plain_paint, closed=True)
     if tag == "circle":
         cx = _num(element.get("cx"), 0)
         cy = _num(element.get("cy"), 0)
         r = _num(element.get("r"), 0)
-        return _ellipse_shape(cx, cy, r, r, paint, matrix)
+        return _ellipse_shape(cx, cy, r, r, plain_paint, matrix)
     if tag == "ellipse":
         cx = _num(element.get("cx"), 0)
         cy = _num(element.get("cy"), 0)
         rx = _num(element.get("rx"), 0)
         ry = _num(element.get("ry"), 0)
-        return _ellipse_shape(cx, cy, rx, ry, paint, matrix)
+        return _ellipse_shape(cx, cy, rx, ry, plain_paint, matrix)
     if tag == "line":
         p1 = _apply_matrix(matrix, (_num(element.get("x1"), 0), _num(element.get("y1"), 0)))
         p2 = _apply_matrix(matrix, (_num(element.get("x2"), 0), _num(element.get("y2"), 0)))
@@ -188,12 +192,12 @@ def _svg_shape_from_element(
         return _freeform_shape([p1, p2], paint, closed=False)
     if tag in {"polygon", "polyline"}:
         points = _transform_points(_parse_points(element.get("points", "")), matrix)
-        return _freeform_shape(points, paint, closed=tag == "polygon") if points else None
+        return _freeform_shape(points, plain_paint if tag == "polygon" else paint, closed=tag == "polygon") if points else None
     if tag == "path":
         path = _parse_linear_path(element.get("d", ""))
         if path:
             points, closed = path
-            return _freeform_shape(_transform_points(points, matrix), paint, closed=closed)
+            return _freeform_shape(_transform_points(points, matrix), plain_paint if closed else paint, closed=closed)
     if tag == "text":
         text = _svg_text_content(element)
         if text:
@@ -348,6 +352,26 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
     raise ValueError(f"unsupported shape kind: {shape.kind}")
 
 
+def _append_svg_marker_defs(svg: ET.Element, shapes: list[Shape]) -> None:
+    if not any(shape.paint.marker_start or shape.paint.marker_end for shape in shapes):
+        return
+    defs = ET.SubElement(svg, qn(NS_SVG, "defs"))
+    marker = ET.SubElement(
+        defs,
+        qn(NS_SVG, "marker"),
+        {
+            "id": "drawingml-svg-arrow",
+            "viewBox": "0 0 10 10",
+            "refX": "10",
+            "refY": "5",
+            "markerWidth": "6",
+            "markerHeight": "6",
+            "orient": "auto-start-reverse",
+        },
+    )
+    ET.SubElement(marker, qn(NS_SVG, "path"), {"d": "M0 0 L10 5 L0 10 Z", "fill": "context-stroke"})
+
+
 def _line_points(shape: Shape) -> dict[str, str]:
     x1 = shape.x + shape.width if shape.flip_h else shape.x
     x2 = shape.x if shape.flip_h else shape.x + shape.width
@@ -370,7 +394,35 @@ def _svg_paint(style: dict[str, str], refs: dict[str, ET.Element] | None = None)
         stroke_linecap=style.get("stroke-linecap"),
         stroke_linejoin=style.get("stroke-linejoin"),
         stroke_dasharray=style.get("stroke-dasharray"),
+        marker_start=_svg_marker_value(style.get("marker-start"), refs),
+        marker_end=_svg_marker_value(style.get("marker-end"), refs),
     )
+
+
+def _paint_without_markers(paint: Paint) -> Paint:
+    return Paint(
+        paint.fill,
+        paint.stroke,
+        paint.stroke_width,
+        paint.fill_alpha,
+        paint.stroke_alpha,
+        paint.stroke_linecap,
+        paint.stroke_linejoin,
+        paint.stroke_dasharray,
+    )
+
+
+def _svg_marker_value(value: str | None, refs: dict[str, ET.Element]) -> str | None:
+    if not value or value == "none":
+        return None
+    match = re.fullmatch(r"url\((?:['\"])?#([^'\")]+)(?:['\"])?\)", value.strip())
+    if not match:
+        return None
+    marker_id = match.group(1)
+    marker = refs.get(marker_id)
+    if marker is None or _local_name(marker.tag) != "marker":
+        return None
+    return marker_id
 
 
 def _text_paint(style: dict[str, str], refs: dict[str, ET.Element]) -> Paint:
@@ -397,12 +449,16 @@ def _dml_paint(sp_pr: ET.Element) -> Paint:
     stroke_linecap = None
     stroke_linejoin = None
     stroke_dasharray = None
+    marker_start = None
+    marker_end = None
     ln = sp_pr.find(qn(NS_A, "ln"))
     if ln is not None:
         stroke_width = _px(int(ln.get("w", "0"))) if ln.get("w") else None
         stroke_linecap = _dml_linecap(ln.get("cap"))
         stroke_linejoin = _dml_linejoin(ln)
         stroke_dasharray = _dml_dasharray(ln)
+        marker_start = _dml_line_arrow(ln.find(qn(NS_A, "tailEnd")))
+        marker_end = _dml_line_arrow(ln.find(qn(NS_A, "headEnd")))
         no_line = ln.find(qn(NS_A, "noFill"))
         solid_line = ln.find(qn(NS_A, "solidFill"))
         if no_line is not None:
@@ -419,6 +475,8 @@ def _dml_paint(sp_pr: ET.Element) -> Paint:
         stroke_linecap=stroke_linecap,
         stroke_linejoin=stroke_linejoin,
         stroke_dasharray=stroke_dasharray,
+        marker_start=marker_start,
+        marker_end=marker_end,
     )
 
 
@@ -446,6 +504,8 @@ def _append_dml_paint(parent: ET.Element, paint: Paint) -> None:
             _append_alpha(color, paint.stroke_alpha)
         _append_dml_dash(ln, paint.stroke_dasharray)
         _append_dml_join(ln, paint.stroke_linejoin)
+        _append_dml_arrow(ln, "tailEnd", paint.marker_start)
+        _append_dml_arrow(ln, "headEnd", paint.marker_end)
 
 
 def _append_custom_geometry(parent: ET.Element, shape: Shape) -> None:
@@ -525,6 +585,17 @@ def _svg_linecap_to_dml(value: str) -> str:
 
 def _dml_linecap(value: str | None) -> str | None:
     return {"flat": "butt", "rnd": "round", "sq": "square"}.get(value or "")
+
+
+def _append_dml_arrow(ln: ET.Element, tag: str, value: str | None) -> None:
+    if value:
+        ET.SubElement(ln, qn(NS_A, tag), {"type": "triangle"})
+
+
+def _dml_line_arrow(element: ET.Element | None) -> str | None:
+    if element is not None and element.get("type") not in {None, "none"}:
+        return "drawingml-svg-arrow"
+    return None
 
 
 def _append_dml_join(ln: ET.Element, value: str | None) -> None:
@@ -677,6 +748,10 @@ def _svg_paint_attrs(paint: Paint) -> dict[str, str]:
         attrs["stroke-linejoin"] = paint.stroke_linejoin
     if paint.stroke_dasharray:
         attrs["stroke-dasharray"] = paint.stroke_dasharray
+    if paint.marker_start:
+        attrs["marker-start"] = f"url(#{paint.marker_start})"
+    if paint.marker_end:
+        attrs["marker-end"] = f"url(#{paint.marker_end})"
     if paint.fill_alpha is not None and paint.fill_alpha < 1:
         attrs["fill-opacity"] = _fmt(paint.fill_alpha)
     if paint.stroke_alpha is not None and paint.stroke_alpha < 1:
@@ -1088,6 +1163,9 @@ def _computed_style(
         "display",
         "visibility",
         "clip-path",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
     ):
         if element.get(attr) is not None:
             style[attr] = element.get(attr, "")
@@ -1219,6 +1297,21 @@ def _rect_clip_path_has_object_bbox_rect(style: dict[str, str], refs: dict[str, 
         return False
     rect = next((child for child in clip if _local_name(child.tag) == "rect"), None)
     return rect is not None and rect.get("transform") is None and _num(rect.get("width"), 0) > 0 and _num(rect.get("height"), 0) > 0
+
+
+def _marker_is_supported(element: ET.Element, style: dict[str, str], refs: dict[str, ET.Element]) -> bool:
+    marker_values = [style.get("marker-start"), style.get("marker-end")]
+    if not any(value and value != "none" for value in marker_values):
+        return True
+    tag = _local_name(element.tag)
+    if tag == "line":
+        return all(_svg_marker_value(value, refs) is not None for value in marker_values if value and value != "none")
+    if tag == "polyline":
+        return all(_svg_marker_value(value, refs) is not None for value in marker_values if value and value != "none")
+    if tag == "path":
+        path = _parse_linear_path(element.get("d", ""))
+        return bool(path and not path[1]) and all(_svg_marker_value(value, refs) is not None for value in marker_values if value and value != "none")
+    return False
 
 
 def _selector_matches(selector: str, element: ET.Element, ancestors: tuple[ET.Element, ...]) -> bool:

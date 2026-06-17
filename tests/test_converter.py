@@ -378,6 +378,33 @@ def test_round_rect_and_stroke_style_convert() -> None:
     assert 'stroke-dasharray="8 3"' in svg
 
 
+def test_line_markers_convert_to_drawingml_arrows_and_round_trip() -> None:
+    svg = """<svg>
+      <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <line x1="0" y1="0" x2="40" y2="10" stroke="#111111" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert '<a:tailEnd type="triangle"/>' in dml
+    assert '<a:headEnd type="triangle"/>' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+    round_trip = drawingml_to_svg(dml)
+    assert '<marker id="drawingml-svg-arrow"' in round_trip
+    assert 'marker-start="url(#drawingml-svg-arrow)"' in round_trip
+    assert 'marker-end="url(#drawingml-svg-arrow)"' in round_trip
+
+
+def test_unsupported_marker_usage_is_reported() -> None:
+    svg = """<svg>
+      <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <polygon points="0,0 20,0 10,10" marker-end="url(#arrow)"/>
+      <polyline points="30,0 40,10 50,0" marker-mid="url(#arrow)"/>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {"marker-end": 1, "marker-mid": 1}
+
+
 def test_tspan_text_anchor_and_bold_convert() -> None:
     dml = svg_to_drawingml(
         '<svg><text x="100" y="40" text-anchor="middle" font-size="20" font-weight="700" fill="#111111"><tspan>Hello</tspan><tspan x="100" dy="22">World</tspan></text></svg>'

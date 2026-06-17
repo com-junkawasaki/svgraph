@@ -11,6 +11,7 @@ from .converter import (
     _clip_path_is_supported,
     _is_hidden,
     _local_name,
+    _marker_is_supported,
     _matrix_multiply,
     _parse_linear_path,
     _parse_transform,
@@ -39,6 +40,9 @@ IGNORED_ELEMENTS = {"defs", "desc", "metadata", "title"}
 UNSUPPORTED_ATTRIBUTES = {
     "clip-path",
     "filter",
+    "marker-end",
+    "marker-mid",
+    "marker-start",
     "mask",
 }
 
@@ -153,6 +157,8 @@ def _inspect_attributes(
 ) -> None:
     for attr in UNSUPPORTED_ATTRIBUTES:
         if attr == "clip-path" and _clip_path_is_supported(element, style, refs, matrix):
+            continue
+        if attr in {"marker-start", "marker-end"} and _marker_is_supported(element, style, refs):
             continue
         if element.get(attr) is not None or style.get(attr) is not None:
             stats.add_unsupported_attribute(attr)
