@@ -1111,7 +1111,7 @@ def _apply_rect_clip(
 ) -> Shape | None:
     if shape.kind not in {"rect", "roundRect", "text"}:
         return shape
-    clip_bounds = _rect_clip_bounds(style, refs, matrix)
+    clip_bounds = _rect_clip_bounds(shape, style, refs, matrix)
     if clip_bounds is None:
         return shape
     clip_x, clip_y, clip_width, clip_height = clip_bounds
@@ -1142,6 +1142,7 @@ def _apply_rect_clip(
 
 
 def _rect_clip_bounds(
+    shape: Shape | None,
     style: dict[str, str],
     refs: dict[str, ET.Element],
     matrix: tuple[float, float, float, float, float, float],
@@ -1155,7 +1156,8 @@ def _rect_clip_bounds(
     clip = refs.get(match.group(1))
     if clip is None or _local_name(clip.tag) != "clipPath":
         return None
-    if clip.get("clipPathUnits", "userSpaceOnUse") != "userSpaceOnUse":
+    units = clip.get("clipPathUnits", "userSpaceOnUse")
+    if units not in {"userSpaceOnUse", "objectBoundingBox"}:
         return None
     rect = next((child for child in clip if _local_name(child.tag) == "rect"), None)
     if rect is None:
@@ -1166,6 +1168,15 @@ def _rect_clip_bounds(
     height = _num(rect.get("height"), 0)
     if width <= 0 or height <= 0:
         return None
+    if units == "objectBoundingBox":
+        if shape is None or clip.get("transform") is not None or rect.get("transform") is not None:
+            return None
+        return (
+            shape.x + x * shape.width,
+            shape.y + y * shape.height,
+            width * shape.width,
+            height * shape.height,
+        )
     clip_matrix = _matrix_multiply(matrix, _parse_transform(clip.get("transform", "")))
     clip_matrix = _matrix_multiply(clip_matrix, _parse_transform(rect.get("transform", "")))
     points = _transform_points(_rect_points(x, y, width, height), clip_matrix)
@@ -1189,7 +1200,25 @@ def _clip_path_is_supported(
     clip_path = style.get("clip-path")
     if not clip_path or clip_path == "none":
         return True
-    return _local_name(element.tag) in {"rect", "text"} and _rect_clip_bounds(style, refs, matrix) is not None
+    if _local_name(element.tag) not in {"rect", "text"}:
+        return False
+    return _rect_clip_bounds(None, style, refs, matrix) is not None or _rect_clip_path_has_object_bbox_rect(style, refs)
+
+
+def _rect_clip_path_has_object_bbox_rect(style: dict[str, str], refs: dict[str, ET.Element]) -> bool:
+    clip_path = style.get("clip-path")
+    if not clip_path or clip_path == "none":
+        return False
+    match = re.fullmatch(r"url\((?:['\"])?#([^'\")]+)(?:['\"])?\)", clip_path.strip())
+    if not match:
+        return False
+    clip = refs.get(match.group(1))
+    if clip is None or _local_name(clip.tag) != "clipPath" or clip.get("clipPathUnits") != "objectBoundingBox":
+        return False
+    if clip.get("transform") is not None:
+        return False
+    rect = next((child for child in clip if _local_name(child.tag) == "rect"), None)
+    return rect is not None and rect.get("transform") is None and _num(rect.get("width"), 0) > 0 and _num(rect.get("height"), 0) > 0
 
 
 def _selector_matches(selector: str, element: ET.Element, ancestors: tuple[ET.Element, ...]) -> bool:
