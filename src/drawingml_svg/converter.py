@@ -1893,6 +1893,16 @@ def _parse_color(value: str | None) -> tuple[str | None, float | None]:
             rgb = tuple(_css_channel(part) for part in parts[:3])
             alpha = _css_alpha(parts[3]) if len(parts) >= 4 else None
             return _rgb_to_hex(rgb), alpha
+    hsl_match = re.fullmatch(r"hsla?\(([^)]+)\)", value, flags=re.I)
+    if hsl_match:
+        parts = [part.strip() for part in re.split(r"[,\s/]+", hsl_match.group(1)) if part.strip()]
+        if len(parts) >= 3:
+            try:
+                rgb = _hsl_to_rgb(parts[0], parts[1], parts[2])
+                alpha = _css_alpha(parts[3]) if len(parts) >= 4 else None
+                return _rgb_to_hex(rgb), alpha
+            except ValueError:
+                return None, None
     return None, None
 
 
@@ -1916,6 +1926,33 @@ def _css_alpha(value: str) -> float:
     if value.endswith("%"):
         return max(0.0, min(float(value[:-1]) / 100, 1.0))
     return max(0.0, min(float(value), 1.0))
+
+
+def _hsl_to_rgb(hue_value: str, saturation_value: str, lightness_value: str) -> tuple[int, int, int]:
+    hue = float(hue_value.removesuffix("deg")) % 360 / 360
+    saturation = _css_alpha(saturation_value)
+    lightness = _css_alpha(lightness_value)
+
+    if saturation == 0:
+        channel = round(lightness * 255)
+        return channel, channel, channel
+
+    q = lightness * (1 + saturation) if lightness < 0.5 else lightness + saturation - lightness * saturation
+    p = 2 * lightness - q
+
+    def channel(offset: float) -> int:
+        t = (hue + offset) % 1
+        if t < 1 / 6:
+            value = p + (q - p) * 6 * t
+        elif t < 1 / 2:
+            value = q
+        elif t < 2 / 3:
+            value = p + (q - p) * (2 / 3 - t) * 6
+        else:
+            value = p
+        return round(value * 255)
+
+    return channel(1 / 3), channel(0), channel(-1 / 3)
 
 
 def _num(value: str | None, default: float) -> float:
