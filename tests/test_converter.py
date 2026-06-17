@@ -1417,6 +1417,41 @@ def test_drawingml_invalid_numeric_paint_and_transform_values_do_not_crash() -> 
     assert "transform=" not in svg
 
 
+def test_drawingml_invalid_custom_geometry_points_do_not_crash() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="curve"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="190500"/></a:xfrm>
+          <a:custGeom>
+            <a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="l" t="t" r="r" b="b"/>
+            <a:pathLst>
+              <a:path w="762000" h="190500">
+                <a:moveTo><a:pt x="0" y="0"/></a:moveTo>
+                <a:lnTo><a:pt x="bad" y="95250"/></a:lnTo>
+                <a:lnTo><a:pt x="381000" y="190500"/></a:lnTo>
+                <a:quadBezTo>
+                  <a:pt x="bad" y="0"/>
+                  <a:pt x="762000" y="0"/>
+                </a:quadBezTo>
+              </a:path>
+            </a:pathLst>
+          </a:custGeom>
+          <a:ln><a:solidFill><a:srgbClr val="111111"/></a:solidFill></a:ln>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert "<polyline" in svg
+    assert "bad" not in svg
+    assert "0,0" in svg
+    assert "40,20" in svg
+    assert "80,0" not in svg
+
+
 def test_text_stroke_width_scales_with_transform() -> None:
     svg = '<svg><text x="0" y="10" fill="#111111" stroke="#ffffff" stroke-width="2" transform="scale(2)">Outlined</text></svg>'
 

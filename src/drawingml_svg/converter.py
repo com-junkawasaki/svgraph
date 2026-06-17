@@ -1733,8 +1733,9 @@ def _dml_custom_points(cust: ET.Element, x: float, y: float) -> tuple[list[tuple
         tag = _local_name(child.tag)
         if tag in {"moveTo", "lnTo"}:
             pt = child.find(qn(NS_A, "pt"))
-            if pt is not None:
-                points.append((x + _px(int(pt.get("x", "0"))), y + _px(int(pt.get("y", "0")))))
+            point = _dml_path_point(pt, x, y) if pt is not None else None
+            if point is not None:
+                points.append(point)
         elif tag == "quadBezTo" and points:
             bezier_points = _dml_path_points(child, x, y)
             if len(bezier_points) >= 2:
@@ -1751,8 +1752,18 @@ def _dml_custom_points(cust: ET.Element, x: float, y: float) -> tuple[list[tuple
 def _dml_path_points(element: ET.Element, x: float, y: float) -> list[tuple[float, float]]:
     points = []
     for pt in element.findall(qn(NS_A, "pt")):
-        points.append((x + _px(int(pt.get("x", "0"))), y + _px(int(pt.get("y", "0")))))
+        point = _dml_path_point(pt, x, y)
+        if point is not None:
+            points.append(point)
     return points
+
+
+def _dml_path_point(pt: ET.Element, x: float, y: float) -> tuple[float, float] | None:
+    point_x = _dml_int(pt.get("x"))
+    point_y = _dml_int(pt.get("y"))
+    if point_x is None or point_y is None:
+        return None
+    return x + _px(point_x), y + _px(point_y)
 
 
 def _transformed_rect_shape(
