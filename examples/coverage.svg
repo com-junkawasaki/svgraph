@@ -72,7 +72,7 @@
     <rect x="204" y="18" width="82" height="54" rx="8" fill="#fef3c7" stroke="#92400e" stroke-width="2" clip-path="url(#badge-crop)"/>
     <rect x="116" y="104" width="98" height="44" rx="6" fill="#ede9fe" stroke="#6d28d9" stroke-width="2" clip-path="url(#object-crop)"/>
     <a fill="#fef9c3" stroke="#a16207">
-      <rect x="222" y="84" width="48" height="20" rx="4"/>
+      <rect x="222" y="84" width="48" height="20" rx="4" fill="inherit" stroke="inherit"/>
     </a>
     <switch>
       <rect requiredExtensions="https://example.test/ext" x="288" y="84" width="34" height="20" fill="#123abc"/>

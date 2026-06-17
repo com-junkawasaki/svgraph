@@ -1683,6 +1683,42 @@ def test_css_color_functions_named_colors_and_gradient_fallback() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_inherit_paint_values_use_parent_computed_style() -> None:
+    svg = """<svg>
+      <style>
+        g.theme { fill: #123456; stroke: #abcdef; color: #f97316; }
+        rect.accent { fill: inherit; stroke: currentColor; }
+      </style>
+      <g class="theme">
+        <rect class="accent" x="0" y="0" width="10" height="8" style="stroke-width: 2"/>
+        <circle cx="20" cy="4" r="4" fill="inherit" stroke="inherit"/>
+      </g>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert 'val="123456"' in dml
+    assert 'val="F97316"' in dml
+    assert 'val="ABCDEF"' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_gradient_stop_color_inherit_uses_gradient_style() -> None:
+    svg = """<svg>
+      <defs>
+        <linearGradient id="grad" stop-color="#ff0000" stop-opacity=".5">
+          <stop offset="0%" stop-color="inherit"/>
+          <stop offset="100%" stop-color="#0000ff"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="10" height="8" fill="url(#grad)"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert 'val="800080"' in dml
+    assert 'val="50000"' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_radial_gradient_fallback_uses_outer_stop_color() -> None:
     svg = """<svg>
       <defs>
