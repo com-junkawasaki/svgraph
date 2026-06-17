@@ -50,6 +50,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "clip-rule",
     "fill-rule",
     "filter",
+    "letter-spacing",
     "lengthAdjust",
     "marker-end",
     "marker-mid",
@@ -60,6 +61,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "rotate",
     "textLength",
     "vector-effect",
+    "word-spacing",
 }
 
 

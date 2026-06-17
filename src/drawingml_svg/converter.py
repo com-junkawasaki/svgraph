@@ -1588,6 +1588,7 @@ def _computed_style(
         "font-family",
         "font-weight",
         "font-style",
+        "letter-spacing",
         "lengthAdjust",
         "text-decoration",
         "text-anchor",
@@ -1606,6 +1607,7 @@ def _computed_style(
         "pathLength",
         "rotate",
         "vector-effect",
+        "word-spacing",
     ):
         if element.get(attr) is not None:
             apply_declaration(attr, element.get(attr, ""), False, (0, 0, 0, 0), -1)
