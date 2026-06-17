@@ -1575,6 +1575,7 @@ def _computed_style(
         "marker-end",
         "paint-order",
         "pathLength",
+        "rotate",
         "vector-effect",
     ):
         if element.get(attr) is not None:

@@ -513,7 +513,9 @@ def test_analyze_svg_reports_unconverted_visual_attributes() -> None:
 def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     svg = """<svg>
       <path d="M0 0 L10 0" pathLength="100" stroke="#111111"/>
-      <text x="0" y="10" textLength="80" lengthAdjust="spacingAndGlyphs">Fit</text>
+      <text x="0" y="10" textLength="80" lengthAdjust="spacingAndGlyphs">
+        <tspan rotate="15 0">Fit</tspan>
+      </text>
     </svg>"""
 
     report = analyze_svg(svg)
@@ -522,6 +524,7 @@ def test_analyze_svg_reports_unconverted_layout_length_attributes() -> None:
     assert report.unsupported_attributes == {
         "lengthAdjust": 1,
         "pathLength": 1,
+        "rotate": 1,
         "textLength": 1,
     }
 

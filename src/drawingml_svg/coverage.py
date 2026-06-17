@@ -56,6 +56,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "mask",
     "paint-order",
     "pathLength",
+    "rotate",
     "textLength",
     "vector-effect",
 }
@@ -138,6 +139,7 @@ def _walk(
         path_supported = _path_is_supported(element.get("d", ""))
 
     style = _computed_style(element, css, inherited_style, ancestors)
+    specified_style = _computed_style(element, css, {}, ancestors)
     hidden = _is_hidden(style)
 
     use_supported = True
@@ -157,7 +159,7 @@ def _walk(
         stats.add_unsupported_element(tag)
 
     matrix = _matrix_multiply(inherited_matrix, _parse_transform(element.get("transform", "")))
-    _inspect_attributes(element, style, refs, matrix, stats)
+    _inspect_attributes(element, style, specified_style, refs, matrix, stats)
 
     if tag == "path":
         _inspect_path(element.get("d", ""), stats)
@@ -177,6 +179,7 @@ def _walk(
 def _inspect_attributes(
     element: ET.Element,
     style: dict[str, str],
+    specified_style: dict[str, str],
     refs: dict[str, ET.Element],
     matrix: tuple[float, float, float, float, float, float],
     stats: _CoverageStats,
@@ -186,7 +189,7 @@ def _inspect_attributes(
             continue
         if attr in {"marker-start", "marker-end"} and _marker_is_supported(element, style, refs):
             continue
-        if element.get(attr) is not None or style.get(attr) is not None:
+        if specified_style.get(attr) is not None:
             stats.add_unsupported_attribute(attr)
     href = _href(element)
     if _local_name(element.tag) == "image":
