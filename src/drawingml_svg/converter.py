@@ -66,6 +66,9 @@ class Shape:
     image_href: str | None = None
 
 
+CssRule = tuple[str, dict[str, str], tuple[int, int, int], int]
+
+
 def svg_to_drawingml(svg_text: str) -> str:
     root = ET.fromstring(svg_text)
     container = ET.Element(qn(NS_P, "spTree"))
@@ -113,7 +116,7 @@ def _svg_shapes(root: ET.Element) -> Iterable[Shape]:
 
 def _svg_shapes_walk(
     element: ET.Element,
-    css: dict[str, dict[str, str]],
+    css: list[CssRule],
     refs: dict[str, ET.Element],
     inherited_style: dict[str, str],
     inherited_matrix: tuple[float, float, float, float, float, float],
@@ -1339,8 +1342,9 @@ def _normalize_css_value(value: str) -> str:
     return re.sub(r"\s*!important\s*$", "", value.strip(), flags=re.I).strip()
 
 
-def _collect_css(root: ET.Element) -> dict[str, dict[str, str]]:
-    css: dict[str, dict[str, str]] = {}
+def _collect_css(root: ET.Element) -> list[CssRule]:
+    css: list[CssRule] = []
+    order = 0
     for element in root.iter():
         if _local_name(element.tag) != "style":
             continue
@@ -1351,7 +1355,8 @@ def _collect_css(root: ET.Element) -> dict[str, dict[str, str]]:
             for item in selector.split(","):
                 key = item.strip()
                 if key:
-                    css.setdefault(key, {}).update(declarations)
+                    css.append((key, declarations, _selector_specificity(key), order))
+                    order += 1
     return css
 
 
@@ -1422,15 +1427,20 @@ def _alignment_offset(axis: str, extra: float) -> float:
 
 def _computed_style(
     element: ET.Element,
-    css: dict[str, dict[str, str]],
+    css: list[CssRule],
     inherited: dict[str, str],
     ancestors: tuple[ET.Element, ...] = (),
 ) -> dict[str, str]:
     tag = _local_name(element.tag)
     style = dict(inherited)
-    for selector, declarations in css.items():
+    css_priorities: dict[str, tuple[tuple[int, int, int], int]] = {}
+    for selector, declarations, specificity, order in css:
         if _selector_matches(selector, element, ancestors):
-            style.update(declarations)
+            for key, value in declarations.items():
+                priority = (specificity, order)
+                if priority >= css_priorities.get(key, ((-1, -1, -1), -1)):
+                    style[key] = value
+                    css_priorities[key] = priority
     for attr in (
         "fill",
         "fill-opacity",
@@ -1637,6 +1647,22 @@ def _selector_matches(selector: str, element: ET.Element, ancestors: tuple[ET.El
             ancestor_index -= 1
         index -= 1
     return True
+
+
+def _selector_specificity(selector: str) -> tuple[int, int, int]:
+    if any(mark in selector for mark in ("+", "~", ":", "[")):
+        return (0, 0, 0)
+    id_count = len(re.findall(r"#[A-Za-z_][\w:-]*", selector))
+    class_count = len(re.findall(r"\.[A-Za-z_][\w:-]*", selector))
+    element_count = 0
+    for part in re.findall(r"[^ >]+", selector.strip()):
+        if part == "*":
+            continue
+        first_modifier = min([index for index in (part.find("."), part.find("#")) if index >= 0], default=-1)
+        tag = part[:first_modifier] if first_modifier > 0 else ("" if first_modifier == 0 else part)
+        if tag and re.fullmatch(r"[A-Za-z_][\w:-]*", tag):
+            element_count += 1
+    return id_count, class_count, element_count
 
 
 def _simple_selector_matches(selector: str, element: ET.Element) -> bool:

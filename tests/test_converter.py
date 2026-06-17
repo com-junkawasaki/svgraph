@@ -155,6 +155,24 @@ def test_css_descendant_selectors_are_applied_in_converter_and_analyzer() -> Non
     assert analyze_svg(svg).estimated_element_coverage == 1.0
 
 
+def test_css_specificity_wins_over_later_lower_specificity_rules() -> None:
+    svg = """<svg>
+      <style>
+        #target { fill: #dc2626; }
+        .accent { stroke: #16a34a; }
+        rect { fill: #2563eb; stroke: #9333ea; }
+      </style>
+      <rect id="target" class="accent" x="1" y="2" width="3" height="4"/>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    assert 'val="DC2626"' in dml
+    assert 'val="16A34A"' in dml
+    assert 'val="2563EB"' not in dml
+    assert 'val="9333EA"' not in dml
+    assert analyze_svg(svg).estimated_element_coverage == 1.0
+
+
 def test_compound_child_selectors_hidden_shapes_and_scientific_numbers() -> None:
     svg = """<svg>
       <style>

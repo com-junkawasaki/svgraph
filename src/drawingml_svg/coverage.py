@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from xml.etree import ElementTree as ET
 
 from .converter import (
+    CssRule,
     _collect_css,
     _collect_refs,
     _computed_style,
@@ -111,7 +112,7 @@ class _CoverageStats:
 
 def _walk(
     element: ET.Element,
-    css: dict[str, dict[str, str]],
+    css: list[CssRule],
     refs: dict[str, ET.Element],
     inherited_style: dict[str, str],
     inherited_matrix: tuple[float, float, float, float, float, float],
