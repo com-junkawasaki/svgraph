@@ -1062,12 +1062,12 @@ def _dml_color(parent: ET.Element) -> str | None:
         return f"#{srgb.get('val', '').lower()}"
     scheme = parent.find(qn(NS_A, "schemeClr"))
     if scheme is not None and scheme.get("val"):
-        return _dml_scheme_color(scheme.get("val"))
+        return _dml_scheme_color(scheme)
     return None
 
 
-def _dml_scheme_color(value: str | None) -> str | None:
-    return {
+def _dml_scheme_color(element: ET.Element) -> str | None:
+    color = {
         "accent1": "#4472c4",
         "accent2": "#ed7d31",
         "accent3": "#a5a5a5",
@@ -1084,7 +1084,30 @@ def _dml_scheme_color(value: str | None) -> str | None:
         "lt2": "#e7e6e6",
         "tx1": "#000000",
         "tx2": "#44546a",
-    }.get(value or "")
+    }.get(element.get("val", ""))
+    if color is None:
+        return None
+    return _apply_dml_luminance_modifiers(color, element)
+
+
+def _apply_dml_luminance_modifiers(color: str, element: ET.Element) -> str:
+    rgb = list(_hex_to_rgb(color))
+    lum_mod = element.find(qn(NS_A, "lumMod"))
+    lum_off = element.find(qn(NS_A, "lumOff"))
+    if lum_mod is not None and lum_mod.get("val") is not None:
+        factor = _dml_percentage(lum_mod.get("val"), 100000)
+        rgb = [round(channel * factor) for channel in rgb]
+    if lum_off is not None and lum_off.get("val") is not None:
+        offset = _dml_percentage(lum_off.get("val"), 0)
+        rgb = [round(channel + (255 - channel) * offset) for channel in rgb]
+    return _rgb_to_hex(tuple(max(0, min(255, channel)) for channel in rgb))
+
+
+def _dml_percentage(value: str | None, default: int) -> float:
+    try:
+        return int(value or default) / 100000
+    except ValueError:
+        return default / 100000
 
 
 def _dml_alpha(parent: ET.Element) -> float | None:
