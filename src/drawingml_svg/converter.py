@@ -1724,7 +1724,8 @@ def _selector_matches(selector: str, element: ET.Element, ancestors: tuple[ET.El
 
 
 def _selector_specificity(selector: str) -> tuple[int, int, int]:
-    if any(mark in selector for mark in ("+", "~", ":")):
+    selector_without_attrs = _selector_without_attribute_selectors(selector)
+    if any(mark in selector_without_attrs for mark in ("+", "~", ":")):
         return (0, 0, 0)
     id_count = len(re.findall(r"#[A-Za-z_][\w:-]*", selector))
     class_count = len(re.findall(r"\.[A-Za-z_][\w:-]*", selector)) + len(re.findall(r"\[[^\]]+\]", selector))
@@ -1741,7 +1742,8 @@ def _selector_specificity(selector: str) -> tuple[int, int, int]:
 
 def _simple_selector_matches(selector: str, element: ET.Element) -> bool:
     selector = selector.strip()
-    if not selector or any(mark in selector for mark in ("+", "~", ":")):
+    selector_without_attrs = _selector_without_attribute_selectors(selector)
+    if not selector or any(mark in selector_without_attrs for mark in ("+", "~", ":")):
         return False
     tag = _local_name(element.tag)
     element_id = element.get("id")
@@ -1749,7 +1751,6 @@ def _simple_selector_matches(selector: str, element: ET.Element) -> bool:
     if selector == "*":
         return True
     attributes = re.findall(r"\[([^\]]+)\]", selector)
-    selector_without_attrs = re.sub(r"\[[^\]]+\]", "", selector)
     if "[" in selector_without_attrs or "]" in selector_without_attrs:
         return False
     first_modifier = min([index for index in (selector_without_attrs.find("."), selector_without_attrs.find("#")) if index >= 0], default=-1)
@@ -1768,16 +1769,38 @@ def _simple_selector_matches(selector: str, element: ET.Element) -> bool:
     )
 
 
+def _selector_without_attribute_selectors(selector: str) -> str:
+    return re.sub(r"\[[^\]]+\]", "", selector)
+
+
 def _attribute_selector_matches(selector: str, element: ET.Element) -> bool:
-    match = re.fullmatch(r"\s*([A-Za-z_][\w:-]*)(?:\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"']+)))?\s*", selector)
+    match = re.fullmatch(
+        r"\s*([A-Za-z_][\w:-]*)(?:\s*([~|^$*]?=)\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"']+)))?\s*",
+        selector,
+    )
     if not match:
         return False
     name = match.group(1)
-    expected = next((group for group in match.groups()[1:] if group is not None), None)
+    operator = match.group(2)
+    expected = next((group for group in match.groups()[2:] if group is not None), None)
     actual = _attribute_value(element, name)
     if actual is None:
         return False
-    return expected is None or actual == expected
+    if expected is None:
+        return operator is None
+    if operator == "=":
+        return actual == expected
+    if operator == "~=":
+        return expected in actual.split()
+    if operator == "|=":
+        return actual == expected or actual.startswith(f"{expected}-")
+    if operator == "^=":
+        return actual.startswith(expected)
+    if operator == "$=":
+        return actual.endswith(expected)
+    if operator == "*=":
+        return expected in actual
+    return False
 
 
 def _attribute_value(element: ET.Element, name: str) -> str | None:

@@ -190,13 +190,18 @@ def test_css_attribute_selectors_are_applied() -> None:
         rect[data-tone] { fill: #fef3c7; }
         [data-state="active"] { stroke: #0f766e; stroke-width: 2; }
         *[data-wide] { stroke-width: 3; }
+        rect[data-tags~="signal"][data-kind|="meter"] { stroke: #1d4ed8; }
+        rect[data-icon^="coverage"][data-icon$="probe"][data-icon*="age-pr"] { fill: #dbeafe; }
       </style>
       <rect data-tone="warm" data-state="active" data-wide="1" x="1" y="2" width="3" height="4"/>
+      <rect data-tags="warm signal" data-kind="meter-high" data-icon="coverage-probe" x="6" y="2" width="3" height="4"/>
     </svg>"""
     dml = svg_to_drawingml(svg)
 
     assert 'val="FEF3C7"' in dml
     assert 'val="0F766E"' in dml
+    assert 'val="DBEAFE"' in dml
+    assert 'val="1D4ED8"' in dml
     assert 'w="28575"' in dml
     assert analyze_svg(svg).estimated_element_coverage == 1.0
 
