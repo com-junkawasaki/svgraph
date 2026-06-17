@@ -272,10 +272,11 @@ def _dml_shapes(root: ET.Element) -> Iterable[Shape]:
                 y,
                 width,
                 height,
-                _dml_paint(sp_pr),
+                _dml_text_paint(element, sp_pr),
                 flip_h,
                 flip_v,
                 text=text,
+                font_size=_dml_font_size(element),
                 font_weight=_dml_font_weight(element),
                 font_style=_dml_font_style(element),
                 font_family=_dml_font_family(element),
@@ -584,6 +585,14 @@ def _dml_paint(sp_pr: ET.Element) -> Paint:
     )
 
 
+def _dml_text_paint(element: ET.Element, sp_pr: ET.Element) -> Paint:
+    r_pr = element.find(f".//{qn(NS_A, 'rPr')}")
+    solid_fill = r_pr.find(qn(NS_A, "solidFill")) if r_pr is not None else None
+    if solid_fill is not None:
+        return Paint(fill=_dml_color(solid_fill), fill_alpha=_dml_alpha(solid_fill))
+    return _dml_paint(sp_pr)
+
+
 def _append_dml_paint(parent: ET.Element, paint: Paint) -> None:
     if paint.fill == "none":
         ET.SubElement(parent, qn(NS_A, "noFill"))
@@ -827,6 +836,16 @@ def _dml_font_weight(element: ET.Element) -> str | None:
     r_pr = element.find(f".//{qn(NS_A, 'rPr')}")
     if r_pr is not None and r_pr.get("b") in {"1", "true"}:
         return "bold"
+    return None
+
+
+def _dml_font_size(element: ET.Element) -> float | None:
+    r_pr = element.find(f".//{qn(NS_A, 'rPr')}")
+    if r_pr is not None and r_pr.get("sz"):
+        try:
+            return int(r_pr.get("sz", "0")) / 100
+        except ValueError:
+            return None
     return None
 
 
@@ -1832,12 +1851,14 @@ def _num(value: str | None, default: float) -> float:
     if value is None:
         return float(default)
     stripped = value.strip()
-    for suffix in ("px", "pt"):
-        if stripped.endswith(suffix):
-            stripped = stripped[: -len(suffix)]
-            break
+    scale = 1.0
+    if stripped.endswith("px"):
+        stripped = stripped[:-2]
+    elif stripped.endswith("pt"):
+        stripped = stripped[:-2]
+        scale = 96 / 72
     try:
-        return float(stripped)
+        return float(stripped) * scale
     except ValueError:
         return float(default)
 

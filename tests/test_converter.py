@@ -398,6 +398,22 @@ def test_round_rect_and_stroke_style_convert() -> None:
     assert 'stroke-dasharray="8 4"' in svg
 
 
+def test_pt_units_are_converted_to_px() -> None:
+    dml = svg_to_drawingml(
+        '<svg><text x="0" y="20" font-size="12pt" fill="#111111">Pt</text><line x1="0" y1="30" x2="40" y2="30" stroke="#222222" stroke-width="1.5pt" stroke-dasharray="6pt 3pt"/></svg>'
+    )
+
+    assert 'sz="1600"' in dml
+    assert '<a:ln w="19050">' in dml
+    assert '<a:ds d="400000" sp="200000"/>' in dml
+
+    svg = drawingml_to_svg(dml)
+    assert 'font-size="16"' in svg
+    assert 'fill="#111111"' in svg
+    assert 'stroke-width="2"' in svg
+    assert 'stroke-dasharray="8 4"' in svg
+
+
 def test_line_markers_convert_to_drawingml_arrows_and_round_trip() -> None:
     svg = """<svg>
       <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>

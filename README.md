@@ -73,6 +73,7 @@ This is intentionally conservative. Unsupported SVG elements are skipped, and un
 
 ```text
 1 px = 9525 EMU
+1 pt = 1.3333 px
 ```
 
 ## License
