@@ -363,7 +363,7 @@ def test_css_color_functions_named_colors_and_gradient_fallback() -> None:
           <stop offset="100%" style="stop-color: rgb(0, 0, 255); stop-opacity: .25"/>
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width="10" height="8" fill="url(#grad)" stroke="hsl(120 100% 25% / 75%)"/>
+      <rect x="0" y="0" width="10" height="8" fill="url(#grad)" stroke="hsl(0.333333turn 100% 25% / 75%)"/>
     </svg>"""
     dml = svg_to_drawingml(svg)
 

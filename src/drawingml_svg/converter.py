@@ -1933,7 +1933,7 @@ def _css_alpha(value: str) -> float:
 
 
 def _hsl_to_rgb(hue_value: str, saturation_value: str, lightness_value: str) -> tuple[int, int, int]:
-    hue = float(hue_value.removesuffix("deg")) % 360 / 360
+    hue = _css_hue_degrees(hue_value) % 360 / 360
     saturation = _css_alpha(saturation_value)
     lightness = _css_alpha(lightness_value)
 
@@ -1957,6 +1957,16 @@ def _hsl_to_rgb(hue_value: str, saturation_value: str, lightness_value: str) -> 
         return round(value * 255)
 
     return channel(1 / 3), channel(0), channel(-1 / 3)
+
+
+def _css_hue_degrees(value: str) -> float:
+    if value.endswith("turn"):
+        return float(value[:-4]) * 360
+    if value.endswith("rad"):
+        return math.degrees(float(value[:-3]))
+    if value.endswith("deg"):
+        return float(value[:-3])
+    return float(value)
 
 
 def _num(value: str | None, default: float) -> float:
