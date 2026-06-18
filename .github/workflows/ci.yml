@@ -76,6 +76,8 @@ jobs:
           assert 'x="266700"' in slide and 'val="BFDBFE"' in slide, "CSS transform property was not applied to fixture geometry"
           assert 'val="DCFCE7"' in slide, "visible descendant inside hidden group was not rendered"
           assert 'rot="600000"' in slide and 'val="E9D5FF"' in slide, "absolute transform-origin was not applied to CSS transform"
+          assert slide.count('x="2743200" y="2324100"') >= 2, "two-point path/polyline clip geometry was not reflected in DrawingML"
+          assert 'cx="381000" cy="381000"' in slide and 'x="381000" y="0"' in slide, "clipped two-point path/polyline endpoints were not written"
           assert "<a:ds d=\"0\" sp=\"0\"" not in slide, "zero dasharray should remain a solid line"
           assert "cap=\"all\"" in slide, "all-small-caps text was not preserved"
           assert "u=\"sng\"" in slide, "text-decoration-line underline was not written to DrawingML"

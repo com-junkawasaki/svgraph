@@ -40,6 +40,9 @@
     <clipPath id="object-crop" clipPathUnits=" OBJECTBOUNDINGBOX ">
       <rect x=".15" y=".2" width=".7" height=".55"/>
     </clipPath>
+    <clipPath id="segment-crop">
+      <rect x="104" y="92" width="20" height="20"/>
+    </clipPath>
   </defs>
   <g id="board">
     <rect class="panel featured" x="-20" y="-10" width="360" height="180" rx="12"/>
@@ -75,6 +78,8 @@
     <line x1="104" y1="72" x2="132" y2="72" stroke="#111827" stroke-width="2" stroke-dasharray="8% 4%" stroke-dashoffset="2%"/>
     <line x1="104" y1="78" x2="132" y2="78" stroke="#111827" stroke-width="2" stroke-dasharray="8 4" stroke-dashoffset="10"/>
     <polyline points="104,84 118,84 132,92" fill="none" stroke="#111827" stroke-width="2" stroke-linecap=" ROUND " stroke-linejoin=" BEVEL "/>
+    <polyline points="96,84 140,128" fill="none" stroke="#0f766e" stroke-width="2" clip-path="url(#segment-crop)"/>
+    <path d="M96 120 L132 84" fill="none" stroke="#7c3aed" stroke-width="2" clip-path="url(#segment-crop)"/>
     <path d="M140 42 L166 42" pathLength="100" fill="none" stroke="#111827"/>
     <a href="https://example.test/coverage"><rect data-tone="cool" x="140" y="18" width="26" height="18"/></a>
     <rect data-icon="coverage-probe" data-tags="warm signal" data-kind="meter-high" x="172" y="18" width="24" height="18"/>
