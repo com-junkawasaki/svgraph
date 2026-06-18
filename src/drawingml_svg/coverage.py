@@ -371,7 +371,10 @@ def _inspect_attributes(
             continue
         if attr == "transform-origin" and _transform_origin_is_supported(specified_style, viewport):
             continue
-        if attr == "baseline-shift" and _baseline_shift_has_no_effect(specified_style):
+        if attr == "baseline-shift" and (
+            _baseline_shift_has_no_effect(specified_style)
+            or _baseline_shift_is_supported(element, specified_style)
+        ):
             continue
         if attr == "alignment-baseline" and _alignment_baseline_is_supported_or_noop(element, specified_style):
             continue
@@ -613,6 +616,13 @@ def _baseline_shift_has_no_effect(style: dict[str, str]) -> bool:
     if value is None:
         return False
     return value.strip().lower() in {"", "baseline", "0", "0px", "0pt", "0pc", "0in", "0cm", "0mm", "0q"}
+
+
+def _baseline_shift_is_supported(element: ET.Element, style: dict[str, str]) -> bool:
+    value = style.get("baseline-shift")
+    if value is None or _local_name(element.tag) != "text":
+        return False
+    return value.strip().lower() in {"super", "sub"}
 
 
 def _alignment_baseline_is_supported_or_noop(element: ET.Element, style: dict[str, str]) -> bool:

@@ -1356,11 +1356,31 @@ def test_unconverted_text_layout_attributes_are_reported() -> None:
     </svg>"""
 
     assert analyze_svg(svg).unsupported_attributes == {
-        "baseline-shift": 1,
         "font-size-adjust": 1,
         "font-stretch": 1,
         "text-orientation": 1,
     }
+
+
+def test_text_baseline_shift_super_and_sub_convert_to_drawingml() -> None:
+    superscript = '<svg><text x="10" y="20" baseline-shift="super" font-size="10" fill="#111111">Power</text></svg>'
+    subscript = '<svg><text x="10" y="40" baseline-shift="sub" font-size="10" fill="#111111">Base</text></svg>'
+
+    super_dml = svg_to_drawingml(superscript)
+    sub_dml = svg_to_drawingml(subscript)
+
+    assert 'baseline="30000"' in super_dml
+    assert 'baseline="-25000"' in sub_dml
+    assert analyze_svg(superscript).unsupported_attributes == {}
+    assert analyze_svg(subscript).unsupported_attributes == {}
+    assert 'baseline-shift="super"' in drawingml_to_svg(super_dml)
+    assert 'baseline-shift="sub"' in drawingml_to_svg(sub_dml)
+
+
+def test_tspan_baseline_shift_remains_reported_as_run_level_unsupported() -> None:
+    svg = '<svg><text x="0" y="20">A<tspan baseline-shift="super">2</tspan></text></svg>'
+
+    assert analyze_svg(svg).unsupported_attributes == {"baseline-shift": 1}
 
 
 def test_unconverted_text_direction_and_typography_attributes_are_reported() -> None:

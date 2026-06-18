@@ -65,6 +65,7 @@ class Shape:
     text_decoration: str | None = None
     text_anchor: str | None = None
     text_baseline: str | None = None
+    text_baseline_shift: str | None = None
     letter_spacing: float | None = None
     rx: float | None = None
     ry: float | None = None
@@ -320,6 +321,7 @@ def _svg_shape_from_element(
                 text_decoration=style.get("text-decoration"),
                 text_anchor=anchor,
                 text_baseline=baseline,
+                text_baseline_shift=_baseline_shift(style.get("baseline-shift")),
                 letter_spacing=_svg_text_effective_letter_spacing(style, text, font_size, viewport),
                 rotation=_svg_text_rotation(element, style),
             )
@@ -440,6 +442,7 @@ def _dml_shape_from_element(element: ET.Element) -> Shape | None:
             text_decoration=_dml_text_decoration(element),
             text_anchor=_dml_text_anchor(element),
             text_baseline=_dml_text_baseline(element),
+            text_baseline_shift=_dml_text_baseline_shift(element),
             letter_spacing=_dml_letter_spacing(element),
             rotation=rotation,
         )
@@ -612,6 +615,8 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
             attrs["text-anchor"] = shape.text_anchor
         if shape.text_baseline:
             attrs["dominant-baseline"] = shape.text_baseline
+        if shape.text_baseline_shift:
+            attrs["baseline-shift"] = shape.text_baseline_shift
         if shape.letter_spacing is not None:
             attrs["letter-spacing"] = _fmt(shape.letter_spacing)
         transform = _svg_shape_transform(shape) if shape.flip_h or shape.flip_v else None
@@ -1273,6 +1278,10 @@ def _append_text_body(parent: ET.Element, shape: Shape) -> None:
         r_pr_attrs["u"] = "sng"
     if _has_text_decoration(shape.text_decoration, "line-through"):
         r_pr_attrs["strike"] = "sngStrike"
+    if shape.text_baseline_shift == "super":
+        r_pr_attrs["baseline"] = "30000"
+    elif shape.text_baseline_shift == "sub":
+        r_pr_attrs["baseline"] = "-25000"
     if shape.letter_spacing is not None:
         r_pr_attrs["spc"] = str(round(shape.letter_spacing * 0.75 * 100))
     r_pr = ET.SubElement(run, qn(NS_A, "rPr"), r_pr_attrs)
@@ -2133,6 +2142,21 @@ def _dml_font_variant(element: ET.Element) -> str | None:
     return None
 
 
+def _dml_text_baseline_shift(element: ET.Element) -> str | None:
+    r_pr = _dml_text_property(element, lambda item: item.get("baseline") is not None)
+    if r_pr is None or r_pr.get("baseline") is None:
+        return None
+    try:
+        baseline = int(r_pr.get("baseline", "0"))
+    except ValueError:
+        return None
+    if baseline >= 30000:
+        return "super"
+    if baseline <= -25000:
+        return "sub"
+    return None
+
+
 def _dml_letter_spacing(element: ET.Element) -> float | None:
     r_pr = _dml_text_property(element, lambda item: item.get("spc") is not None)
     if r_pr is None or r_pr.get("spc") is None:
@@ -2474,6 +2498,15 @@ def _font_variant(value: str | None) -> str | None:
         return None
     normalized = value.strip().lower()
     if normalized in {"small-caps", "all-small-caps"}:
+        return normalized
+    return None
+
+
+def _baseline_shift(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"super", "sub"}:
         return normalized
     return None
 

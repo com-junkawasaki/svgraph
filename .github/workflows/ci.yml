@@ -97,6 +97,7 @@ jobs:
           assert "cap=\"all\"" in slide, "all-small-caps text was not preserved"
           assert "u=\"sng\"" in slide, "text-decoration-line underline was not written to DrawingML"
           assert "spc=\"" in slide, "text spacing adjustments were not written"
+          assert 'baseline="30000"' in slide, "text baseline-shift super was not written to DrawingML"
           assert "<a:t>WORD GAP</a:t>" in slide, "text-transform uppercase was not applied"
           assert "<a:t>FIXTURE</a:t>" in slide, "tspan text-transform uppercase was not applied"
           assert "<a:t>MiXeD</a:t>" in slide, "normal text-transform should preserve literal text"
