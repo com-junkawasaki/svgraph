@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     shapes = [
         child
         for child in sp_tree_fragment
-        if child.tag in {qn(NS_P, "sp"), qn(NS_P, "cxnSp"), qn(NS_P, "pic")}
+        if child.tag in {qn(NS_P, "sp"), qn(NS_P, "cxnSp"), qn(NS_P, "pic"), qn(NS_P, "graphicFrame")}
     ]
     if not shapes:
         parser.exit(1, f"{parser.prog}: error: input did not produce any DrawingML shapes\n")

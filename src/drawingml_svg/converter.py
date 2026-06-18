@@ -94,6 +94,21 @@ class Shape:
     text_runs: tuple[TextRun, ...] = ()
 
 
+@dataclass(frozen=True)
+class SvgTable:
+    x: float
+    y: float
+    columns: tuple[float, ...]
+    rows: tuple[float, ...]
+    cells: tuple[tuple["SvgTableCell", ...], ...]
+
+
+@dataclass(frozen=True)
+class SvgTableCell:
+    rect: Shape
+    text: Shape | None = None
+
+
 CssDeclaration = tuple[str, bool]
 CssRule = tuple[str, dict[str, CssDeclaration], tuple[int, int, int], int]
 
@@ -112,8 +127,14 @@ def svg_to_drawingml(svg_text: str) -> str:
     ET.SubElement(xfrm, qn(NS_A, "chOff"), {"x": "0", "y": "0"})
     ET.SubElement(xfrm, qn(NS_A, "chExt"), {"cx": "0", "cy": "0"})
 
-    for index, shape in enumerate(_svg_shapes(root), start=2):
-        container.append(_shape_to_dml(shape, index))
+    shapes = list(_svg_shapes(root))
+    table, shapes = _extract_svg_table(shapes)
+    index = 2
+    if table is not None:
+        container.append(_svg_table_to_dml(table, index))
+        index += 1
+    for offset, shape in enumerate(shapes, start=index):
+        container.append(_shape_to_dml(shape, offset))
 
     return _pretty_xml(container)
 
@@ -1106,6 +1127,219 @@ def _line_points(shape: Shape) -> dict[str, str]:
     y1 = shape.y + shape.height if shape.flip_v else shape.y
     y2 = shape.y if shape.flip_v else shape.y + shape.height
     return {"x1": _fmt(x1), "y1": _fmt(y1), "x2": _fmt(x2), "y2": _fmt(y2)}
+
+
+def _extract_svg_table(shapes: list[Shape]) -> tuple[SvgTable | None, list[Shape]]:
+    rects = [shape for shape in shapes if _svg_table_rect_candidate(shape)]
+    if len(rects) < 4 or len(rects) != sum(1 for shape in shapes if shape.kind == "rect"):
+        return None, shapes
+
+    x_edges = _svg_table_edges([(rect.x, rect.x + rect.width) for rect in rects])
+    y_edges = _svg_table_edges([(rect.y, rect.y + rect.height) for rect in rects])
+    if len(x_edges) < 3 or len(y_edges) < 3:
+        return None, shapes
+
+    columns = tuple(x_edges[index + 1] - x_edges[index] for index in range(len(x_edges) - 1))
+    rows = tuple(y_edges[index + 1] - y_edges[index] for index in range(len(y_edges) - 1))
+    if any(size <= 0 for size in columns + rows):
+        return None, shapes
+
+    rect_map: dict[tuple[int, int], Shape] = {}
+    for rect in rects:
+        column = _svg_table_edge_index(x_edges, rect.x)
+        row = _svg_table_edge_index(y_edges, rect.y)
+        right = _svg_table_edge_index(x_edges, rect.x + rect.width)
+        bottom = _svg_table_edge_index(y_edges, rect.y + rect.height)
+        if column is None or row is None or right is None or bottom is None:
+            return None, shapes
+        if right != column + 1 or bottom != row + 1:
+            return None, shapes
+        key = (row, column)
+        if key in rect_map:
+            return None, shapes
+        rect_map[key] = rect
+
+    row_count = len(rows)
+    column_count = len(columns)
+    if len(rect_map) != row_count * column_count:
+        return None, shapes
+
+    text_map: dict[tuple[int, int], Shape] = {}
+    consumed_texts: set[int] = set()
+    for index, shape in enumerate(shapes):
+        if not _svg_table_text_candidate(shape):
+            continue
+        center_x = shape.x + shape.width / 2
+        center_y = shape.y + shape.height / 2
+        column = _svg_table_interval_index(x_edges, center_x)
+        row = _svg_table_interval_index(y_edges, center_y)
+        if row is None or column is None:
+            continue
+        key = (row, column)
+        if key in text_map:
+            return None, shapes
+        text_map[key] = shape
+        consumed_texts.add(index)
+
+    cells = tuple(
+        tuple(SvgTableCell(rect_map[(row, column)], text_map.get((row, column))) for column in range(column_count))
+        for row in range(row_count)
+    )
+    table = SvgTable(x_edges[0], y_edges[0], columns, rows, cells)
+    consumed_rects = {id(rect) for rect in rect_map.values()}
+    remaining = [shape for index, shape in enumerate(shapes) if id(shape) not in consumed_rects and index not in consumed_texts]
+    return table, remaining
+
+
+def _svg_table_rect_candidate(shape: Shape) -> bool:
+    return (
+        shape.kind == "rect"
+        and shape.width > 0
+        and shape.height > 0
+        and shape.rotation is None
+        and not shape.flip_h
+        and not shape.flip_v
+    )
+
+
+def _svg_table_text_candidate(shape: Shape) -> bool:
+    return shape.kind == "text" and shape.rotation is None and not shape.flip_h and not shape.flip_v
+
+
+def _svg_table_edges(ranges: Iterable[tuple[float, float]]) -> tuple[float, ...]:
+    edges: list[float] = []
+    for start, end in ranges:
+        for value in (start, end):
+            if not any(_close(value, edge, 1e-6) for edge in edges):
+                edges.append(value)
+    return tuple(sorted(edges))
+
+
+def _svg_table_edge_index(edges: tuple[float, ...], value: float) -> int | None:
+    for index, edge in enumerate(edges):
+        if _close(value, edge, 1e-6):
+            return index
+    return None
+
+
+def _svg_table_interval_index(edges: tuple[float, ...], value: float) -> int | None:
+    for index, (start, end) in enumerate(zip(edges, edges[1:])):
+        if start - 1e-6 <= value <= end + 1e-6:
+            return index
+    return None
+
+
+def _svg_table_to_dml(table: SvgTable, shape_id: int) -> ET.Element:
+    frame = ET.Element(qn(NS_P, "graphicFrame"))
+    nv = ET.SubElement(frame, qn(NS_P, "nvGraphicFramePr"))
+    ET.SubElement(nv, qn(NS_P, "cNvPr"), {"id": str(shape_id), "name": "Table"})
+    ET.SubElement(nv, qn(NS_P, "cNvGraphicFramePr"))
+    ET.SubElement(nv, qn(NS_P, "nvPr"))
+    xfrm = ET.SubElement(frame, qn(NS_P, "xfrm"))
+    ET.SubElement(xfrm, qn(NS_A, "off"), {"x": str(_emu(table.x)), "y": str(_emu(table.y))})
+    ET.SubElement(xfrm, qn(NS_A, "ext"), {"cx": str(_emu(sum(table.columns))), "cy": str(_emu(sum(table.rows)))})
+    graphic = ET.SubElement(frame, qn(NS_A, "graphic"))
+    graphic_data = ET.SubElement(
+        graphic,
+        qn(NS_A, "graphicData"),
+        {"uri": "http://schemas.openxmlformats.org/drawingml/2006/table"},
+    )
+    tbl = ET.SubElement(graphic_data, qn(NS_A, "tbl"))
+    tbl_pr = ET.SubElement(tbl, qn(NS_A, "tblPr"), {"firstRow": "0", "bandRow": "0"})
+    ET.SubElement(tbl_pr, qn(NS_A, "tableStyleId")).text = "{00000000-0000-0000-0000-000000000000}"
+    grid = ET.SubElement(tbl, qn(NS_A, "tblGrid"))
+    for width in table.columns:
+        ET.SubElement(grid, qn(NS_A, "gridCol"), {"w": str(_emu(width))})
+    for row_height, row in zip(table.rows, table.cells):
+        tr = ET.SubElement(tbl, qn(NS_A, "tr"), {"h": str(_emu(row_height))})
+        for cell in row:
+            _append_svg_table_cell(tr, cell)
+    return frame
+
+
+def _append_svg_table_cell(parent: ET.Element, cell: SvgTableCell) -> None:
+    tc = ET.SubElement(parent, qn(NS_A, "tc"))
+    _append_svg_table_cell_text_body(tc, cell.rect, cell.text)
+    tc_pr = ET.SubElement(tc, qn(NS_A, "tcPr"))
+    _append_svg_table_cell_fill(tc_pr, cell.rect.paint)
+    _append_svg_table_cell_borders(tc_pr, cell.rect.paint)
+
+
+def _append_svg_table_cell_text_body(parent: ET.Element, rect: Shape, text: Shape | None) -> None:
+    tx_body = ET.SubElement(parent, qn(NS_A, "txBody"))
+    attrs = _svg_table_cell_text_inset_attrs(rect, text)
+    body_anchor = _text_baseline_to_dml(text.text_baseline if text is not None else None)
+    if body_anchor:
+        attrs["anchor"] = body_anchor
+    ET.SubElement(tx_body, qn(NS_A, "bodyPr"), attrs)
+    ET.SubElement(tx_body, qn(NS_A, "lstStyle"))
+    paragraph = ET.SubElement(tx_body, qn(NS_A, "p"))
+    paragraph_align = _text_anchor_to_dml(text.text_anchor if text is not None else None)
+    if paragraph_align:
+        ET.SubElement(paragraph, qn(NS_A, "pPr"), {"algn": paragraph_align})
+    if text is not None:
+        _append_shape_text_runs(paragraph, text)
+    ET.SubElement(paragraph, qn(NS_A, "endParaRPr"))
+
+
+def _svg_table_cell_text_inset_attrs(rect: Shape, text: Shape | None) -> dict[str, str]:
+    attrs = {"lIns": "0", "rIns": "0", "tIns": "0", "bIns": "0"}
+    if text is None:
+        return attrs
+    attrs["lIns"] = str(_emu(max(0.0, text.x - rect.x)))
+    attrs["rIns"] = str(_emu(max(0.0, rect.x + rect.width - text.x - text.width)))
+    attrs["tIns"] = str(_emu(max(0.0, text.y - rect.y)))
+    attrs["bIns"] = str(_emu(max(0.0, rect.y + rect.height - text.y - text.height)))
+    return attrs
+
+
+def _append_shape_text_runs(parent: ET.Element, shape: Shape) -> None:
+    if shape.text_runs:
+        for text_run in shape.text_runs:
+            if text_run.break_before:
+                ET.SubElement(parent, qn(NS_A, "br"))
+            _append_text_run(parent, text_run)
+        return
+    text_run = TextRun(
+        text=shape.text or "",
+        paint=shape.paint,
+        font_size=shape.font_size,
+        font_weight=shape.font_weight,
+        font_style=shape.font_style,
+        font_family=shape.font_family,
+        font_variant=shape.font_variant,
+        text_decoration=shape.text_decoration,
+        text_decoration_style=shape.text_decoration_style,
+        text_baseline_shift=shape.text_baseline_shift,
+        letter_spacing=shape.letter_spacing,
+    )
+    lines = text_run.text.split("\n")
+    _append_text_run(parent, replace(text_run, text=lines[0] if lines else ""))
+    for line in lines[1:]:
+        ET.SubElement(parent, qn(NS_A, "br"))
+        _append_text_run(parent, replace(text_run, text=line))
+
+
+def _append_svg_table_cell_fill(parent: ET.Element, paint: Paint) -> None:
+    if paint.fill == "none":
+        ET.SubElement(parent, qn(NS_A, "noFill"))
+    elif paint.fill:
+        fill = ET.SubElement(parent, qn(NS_A, "solidFill"))
+        color = ET.SubElement(fill, qn(NS_A, "srgbClr"), {"val": paint.fill.removeprefix("#").upper()})
+        _append_alpha(color, paint.fill_alpha)
+
+
+def _append_svg_table_cell_borders(parent: ET.Element, paint: Paint) -> None:
+    for tag in ("lnL", "lnR", "lnT", "lnB"):
+        ln = ET.SubElement(parent, qn(NS_A, tag), {"w": str(_emu(paint.stroke_width or 1.0))})
+        if paint.stroke == "none":
+            ET.SubElement(ln, qn(NS_A, "noFill"))
+        elif paint.stroke:
+            fill = ET.SubElement(ln, qn(NS_A, "solidFill"))
+            color = ET.SubElement(fill, qn(NS_A, "srgbClr"), {"val": paint.stroke.removeprefix("#").upper()})
+            _append_alpha(color, paint.stroke_alpha)
+        else:
+            ET.SubElement(ln, qn(NS_A, "noFill"))
 
 
 def _svg_text_x(shape: Shape) -> float:

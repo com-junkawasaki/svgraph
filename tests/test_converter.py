@@ -518,6 +518,30 @@ def test_make_pptx_cli_writes_valid_package(tmp_path) -> None:
     assert any(name.startswith("ppt/media/image") for name in names)
 
 
+def test_make_pptx_cli_embeds_native_table_frames(tmp_path) -> None:
+    source = tmp_path / "table.svg"
+    output = tmp_path / "table.pptx"
+    source.write_text(
+        """<svg>
+          <rect x="0" y="0" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+          <rect x="20" y="0" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+          <rect x="0" y="20" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+          <rect x="20" y="20" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+          <text x="4" y="14" font-size="10" fill="#111111">A</text>
+          <text x="24" y="14" font-size="10" fill="#111111">B</text>
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    assert make_pptx_main([str(source), "-o", str(output)]) == 0
+
+    with zipfile.ZipFile(output) as pptx:
+        slide = pptx.read("ppt/slides/slide1.xml").decode("utf-8")
+    assert "<p:graphicFrame>" in slide
+    assert "<a:tbl>" in slide
+    assert "<p:sp>" not in slide
+
+
 def test_make_pptx_cli_reports_errors_without_traceback(tmp_path, capsys) -> None:
     source = tmp_path / "empty.svg"
     source.write_text("<svg><defs><rect width='10' height='8'/></defs></svg>", encoding="utf-8")
@@ -7400,6 +7424,56 @@ def test_drawingml_text_body_insets_adjust_middle_and_bottom_svg_baselines() -> 
     assert 'dominant-baseline="middle"' in svg
     assert 'y="70"' in svg
     assert 'dominant-baseline="text-after-edge"' in svg
+
+
+def test_svg_rect_text_grid_converts_to_native_drawingml_table() -> None:
+    svg = """<svg>
+      <rect x="10" y="20" width="40" height="20" fill="#e0f2fe" stroke="#0284c7" stroke-width="1"/>
+      <rect x="50" y="20" width="40" height="20" fill="#f0fdf4" stroke="#0284c7" stroke-width="1"/>
+      <rect x="10" y="40" width="40" height="20" fill="#ffffff" stroke="#94a3b8" stroke-width="1"/>
+      <rect x="50" y="40" width="40" height="20" fill="#ffffff" stroke="#94a3b8" stroke-width="1"/>
+      <text x="14" y="34" font-size="10" fill="#111827">Metric</text>
+      <text x="54" y="34" font-size="10" fill="#111827">Value</text>
+      <text x="14" y="54" font-size="10" fill="#111827">Rows</text>
+      <text x="54" y="54" font-size="10" fill="#111827">2</text>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<p:graphicFrame>" in dml
+    assert "<a:tbl>" in dml
+    assert dml.count("<a:gridCol") == 2
+    assert dml.count("<a:tr") == 2
+    assert dml.count("<a:tc>") == 4
+    assert dml.count("<p:sp>") == 0
+    assert 'lIns="38100"' in dml
+    assert "Metric" in dml
+    assert "Value" in dml
+    assert "Rows" in dml
+
+    round_trip = drawingml_to_svg(dml)
+    assert round_trip.count("<rect") == 4
+    assert round_trip.count("<text") == 4
+    assert 'fill="#e0f2fe"' in round_trip
+    assert "Metric" in round_trip
+
+
+def test_svg_rect_grid_with_non_cell_text_keeps_text_as_shape() -> None:
+    svg = """<svg>
+      <rect x="0" y="0" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+      <rect x="20" y="0" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+      <rect x="0" y="20" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+      <rect x="20" y="20" width="20" height="20" fill="#ffffff" stroke="#111111"/>
+      <text x="4" y="14" font-size="10" fill="#111111">A</text>
+      <text x="50" y="14" font-size="10" fill="#111111">Outside</text>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert dml.count("<p:sp>") == 1
+    assert "A" in dml
+    assert "Outside" in dml
 
 
 def test_drawingml_native_table_converts_to_svg_cells_and_text() -> None:
