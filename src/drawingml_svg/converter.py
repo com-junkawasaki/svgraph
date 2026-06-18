@@ -610,6 +610,9 @@ def _dml_table_cell_border_paint(cell: ET.Element, tag: str) -> Paint | None:
         stroke=color or "#000000",
         stroke_width=_dml_line_width(line) or 1.0,
         stroke_alpha=_dml_line_alpha(line),
+        stroke_linejoin=_dml_linejoin(line),
+        stroke_dasharray=_dml_dasharray(line),
+        stroke_miterlimit=_dml_miterlimit(line),
     )
 
 
@@ -1633,6 +1636,8 @@ def _append_svg_table_cell_borders(parent: ET.Element, cell: SvgTableCell) -> No
             fill = ET.SubElement(ln, qn(NS_A, "solidFill"))
             color = ET.SubElement(fill, qn(NS_A, "srgbClr"), {"val": paint.stroke.removeprefix("#").upper()})
             _append_alpha(color, paint.stroke_alpha)
+            _append_dml_dash(ln, paint.stroke_dasharray, paint.stroke_width)
+            _append_dml_join(ln, paint.stroke_linejoin, paint.stroke_miterlimit)
         else:
             ET.SubElement(ln, qn(NS_A, "noFill"))
 
