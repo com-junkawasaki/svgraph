@@ -2964,6 +2964,26 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (x + width * 0.3, center_y),
             (left, y + height * 0.2),
         ]
+    if kind == "heart":
+        return [
+            (center_x, bottom),
+            (left, y + height * 0.45),
+            (x + width * 0.08, y + height * 0.18),
+            (x + width * 0.32, top),
+            (center_x, y + height * 0.2),
+            (x + width * 0.68, top),
+            (x + width * 0.92, y + height * 0.18),
+            (right, y + height * 0.45),
+        ]
+    if kind == "lightningBolt":
+        return [
+            (x + width * 0.58, top),
+            (x + width * 0.18, y + height * 0.55),
+            (x + width * 0.46, y + height * 0.55),
+            (x + width * 0.36, bottom),
+            (x + width * 0.82, y + height * 0.4),
+            (x + width * 0.54, y + height * 0.4),
+        ]
     if kind == "star4":
         return [
             (center_x, top),

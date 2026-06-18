@@ -3173,12 +3173,30 @@ def test_drawingml_symbol_presets_round_trip_to_svg_polygons() -> None:
           <a:solidFill><a:srgbClr val="FEF3C7"/></a:solidFill>
         </p:spPr>
       </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="4" name="heart"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="666750" y="190500"/><a:ext cx="190500" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="heart"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FCE7F3"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="5" name="lightning bolt"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="952500" y="190500"/><a:ext cx="190500" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="lightningBolt"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEF9C3"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
     </p:spTree>"""
 
     svg = drawingml_to_svg(dml)
 
     assert '<polygon fill="#dcfce7" points="17,20 23,20 23,27 30,27 30,33 23,33 23,40 17,40 17,33 10,33 10,27 17,27"/>' in svg
     assert '<polygon fill="#fef3c7" points="50,20 52.4,27.6 60,27.6 53.8,31.8 56.2,40 50,34.4 43.8,40 46.2,31.8 40,27.6 47.6,27.6"/>' in svg
+    assert '<polygon fill="#fce7f3" points="80,40 70,29 71.6,23.6 76.4,20 80,24 83.6,20 88.4,23.6 90,29"/>' in svg
+    assert '<polygon fill="#fef9c3" points="111.6,20 103.6,31 109.2,31 107.2,40 116.4,28 110.8,28"/>' in svg
 
 
 def test_drawingml_additional_star_presets_round_trip_to_svg_polygons() -> None:
