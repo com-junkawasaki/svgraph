@@ -21,7 +21,7 @@ from .converter import (
     _is_visibility_hidden,
     _length,
     _local_name,
-    _marker_is_supported,
+    _marker_is_supported as _converter_marker_is_supported,
     _matrix_multiply,
     _optional_length,
     _paint_server_value,
@@ -2454,6 +2454,45 @@ def _path_is_supported(path_data: str) -> bool:
 def _use_href_is_supported(element: ET.Element, refs: dict[str, ET.Element]) -> bool:
     href = _href(element)
     return bool(href and href.startswith("#") and href[1:] in refs)
+
+
+def _marker_is_supported(element: ET.Element, style: dict[str, str], refs: dict[str, ET.Element]) -> bool:
+    if not _converter_marker_is_supported(element, style, refs):
+        return False
+    return all(_marker_reference_is_arrow_like(value, refs) for value in _visible_marker_values(style))
+
+
+def _visible_marker_values(style: dict[str, str]) -> list[str]:
+    values: list[str] = []
+    for attr in ("marker-start", "marker-end"):
+        value = style[attr] if attr in style else style.get("marker")
+        if value is not None and value.strip().lower() not in {"", "none"}:
+            values.append(value)
+    return values
+
+
+def _marker_reference_is_arrow_like(value: str, refs: dict[str, ET.Element]) -> bool:
+    ref = _url_ref(value)
+    if ref is None or ref[1].strip():
+        return False
+    marker = refs.get(ref[0])
+    if marker is None or _local_name(marker.tag) != "marker":
+        return False
+    return _marker_definition_is_arrow_like(marker)
+
+
+def _marker_definition_is_arrow_like(marker: ET.Element) -> bool:
+    for child in marker:
+        tag = _local_name(child.tag)
+        if tag == "path":
+            path = _parse_linear_path(child.get("d", ""))
+            if path is not None and path[1] and len(path[0]) == 3:
+                return True
+        elif tag in {"polygon", "polyline"}:
+            points = _parse_points(child.get("points", ""))
+            if len(points) == 3:
+                return True
+    return False
 
 
 def _use_referenced_subtree_is_supported(

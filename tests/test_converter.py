@@ -6343,6 +6343,20 @@ def test_marker_url_allows_whitespace_around_reference() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_analyze_svg_reports_non_arrow_marker_definitions() -> None:
+    bad_path = """<svg>
+      <defs><marker id="marker"><path d="M0 0 R10 10"/></marker></defs>
+      <line x1="0" y1="0" x2="40" y2="10" stroke="#111111" stroke-width="2" marker-end="url(#marker)"/>
+    </svg>"""
+    circle = """<svg>
+      <defs><marker id="marker"><circle cx="5" cy="5" r="4"/></marker></defs>
+      <line x1="0" y1="0" x2="40" y2="10" stroke="#111111" stroke-width="2" marker-start="url(#marker)"/>
+    </svg>"""
+
+    assert analyze_svg(bad_path).unsupported_attributes == {"marker-end": 1}
+    assert analyze_svg(circle).unsupported_attributes == {"marker-start": 1}
+
+
 def test_marker_shorthand_converts_to_drawingml_arrows_when_no_mid_marker_is_needed() -> None:
     svg = """<svg>
       <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
