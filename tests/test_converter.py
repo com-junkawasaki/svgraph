@@ -1455,6 +1455,7 @@ def test_analyze_svg_ignores_inherited_text_decoration_without_visible_text() ->
       <g text-decoration-line="overline"><text/></g>
       <g text-decoration-line="overline"><text display="none">Hidden</text></g>
       <g text-decoration-line="overline"><text><tspan display="none">Hidden</tspan></text></g>
+      <g text-decoration-line="overline"><text fill="none" stroke="none">Hidden</text></g>
       <g text-decoration-line="underline" text-decoration-color="#dc2626"/>
       <g text-decoration-line="underline" text-decoration-thickness="2px"><text visibility="hidden">Hidden</text></g>
     </svg>"""
@@ -1637,6 +1638,34 @@ def test_unconverted_text_direction_and_typography_attributes_are_reported() -> 
         "glyph-orientation-vertical": 1,
         "kerning": 1,
         "unicode-bidi": 1,
+        "writing-mode": 1,
+    }
+
+
+def test_analyze_svg_ignores_inherited_text_layout_without_visible_text() -> None:
+    svg = """<svg>
+      <g direction="rtl"/>
+      <g writing-mode="vertical-rl"><text display="none">Hidden</text></g>
+      <g font-stretch="expanded"><text visibility="hidden">Hidden</text></g>
+      <g word-spacing="4px"><text fill="none" stroke="none">Hidden gap</text></g>
+      <g font-feature-settings="&quot;liga&quot; 0"><text opacity="0">Hidden</text></g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_analyze_svg_reports_inherited_text_layout_with_visible_text() -> None:
+    svg = """<svg>
+      <g direction="rtl"><text>RTL</text></g>
+      <g writing-mode="vertical-rl"><text>Vertical</text></g>
+      <g font-stretch="expanded"><text>Wide</text></g>
+      <g word-spacing="4px"><text>Wide gap</text></g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {
+        "direction": 1,
+        "font-stretch": 1,
+        "word-spacing": 1,
         "writing-mode": 1,
     }
 

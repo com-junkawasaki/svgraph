@@ -354,6 +354,8 @@ def _inspect_attributes(
             continue
         if attr in TEXT_LAYOUT_ATTRIBUTES and _text_layout_attribute_has_no_effect(element, specified_style, attr):
             continue
+        if attr in TEXT_LAYOUT_ATTRIBUTES and not _subtree_has_visible_text(element, css, refs, style, ancestors, viewport):
+            continue
         if attr == "clip-path" and _clip_path_is_supported(element, style, refs, matrix):
             continue
         if attr == "clip-rule" and _clip_rule_has_no_effect(ancestors):
@@ -472,7 +474,7 @@ def _inspect_attributes(
             "text-decoration-style",
             "text-decoration-thickness",
             "text-underline-offset",
-        } and not _subtree_has_visible_text(element, css, style, ancestors):
+        } and not _subtree_has_visible_text(element, css, refs, style, ancestors, viewport):
             continue
         if attr == "text-decoration-line" and _text_decoration_line_is_supported_or_noop(specified_style):
             continue
@@ -821,14 +823,27 @@ def _subtree_has_visible_fill(
 def _subtree_has_visible_text(
     element: ET.Element,
     css: list[CssRule],
+    refs: dict[str, ET.Element],
     style: dict[str, str],
     ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
 ) -> bool:
     if _is_display_none(style) or _is_visibility_hidden(style):
         return False
     tag = _local_name(element.tag)
-    if tag in {"text", "tspan"} and _element_has_own_text(element):
+    if (
+        tag in {"text", "tspan"}
+        and _element_has_own_text(element)
+        and not _has_no_visible_paint(element, style, refs, css, viewport)
+    ):
         return True
+    child_viewport = viewport
+    if tag == "svg" and ancestors:
+        child_viewport = _viewport_size(
+            element,
+            _optional_length(element.get("width"), "x", viewport),
+            _optional_length(element.get("height"), "y", viewport),
+        )
     if tag == "switch":
         selected = _switch_selected_child(element)
         if selected is None:
@@ -840,11 +855,11 @@ def _subtree_has_visible_text(
             ancestors + (element,),
             _previous_element_siblings(element, selected),
         )
-        return _subtree_has_visible_text(selected, css, selected_style, ancestors + (element,))
+        return _subtree_has_visible_text(selected, css, refs, selected_style, ancestors + (element,), child_viewport)
     previous_children: list[ET.Element] = []
     for child in element:
         child_style = _computed_style(child, css, style, ancestors + (element,), tuple(previous_children))
-        if _subtree_has_visible_text(child, css, child_style, ancestors + (element,)):
+        if _subtree_has_visible_text(child, css, refs, child_style, ancestors + (element,), child_viewport):
             return True
         previous_children.append(child)
     return False
