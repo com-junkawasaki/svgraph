@@ -22,6 +22,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added conservative SVG rect/text, line/text, and rect-background/line-border grid detection that exports complete simple grids and merged cells as native DrawingML tables.
 - Added SVG table grid-line paint preservation as individual DrawingML table cell borders.
 - Added SVG table grid-line cap/dash/join preservation as individual DrawingML table cell borders.
+- Added regression coverage for DrawingML table border cap/dash/miter/alpha extraction.
 - Added text-level SVG `baseline-shift` `super`/`sub` conversion to DrawingML run baseline values.
 - Added run-level `tspan` fill/font/outline/decoration/letter-spacing/baseline conversion to separate DrawingML text runs.
 - Added run-level `tspan` word-spacing conversion using DrawingML character spacing approximation.

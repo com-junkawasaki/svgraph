@@ -7759,6 +7759,44 @@ def test_drawingml_native_table_preserves_individual_cell_borders() -> None:
     assert 'x1="40" y1="0" x2="40" y2="20"' not in svg
 
 
+def test_drawingml_native_table_preserves_border_line_style_details() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:graphicFrame>
+        <p:xfrm><a:off x="0" y="0"/><a:ext cx="381000" cy="190500"/></p:xfrm>
+        <a:graphic><a:graphicData>
+          <a:tbl>
+            <a:tblGrid><a:gridCol w="381000"/></a:tblGrid>
+            <a:tr h="190500">
+              <a:tc>
+                <a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1000"/><a:t>Styled</a:t></a:r></a:p></a:txBody>
+                <a:tcPr>
+                  <a:lnL w="19050" cap="sq">
+                    <a:solidFill><a:srgbClr val="DC2626"><a:alpha val="50000"/></a:srgbClr></a:solidFill>
+                    <a:custDash><a:ds d="200000" sp="100000"/></a:custDash>
+                    <a:miter lim="600000"/>
+                  </a:lnL>
+                  <a:lnR><a:noFill/></a:lnR>
+                  <a:lnT><a:noFill/></a:lnT>
+                  <a:lnB><a:noFill/></a:lnB>
+                </a:tcPr>
+              </a:tc>
+            </a:tr>
+          </a:tbl>
+        </a:graphicData></a:graphic>
+      </p:graphicFrame>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert svg.count("<line") == 1
+    assert 'stroke-linecap="square"' in svg
+    assert 'stroke-linejoin="miter"' in svg
+    assert 'stroke-dasharray="4 2"' in svg
+    assert 'stroke-miterlimit="6"' in svg
+    assert 'stroke-opacity="0.5"' in svg
+
+
 def test_drawingml_native_table_cell_text_insets_adjust_svg_text_position() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
