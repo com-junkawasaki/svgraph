@@ -55,6 +55,9 @@ cat input.svg | drawingml-svg svg2dml > shape.xml
 # coverage / maturity report
 drawingml-svg analyze input.svg
 
+# metadata-preserving SVG IR
+drawingml-svg ir input.svg
+
 # installed package version
 drawingml-svg --version
 ```
@@ -98,6 +101,24 @@ from drawingml_svg import analyze_svg
 
 report = analyze_svg(svg_text).to_dict()
 ```
+
+```python
+from drawingml_svg import svg_to_ir
+
+ir = svg_to_ir(svg_text).to_dict()
+```
+
+## SVG semantic IR
+
+The `ir` command and `svg_to_ir()` API expose an SVG-based intermediate representation for app-level pipelines that need more than visual conversion. The IR keeps the SVG element tree, normal attributes, `data-*` attributes, `<metadata>` payloads, and local reference dependencies such as `href` and `url(#id)`.
+
+This is intended as the stable handoff layer for expanding one SVG source into different targets:
+
+- DrawableXML / Android VectorDrawable: visual geometry is emitted natively, while semantic structure such as tables, entities, relations, and provenance should remain in the IR or a sidecar JSON because VectorDrawable has no native table or metadata graph model.
+- DrawingML: editable shapes, text, and native tables can be emitted where the target supports them.
+- PresentationML: slide-level structure, connectors, reading order, notes, tags, or custom XML can be derived from the same IR.
+
+See [docs/adr/0001-svg-semantic-ir.md](docs/adr/0001-svg-semantic-ir.md) for the design contract.
 
 ## Scope
 
