@@ -1960,10 +1960,23 @@ def _dml_text_decoration(element: ET.Element) -> str | None:
 
 
 def _dml_text_anchor(element: ET.Element) -> str | None:
-    p_pr = element.find(f".//{qn(NS_A, 'pPr')}")
+    p_pr = _dml_paragraph_properties(element, lambda item: item.get("algn") is not None)
     if p_pr is None:
         return None
     return {"ctr": "middle", "r": "end", "l": "start"}.get(p_pr.get("algn", ""))
+
+
+def _dml_paragraph_properties(
+    element: ET.Element,
+    predicate: Callable[[ET.Element], bool],
+) -> ET.Element | None:
+    p_pr = element.find(f".//{qn(NS_A, 'pPr')}")
+    if p_pr is not None and predicate(p_pr):
+        return p_pr
+    lvl1p_pr = element.find(f".//{qn(NS_A, 'lstStyle')}/{qn(NS_A, 'lvl1pPr')}")
+    if lvl1p_pr is not None and predicate(lvl1p_pr):
+        return lvl1p_pr
+    return None
 
 
 def _text_anchor_to_dml(value: str | None) -> str | None:

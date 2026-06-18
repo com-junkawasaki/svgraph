@@ -3828,6 +3828,46 @@ def test_text_anchor_and_baseline_values_are_normalized() -> None:
     assert 'dominant-baseline="middle"' in svg
 
 
+def test_drawingml_list_style_paragraph_alignment_falls_back_to_svg_text_anchor() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="285750"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle><a:lvl1pPr algn="ctr"/></a:lstStyle>
+          <a:p><a:r><a:rPr sz="1200"/><a:t>Centered</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'text-anchor="middle"' in svg
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_drawingml_paragraph_alignment_overrides_list_style_alignment() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="285750"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle><a:lvl1pPr algn="ctr"/></a:lstStyle>
+          <a:p><a:pPr algn="r"/><a:r><a:rPr sz="1200"/><a:t>Right</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'text-anchor="end"' in svg
+    assert 'text-anchor="middle"' not in svg
+
+
 def test_alignment_baseline_maps_to_text_anchor_when_dominant_baseline_is_absent() -> None:
     source = '<svg><text x="100" y="40" alignment-baseline=" hanging " font-size="20" fill="#111111">Top</text></svg>'
     dml = svg_to_drawingml(source)
