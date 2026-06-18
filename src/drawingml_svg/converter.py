@@ -454,15 +454,21 @@ def _svg_foreign_object_table_shapes(
             )
             text = _html_table_cell_text(cell)
             if text:
-                inset = min(4.0 * max(scale_x, scale_y), cell_width / 4, cell_height / 4)
+                left_inset, top_inset, right_inset, bottom_inset = _html_padding_insets(
+                    cell_style,
+                    scale_x,
+                    scale_y,
+                    cell_width,
+                    cell_height,
+                )
                 font_size = _svg_font_size(cell_style.get("font-size")) * max(scale_x, scale_y)
                 shapes.append(
                     Shape(
                         "text",
-                        cell_x + inset,
-                        cell_y + inset,
-                        max(0.0, cell_width - inset * 2),
-                        max(0.0, cell_height - inset * 2),
+                        cell_x + left_inset,
+                        cell_y + top_inset,
+                        max(0.0, cell_width - left_inset - right_inset),
+                        max(0.0, cell_height - top_inset - bottom_inset),
                         Paint(fill=_html_text_color(cell_style) or "#000000", stroke="none"),
                         text=text,
                         font_size=font_size,
@@ -698,6 +704,61 @@ def _html_border_width(style: dict[str, str]) -> float:
         width = _html_first_length(border)
         return max(0.0, width if width is not None else 1.0)
     return 1.0
+
+
+def _html_padding_insets(
+    style: dict[str, str],
+    scale_x: float,
+    scale_y: float,
+    cell_width: float,
+    cell_height: float,
+) -> tuple[float, float, float, float]:
+    default = 4.0 * max(scale_x, scale_y)
+    if not any(key in style for key in ("padding", "padding-left", "padding-top", "padding-right", "padding-bottom")):
+        inset = min(default, cell_width / 4, cell_height / 4)
+        return inset, inset, inset, inset
+    top, right, bottom, left = _html_padding_sides(style)
+    left_inset = min(max(0.0, left * scale_x), cell_width)
+    right_inset = min(max(0.0, right * scale_x), max(0.0, cell_width - left_inset))
+    top_inset = min(max(0.0, top * scale_y), cell_height)
+    bottom_inset = min(max(0.0, bottom * scale_y), max(0.0, cell_height - top_inset))
+    return left_inset, top_inset, right_inset, bottom_inset
+
+
+def _html_padding_sides(style: dict[str, str]) -> tuple[float, float, float, float]:
+    shorthand = _html_padding_shorthand(style.get("padding"))
+    top, right, bottom, left = shorthand or (0.0, 0.0, 0.0, 0.0)
+    top = _html_padding_side(style.get("padding-top"), top)
+    right = _html_padding_side(style.get("padding-right"), right)
+    bottom = _html_padding_side(style.get("padding-bottom"), bottom)
+    left = _html_padding_side(style.get("padding-left"), left)
+    return top, right, bottom, left
+
+
+def _html_padding_shorthand(value: str | None) -> tuple[float, float, float, float] | None:
+    if value is None:
+        return None
+    lengths = [_html_padding_side(token, 0.0) for token in _css_value_tokens(value)[:4]]
+    if not lengths:
+        return None
+    if len(lengths) == 1:
+        top = right = bottom = left = lengths[0]
+    elif len(lengths) == 2:
+        top = bottom = lengths[0]
+        right = left = lengths[1]
+    elif len(lengths) == 3:
+        top, right, bottom = lengths
+        left = right
+    else:
+        top, right, bottom, left = lengths
+    return top, right, bottom, left
+
+
+def _html_padding_side(value: str | None, default: float) -> float:
+    if value is None:
+        return default
+    length = _html_first_length(value)
+    return max(0.0, length if length is not None else default)
 
 
 def _html_text_color(style: dict[str, str]) -> str | None:
@@ -5885,6 +5946,11 @@ def _computed_style(
         "mask",
         "mix-blend-mode",
         "overflow",
+        "padding",
+        "padding-bottom",
+        "padding-left",
+        "padding-right",
+        "padding-top",
         "paint-order",
         "pathLength",
         "preserveAspectRatio",

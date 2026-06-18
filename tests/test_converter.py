@@ -1203,6 +1203,33 @@ def test_foreign_object_html_table_cell_alignment_converts() -> None:
     assert analyze_svg(svg).unsupported_elements == {}
 
 
+def test_foreign_object_html_table_cell_padding_converts_to_text_insets() -> None:
+    svg = """<svg width="150" height="60">
+      <style>
+        table.pad td.rule { padding: 2px 6px 3px 8px; }
+      </style>
+      <foreignObject x="10" y="8" width="120" height="30">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table class="pad">
+            <tr>
+              <td class="rule">Rule</td>
+              <td padding-left="5px" padding-top="1px" padding-right="7px" padding-bottom="4px">Attr</td>
+            </tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert '<a:bodyPr lIns="76200" rIns="57150" tIns="19050" bIns="28575" anchor="ctr"/>' in dml
+    assert "<a:t>Rule</a:t>" in dml
+    assert '<a:bodyPr lIns="47625" rIns="66675" tIns="9525" bIns="38100" anchor="ctr"/>' in dml
+    assert "<a:t>Attr</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+
 def test_foreign_object_html_table_cell_line_breaks_convert() -> None:
     svg = """<svg width="120" height="70">
       <foreignObject x="10" y="8" width="90" height="45">
