@@ -855,7 +855,7 @@ def _text_decoration_style_is_supported_or_noop(style: dict[str, str]) -> bool:
     normalized = value.strip().lower()
     if normalized in {"", "solid"}:
         return True
-    return normalized in {"dashed", "dotted", "double"} and _has_only_visible_underline(style)
+    return normalized in {"dashed", "dotted", "double", "wavy"} and _has_only_visible_underline(style)
 
 
 def _text_decoration_line_is_supported_or_noop(style: dict[str, str]) -> bool:

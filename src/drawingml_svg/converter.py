@@ -2508,6 +2508,9 @@ def _dml_text_decoration_style_value(r_pr: ET.Element | None) -> str | None:
         "dbl": "double",
         "dotted": "dotted",
         "dottedHeavy": "dotted",
+        "wavy": "wavy",
+        "wavyDbl": "wavy",
+        "wavyHeavy": "wavy",
     }.get(r_pr.get("u", ""))
 
 
@@ -2992,7 +2995,7 @@ def _text_decoration_style(value: str | None) -> str | None:
     if value is None:
         return None
     normalized = value.strip().lower()
-    return normalized if normalized in {"dashed", "dotted", "double", "solid"} else None
+    return normalized if normalized in {"dashed", "dotted", "double", "solid", "wavy"} else None
 
 
 def _dml_underline_value(text_decoration: str | None, text_decoration_style: str | None = None) -> str | None:
@@ -3002,6 +3005,7 @@ def _dml_underline_value(text_decoration: str | None, text_decoration_style: str
         "dashed": "dash",
         "dotted": "dotted",
         "double": "dbl",
+        "wavy": "wavy",
     }.get(text_decoration_style or "", "sng")
 
 
