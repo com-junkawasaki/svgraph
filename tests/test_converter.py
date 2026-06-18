@@ -1108,6 +1108,26 @@ def test_equal_multi_value_text_rotate_maps_to_shape_rotation() -> None:
     assert 'rotate="12"' in svg
 
 
+def test_tspan_css_rotate_maps_to_shape_rotation() -> None:
+    inline = '<svg><text x="10" y="20" font-size="10" fill="#111"><tspan style="rotate:8 8">Tilt</tspan></text></svg>'
+    stylesheet = """<svg>
+      <style>.tilt { rotate: 8 8; }</style>
+      <text x="10" y="20" font-size="10" fill="#111"><tspan class="tilt">Tilt</tspan></text>
+    </svg>"""
+
+    inline_dml = svg_to_drawingml(inline)
+    stylesheet_dml = svg_to_drawingml(stylesheet)
+
+    inline_xfrm = ET.fromstring(inline_dml).findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}xfrm")[1]
+    stylesheet_xfrm = ET.fromstring(stylesheet_dml).findall(
+        ".//{http://schemas.openxmlformats.org/drawingml/2006/main}xfrm"
+    )[1]
+    assert inline_xfrm.get("rot") == "480000"
+    assert stylesheet_xfrm.get("rot") == "480000"
+    assert analyze_svg(inline).unsupported_attributes == {}
+    assert analyze_svg(stylesheet).unsupported_attributes == {}
+
+
 def test_text_rotate_angle_units_are_resolved() -> None:
     dml = svg_to_drawingml('<svg><text x="10" y="20" rotate=".25turn" font-size="10" fill="#111">Quarter</text></svg>')
 

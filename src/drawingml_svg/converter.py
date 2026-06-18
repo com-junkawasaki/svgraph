@@ -346,7 +346,7 @@ def _svg_shape_from_element(
                 text_baseline=baseline,
                 text_baseline_shift=_baseline_shift(style.get("baseline-shift")),
                 letter_spacing=_svg_text_effective_letter_spacing(style, text, font_size, viewport),
-                rotation=_svg_text_rotation(element, style),
+                rotation=_svg_text_rotation(element, style, css, ancestors),
                 text_runs=text_runs,
             )
     if tag == "image":
@@ -2817,15 +2817,23 @@ def _first_optional_length(value: str | None, axis: str, viewport: tuple[float, 
     return _optional_length(first or None, axis, viewport)
 
 
-def _svg_text_rotation(element: ET.Element, style: dict[str, str]) -> float | None:
+def _svg_text_rotation(
+    element: ET.Element,
+    style: dict[str, str],
+    css: list[CssRule],
+    ancestors: tuple[ET.Element, ...],
+) -> float | None:
     rotation = _single_svg_rotation(style.get("rotate"), _svg_text_content(element))
     if rotation is not None:
         return rotation
+    previous_children: list[ET.Element] = []
     for child in element:
         if _local_name(child.tag) == "tspan":
-            rotation = _single_svg_rotation(child.get("rotate"), "".join(child.itertext()))
+            child_style = _computed_style(child, css, style, ancestors + (element,), tuple(previous_children))
+            rotation = _single_svg_rotation(child_style.get("rotate"), "".join(child.itertext()))
             if rotation is not None:
                 return rotation
+        previous_children.append(child)
     return None
 
 

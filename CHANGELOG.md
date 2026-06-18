@@ -21,6 +21,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added DrawingML rich text run extraction to SVG `tspan` styles for fill/font/outline/decoration/letter-spacing/baseline round trips.
 - Added first-positioned SVG `tspan` `text-anchor` fallback conversion and analyzer support.
 - Added first-positioned SVG `tspan` baseline fallback conversion and analyzer support.
+- Added CSS and inline-style SVG `tspan` `rotate` conversion when the rotation can be represented as one DrawingML text rotation.
 - Added percentage SVG `transform-origin` conversion and analyzer support for elements with a resolvable reference box.
 - Added keyword SVG `transform-origin` conversion and analyzer support for elements with a resolvable reference box.
 - Added SVG `use` `preserveAspectRatio` conversion and analyzer support for referenced `symbol` or `svg` viewBoxes.
