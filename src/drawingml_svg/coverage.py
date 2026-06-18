@@ -2053,7 +2053,9 @@ def _text_decoration_thickness_has_no_effect(style: dict[str, str]) -> bool:
     value = style.get("text-decoration-thickness")
     if value is None:
         return False
-    return not _has_visible_text_decoration(style) or value.strip().lower() in {"", "auto"}
+    if not _has_visible_text_decoration(style) or value.strip().lower() in {"", "auto", "from-font"}:
+        return True
+    return _has_only_visible_underline(style) and _text_decoration_thickness_token(value)
 
 
 def _text_decoration_skip_ink_has_no_effect(style: dict[str, str]) -> bool:
@@ -2082,7 +2084,7 @@ def _text_decoration_shorthand_is_supported_or_noop(
     has_visible_decoration = _has_visible_text_decoration(style)
     if not _text_decoration_shorthand_line_is_supported_or_noop(
         value,
-        allow_noop_thickness=not has_visible_decoration,
+        allow_noop_thickness=not has_visible_decoration or _has_only_visible_underline(style),
     ):
         return False
     if not _text_decoration_shorthand_color_has_no_effect(style, refs, css, viewport):

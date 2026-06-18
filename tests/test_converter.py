@@ -2701,6 +2701,26 @@ def test_text_decoration_color_maps_to_drawingml_underline_fill() -> None:
     assert 'text-decoration-color="#16a34a80"' in round_trip
 
 
+def test_text_decoration_thickness_maps_to_drawingml_underline_line() -> None:
+    svg = """<svg>
+      <text x="0" y="20" text-decoration-line="underline" text-decoration-thickness="4px">Thick</text>
+      <text x="0" y="40" text-decoration="underline dotted 2px">Short</text>
+      <text x="0" y="60" text-decoration="underline from-font">Font</text>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+    root = ET.fromstring(dml)
+    ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
+    lines = root.findall(".//a:rPr/a:uLn", ns)
+
+    assert [line.get("w") for line in lines] == ["38100", "19050"]
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+    round_trip = drawingml_to_svg(dml)
+    assert 'text-decoration-thickness="4"' in round_trip
+    assert 'text-decoration-thickness="2"' in round_trip
+
+
 def test_text_decoration_color_and_non_solid_style_are_reported_when_visible() -> None:
     svg = """<svg>
       <text x="0" y="20" text-decoration-line="underline" text-decoration-color="#dc2626">Color</text>
@@ -2749,7 +2769,6 @@ def test_analyze_svg_reports_inherited_text_decoration_with_visible_text() -> No
 
     assert analyze_svg(svg).unsupported_attributes == {
         "text-decoration-line": 1,
-        "text-decoration-thickness": 1,
     }
 
 
@@ -2770,7 +2789,6 @@ def test_analyze_svg_reports_inherited_text_decoration_on_use_visible_text() -> 
     assert analyze_svg(svg).unsupported_attributes == {
         "href": 1,
         "text-decoration-line": 1,
-        "text-decoration-thickness": 1,
     }
 
 
@@ -2783,7 +2801,7 @@ def test_text_decoration_thickness_is_reported_when_visible() -> None:
       <text x="0" y="80" text-decoration-line="underline" text-decoration-thickness="auto">Auto</text>
     </svg>"""
 
-    assert analyze_svg(svg).unsupported_attributes == {"text-decoration-thickness": 2}
+    assert analyze_svg(svg).unsupported_attributes == {}
 
 
 def test_text_decoration_shorthand_auto_thickness_is_noop() -> None:
@@ -2801,7 +2819,7 @@ def test_text_decoration_shorthand_auto_thickness_is_noop() -> None:
     run_prs = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}rPr")
     assert run_prs[0].get("u") == "sng"
     assert run_prs[1].get("u") == "dotted"
-    assert analyze_svg(svg).unsupported_attributes == {"text-decoration": 2}
+    assert analyze_svg(svg).unsupported_attributes == {}
 
 
 def test_underline_offset_and_skip_ink_are_reported_when_visible() -> None:

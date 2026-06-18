@@ -61,6 +61,7 @@ class TextRun:
     text_decoration_style: str | None = None
     text_decoration_color: str | None = None
     text_decoration_alpha: float | None = None
+    text_decoration_thickness: float | None = None
     text_baseline_shift: str | None = None
     letter_spacing: float | None = None
 
@@ -87,6 +88,7 @@ class Shape:
     text_decoration_style: str | None = None
     text_decoration_color: str | None = None
     text_decoration_alpha: float | None = None
+    text_decoration_thickness: float | None = None
     text_anchor: str | None = None
     text_baseline: str | None = None
     text_direction: str | None = None
@@ -390,6 +392,7 @@ def _svg_shape_from_element(
                 ),
                 text_decoration_color=decoration_color,
                 text_decoration_alpha=decoration_alpha,
+                text_decoration_thickness=_text_decoration_thickness(style, viewport),
                 text_anchor=anchor,
                 text_baseline=baseline,
                 text_direction=_text_direction(style.get("direction")),
@@ -788,6 +791,7 @@ def _html_text_run(text: str, style: dict[str, str], scale: float, break_before:
         text_decoration_style=_text_decoration_style(style.get("text-decoration-style"), style.get("text-decoration")),
         text_decoration_color=decoration_color,
         text_decoration_alpha=decoration_alpha,
+        text_decoration_thickness=_text_decoration_thickness(style, (0.0, 0.0)),
         text_baseline_shift=_baseline_shift(style.get("baseline-shift")),
         letter_spacing=_svg_letter_spacing(style, (0.0, 0.0)),
     )
@@ -1678,6 +1682,7 @@ def _dml_table_shapes(element: ET.Element) -> Iterable[Shape]:
                         text_decoration_style=_dml_text_decoration_style_from_properties(text_properties),
                         text_decoration_color=_dml_text_decoration_color_from_properties(text_properties),
                         text_decoration_alpha=_dml_text_decoration_alpha_from_properties(text_properties),
+                        text_decoration_thickness=_dml_text_decoration_thickness_from_properties(text_properties),
                         text_anchor=_dml_table_cell_text_anchor(cell),
                         text_direction=_dml_table_cell_text_direction(cell),
                         text_wrap=_dml_table_cell_text_wrap(cell),
@@ -1911,6 +1916,7 @@ def _dml_shape_from_element(element: ET.Element) -> Shape | None:
             text_decoration_style=_dml_text_decoration_style(element),
             text_decoration_color=_dml_text_decoration_color(element),
             text_decoration_alpha=_dml_text_decoration_alpha(element),
+            text_decoration_thickness=_dml_text_decoration_thickness(element),
             text_anchor=_dml_text_anchor(element),
             text_baseline=_dml_text_baseline(element),
             text_direction=_dml_text_direction(element),
@@ -2088,6 +2094,8 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
             attrs["text-decoration-style"] = shape.text_decoration_style
         if shape.text_decoration_color:
             attrs["text-decoration-color"] = _color_with_alpha(shape.text_decoration_color, shape.text_decoration_alpha)
+        if shape.text_decoration_thickness is not None:
+            attrs["text-decoration-thickness"] = _fmt(shape.text_decoration_thickness)
         if shape.text_anchor:
             attrs["text-anchor"] = shape.text_anchor
         if shape.text_baseline:
@@ -2146,6 +2154,8 @@ def _svg_tspan_attrs(text_run: TextRun) -> dict[str, str]:
         attrs["text-decoration-style"] = text_run.text_decoration_style
     if text_run.text_decoration_color:
         attrs["text-decoration-color"] = _color_with_alpha(text_run.text_decoration_color, text_run.text_decoration_alpha)
+    if text_run.text_decoration_thickness is not None:
+        attrs["text-decoration-thickness"] = _fmt(text_run.text_decoration_thickness)
     if text_run.text_baseline_shift:
         attrs["baseline-shift"] = text_run.text_baseline_shift
     if text_run.letter_spacing is not None:
@@ -2879,6 +2889,7 @@ def _append_shape_text_runs(parent: ET.Element, shape: Shape) -> None:
         text_decoration_style=shape.text_decoration_style,
         text_decoration_color=shape.text_decoration_color,
         text_decoration_alpha=shape.text_decoration_alpha,
+        text_decoration_thickness=shape.text_decoration_thickness,
         text_baseline_shift=shape.text_baseline_shift,
         letter_spacing=shape.letter_spacing,
     )
@@ -3316,6 +3327,7 @@ def _append_text_body(parent: ET.Element, shape: Shape) -> None:
             text_decoration_style=shape.text_decoration_style,
             text_decoration_color=shape.text_decoration_color,
             text_decoration_alpha=shape.text_decoration_alpha,
+            text_decoration_thickness=shape.text_decoration_thickness,
             text_baseline_shift=shape.text_baseline_shift,
             letter_spacing=shape.letter_spacing,
         )
@@ -3385,6 +3397,8 @@ def _append_text_run_properties(r_pr: ET.Element, text_run: TextRun) -> None:
         fill = ET.SubElement(u_fill, qn(NS_A, "solidFill"))
         color = ET.SubElement(fill, qn(NS_A, "srgbClr"), {"val": text_run.text_decoration_color.removeprefix("#").upper()})
         _append_alpha(color, text_run.text_decoration_alpha)
+    if text_run.text_decoration_thickness is not None and _has_text_decoration(text_run.text_decoration, "underline"):
+        ET.SubElement(r_pr, qn(NS_A, "uLn"), {"w": str(_emu(text_run.text_decoration_thickness))})
     if text_run.font_family:
         ET.SubElement(r_pr, qn(NS_A, "latin"), {"typeface": text_run.font_family})
 
@@ -4187,6 +4201,7 @@ def _dml_text_run_from_properties(
         text_decoration_style=_dml_text_decoration_style_from_properties(candidates),
         text_decoration_color=_dml_text_decoration_color_from_properties(candidates),
         text_decoration_alpha=_dml_text_decoration_alpha_from_properties(candidates),
+        text_decoration_thickness=_dml_text_decoration_thickness_from_properties(candidates),
         text_baseline_shift=_dml_text_baseline_shift_from_properties(candidates),
         letter_spacing=_dml_letter_spacing_from_properties(candidates),
     )
@@ -4507,6 +4522,11 @@ def _dml_text_decoration_alpha(element: ET.Element) -> float | None:
     return _dml_text_decoration_alpha_value(r_pr)
 
 
+def _dml_text_decoration_thickness(element: ET.Element) -> float | None:
+    r_pr = _dml_text_property(element, lambda item: item.find(qn(NS_A, "uLn")) is not None)
+    return _dml_text_decoration_thickness_value(r_pr)
+
+
 def _dml_text_decoration_from_properties(candidates: Iterable[ET.Element | None]) -> str | None:
     r_pr = _dml_text_property_from_candidates(
         candidates,
@@ -4528,6 +4548,11 @@ def _dml_text_decoration_color_from_properties(candidates: Iterable[ET.Element |
 def _dml_text_decoration_alpha_from_properties(candidates: Iterable[ET.Element | None]) -> float | None:
     r_pr = _dml_text_property_from_candidates(candidates, lambda item: item.find(qn(NS_A, "uFill")) is not None)
     return _dml_text_decoration_alpha_value(r_pr)
+
+
+def _dml_text_decoration_thickness_from_properties(candidates: Iterable[ET.Element | None]) -> float | None:
+    r_pr = _dml_text_property_from_candidates(candidates, lambda item: item.find(qn(NS_A, "uLn")) is not None)
+    return _dml_text_decoration_thickness_value(r_pr)
 
 
 def _dml_text_decoration_value(r_pr: ET.Element | None) -> str | None:
@@ -4574,6 +4599,12 @@ def _dml_text_decoration_alpha_value(r_pr: ET.Element | None) -> float | None:
         return None
     solid_fill = u_fill.find(qn(NS_A, "solidFill"))
     return _dml_alpha(solid_fill) if solid_fill is not None else None
+
+
+def _dml_text_decoration_thickness_value(r_pr: ET.Element | None) -> float | None:
+    if r_pr is None:
+        return None
+    return _dml_line_width(r_pr.find(qn(NS_A, "uLn")))
 
 
 def _dml_text_anchor(element: ET.Element) -> str | None:
@@ -4756,6 +4787,7 @@ def _svg_text_run(
         text_decoration_style=_text_decoration_style(style.get("text-decoration-style"), style.get("text-decoration")),
         text_decoration_color=decoration_color,
         text_decoration_alpha=decoration_alpha,
+        text_decoration_thickness=_text_decoration_thickness(style, viewport),
         text_baseline_shift=_baseline_shift(style.get("baseline-shift")),
         letter_spacing=_svg_text_effective_letter_spacing(style, text, font_size, viewport),
     )
@@ -5106,6 +5138,23 @@ def _text_decoration_color(style: dict[str, str]) -> tuple[str | None, float | N
     return _parse_color(value)
 
 
+def _text_decoration_thickness(style: dict[str, str], viewport: tuple[float, float]) -> float | None:
+    if not _has_text_decoration(style.get("text-decoration"), "underline"):
+        return None
+    if _has_text_decoration(style.get("text-decoration"), "line-through"):
+        return None
+    value = style.get("text-decoration-thickness")
+    if value is None:
+        value = _text_decoration_thickness_token(style.get("text-decoration"))
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"", "auto", "from-font"}:
+        return None
+    thickness = _length(normalized, math.nan, "diag", viewport)
+    return max(0.0, thickness) if math.isfinite(thickness) else None
+
+
 def _text_decoration_line_tokens(value: str) -> set[str]:
     return {part.lower() for part in re.split(r"\s+", value.strip()) if part.lower() in TEXT_DECORATION_LINE_TOKENS}
 
@@ -5134,6 +5183,25 @@ def _text_decoration_color_token(value: str | None) -> str | None:
             return part
         color, _ = _parse_color(part)
         if color is not None:
+            return part
+    return None
+
+
+def _text_decoration_thickness_token(value: str | None) -> str | None:
+    if value is None:
+        return None
+    for part in _css_value_tokens(value):
+        normalized = part.lower()
+        if normalized in {"auto", "from-font"}:
+            return part
+        if (
+            normalized in TEXT_DECORATION_LINE_TOKENS
+            or normalized in TEXT_DECORATION_STYLE_TOKENS
+            or normalized == "currentcolor"
+            or _parse_color(part)[0] is not None
+        ):
+            continue
+        if _html_first_length(normalized) is not None:
             return part
     return None
 
@@ -7039,6 +7107,7 @@ def _apply_rect_clip(
         text_decoration_style=shape.text_decoration_style,
         text_decoration_color=shape.text_decoration_color,
         text_decoration_alpha=shape.text_decoration_alpha,
+        text_decoration_thickness=shape.text_decoration_thickness,
         text_anchor=shape.text_anchor,
         text_baseline=shape.text_baseline,
         text_direction=shape.text_direction,
