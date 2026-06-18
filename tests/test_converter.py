@@ -1144,6 +1144,38 @@ def test_foreign_object_html_table_colgroup_widths_convert_to_native_grid() -> N
     assert analyze_svg(svg).unsupported_elements == {}
 
 
+def test_foreign_object_html_table_colgroup_backgrounds_convert_to_cell_fills() -> None:
+    svg = """<svg width="150" height="50">
+      <style>
+        table.metrics col.hot { background-color:#dbeafe; }
+      </style>
+      <foreignObject x="10" y="8" width="120" height="24">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table class="metrics">
+            <colgroup>
+              <col class="hot"/>
+              <col style="background:#dcfce7"/>
+            </colgroup>
+            <tr>
+              <td>A</td>
+              <td style="background-color:#fee2e2">B</td>
+            </tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert 'val="DBEAFE"' in dml
+    assert 'val="FEE2E2"' in dml
+    assert 'val="DCFCE7"' not in dml
+    assert "<a:t>A</a:t>" in dml
+    assert "<a:t>B</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+
 def test_foreign_object_html_table_first_row_cell_widths_convert_to_native_grid() -> None:
     svg = """<svg width="150" height="60">
       <foreignObject x="10" y="8" width="120" height="36">

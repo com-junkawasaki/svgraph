@@ -445,6 +445,7 @@ def _svg_foreign_object_table_shapes(
     column_edges = [0.0]
     for column_width in column_widths:
         column_edges.append(column_edges[-1] + column_width)
+    column_styles = _html_table_column_styles(element, table, column_count, css, style)
     shapes: list[Shape] = []
     for row_index, row in enumerate(rows):
         for column_index, cell, column_span, row_span in row:
@@ -455,7 +456,8 @@ def _svg_foreign_object_table_shapes(
             cell_width = (column_edges[end_column] - column_edges[column_index]) * scale_x
             cell_height = (row_edges[end_row] - row_edges[row_index]) * scale_y
             cell_style = _html_table_cell_style(element, cell, css, style)
-            fill, fill_alpha = _html_background_fill(cell_style)
+            column_style = column_styles[column_index] if column_index < len(column_styles) else {}
+            fill, fill_alpha = _html_table_cell_background_fill(cell_style, column_style)
             stroke, stroke_alpha = _html_border_stroke(cell_style)
             shapes.append(
                 Shape(
@@ -769,6 +771,60 @@ def _html_table_column_widths(table: ET.Element, column_count: int, total_width:
     return _html_table_sizes(specs, column_count, total_width)
 
 
+def _html_table_column_styles(
+    foreign_object: ET.Element,
+    table: ET.Element,
+    column_count: int,
+    css: list[CssRule],
+    inherited_style: dict[str, str],
+) -> tuple[dict[str, str], ...]:
+    styles: list[dict[str, str]] = []
+    table_path = _element_path(foreign_object, table)
+    table_style = inherited_style
+    if table_path:
+        for index, node in enumerate(table_path[1:], start=1):
+            parent = table_path[index - 1]
+            table_style = _computed_style(
+                node,
+                css,
+                table_style,
+                tuple(table_path[:index]),
+                _previous_element_siblings(parent, node),
+            )
+    for col in _html_table_col_elements(table):
+        path = _element_path(foreign_object, col)
+        col_style = table_style
+        if path:
+            start_index = len(table_path) if table_path else 1
+            for index, node in enumerate(path[start_index:], start=start_index):
+                parent = path[index - 1]
+                col_style = _computed_style(
+                    node,
+                    css,
+                    col_style,
+                    tuple(path[:index]),
+                    _previous_element_siblings(parent, node),
+                )
+        span = max(1, _dml_int(col.get("span"), 1) or 1)
+        styles.extend(dict(col_style) for _ in range(span))
+        if len(styles) >= column_count:
+            break
+    if len(styles) < column_count:
+        styles.extend({} for _ in range(column_count - len(styles)))
+    return tuple(styles[:column_count])
+
+
+def _html_table_col_elements(table: ET.Element) -> tuple[ET.Element, ...]:
+    columns: list[ET.Element] = []
+    for child in table:
+        tag = _local_name(child.tag)
+        if tag == "colgroup":
+            columns.extend(col for col in child if _local_name(col.tag) == "col")
+        elif tag == "col":
+            columns.append(child)
+    return tuple(columns)
+
+
 def _html_table_element_size(table: ET.Element, axis: str, total_size: float) -> float | None:
     style_size = _parse_style(table.get("style", "")).get(axis)
     size = _html_table_size_value(style_size, total_size)
@@ -910,6 +966,16 @@ def _html_background_fill(style: dict[str, str]) -> tuple[str | None, float | No
     if color is not None:
         return color, alpha
     return _html_first_color_value(style.get("background"))
+
+
+def _html_table_cell_background_fill(
+    cell_style: dict[str, str],
+    column_style: dict[str, str],
+) -> tuple[str | None, float | None]:
+    fill, alpha = _html_background_fill(cell_style)
+    if fill is not None:
+        return fill, alpha
+    return _html_background_fill(column_style)
 
 
 def _html_border_color(style: dict[str, str]) -> str | None:
