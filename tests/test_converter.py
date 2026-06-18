@@ -1174,6 +1174,35 @@ def test_foreign_object_html_table_css_selectors_apply_to_cells() -> None:
     assert analyze_svg(svg).unsupported_elements == {}
 
 
+def test_foreign_object_html_table_cell_alignment_converts() -> None:
+    svg = """<svg width="150" height="60">
+      <style>
+        table.align td.right { text-align: right; vertical-align: bottom; }
+      </style>
+      <foreignObject x="10" y="8" width="120" height="30">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table class="align">
+            <tr>
+              <td style="text-align:center; vertical-align:top">Top</td>
+              <td class="right">Bottom</td>
+            </tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert '<a:bodyPr lIns="38100" rIns="38100" tIns="38100" bIns="38100" anchor="t"/>' in dml
+    assert '<a:pPr algn="ctr"/>' in dml
+    assert '<a:bodyPr lIns="38100" rIns="38100" tIns="38100" bIns="38100" anchor="b"/>' in dml
+    assert '<a:pPr algn="r"/>' in dml
+    assert "<a:t>Top</a:t>" in dml
+    assert "<a:t>Bottom</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+
 def test_foreign_object_html_table_spans_convert_to_native_table_merges() -> None:
     svg = """<svg width="120" height="60">
       <foreignObject x="10" y="8" width="100" height="40">

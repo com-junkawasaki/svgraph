@@ -469,7 +469,8 @@ def _svg_foreign_object_table_shapes(
                         font_weight=cell_style.get("font-weight") or ("bold" if _local_name(cell.tag) == "th" else None),
                         font_style=cell_style.get("font-style"),
                         font_family=_font_family(cell_style.get("font-family")),
-                        text_baseline="middle",
+                        text_anchor=_html_text_anchor(cell_style),
+                        text_baseline=_html_vertical_align(cell_style) or "middle",
                     )
                 )
     return tuple(shapes)
@@ -575,6 +576,36 @@ def _html_border_width(style: dict[str, str]) -> float:
 
 def _html_text_color(style: dict[str, str]) -> str | None:
     return _html_color(style.get("color"))
+
+
+def _html_text_anchor(style: dict[str, str]) -> str | None:
+    value = style.get("text-align")
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    return {
+        "center": "middle",
+        "middle": "middle",
+        "right": "end",
+        "end": "end",
+        "left": "start",
+        "start": "start",
+    }.get(normalized)
+
+
+def _html_vertical_align(style: dict[str, str]) -> str | None:
+    value = style.get("vertical-align")
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    return {
+        "top": "text-before-edge",
+        "text-top": "text-before-edge",
+        "middle": "middle",
+        "center": "middle",
+        "bottom": "text-after-edge",
+        "text-bottom": "text-after-edge",
+    }.get(normalized)
 
 
 def _html_color(value: str | None) -> str | None:
@@ -5701,6 +5732,7 @@ def _computed_style(
         "text-decoration-style",
         "text-decoration-thickness",
         "text-anchor",
+        "text-align",
         "text-orientation",
         "text-transform",
         "text-underline-offset",
@@ -5737,6 +5769,7 @@ def _computed_style(
         "text-rendering",
         "transform",
         "transform-origin",
+        "vertical-align",
         "writing-mode",
         "word-spacing",
     ):
