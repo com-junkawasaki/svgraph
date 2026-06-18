@@ -887,6 +887,12 @@ def _has_no_visible_paint(
     tag = _local_name(element.tag)
     if tag == "image":
         return _alpha_is_zero(style.get("opacity"))
+    if tag == "use":
+        ref_context = _use_reference_context(element, refs, viewport, frozenset())
+        if ref_context is None:
+            return False
+        ref, ref_viewport, next_stack = ref_context
+        return not _subtree_has_visible_rendering(ref, css, refs, style, (element,), ref_viewport, ref_stack=next_stack)
     if tag not in {"circle", "ellipse", "line", "path", "polygon", "polyline", "rect", "text", "tspan"}:
         return False
     if tag in {"text", "tspan"} and not _svg_text_content(element):
@@ -919,11 +925,18 @@ def _subtree_has_visible_rendering(
     ancestors: tuple[ET.Element, ...],
     viewport: tuple[float, float],
     previous_siblings: tuple[ET.Element, ...] = (),
+    ref_stack: frozenset[str] = frozenset(),
 ) -> bool:
     style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
     if _is_display_none(style):
         return False
     tag = _local_name(element.tag)
+    if tag == "use":
+        ref_context = _use_reference_context(element, refs, viewport, ref_stack)
+        if ref_context is None:
+            return False
+        ref, ref_viewport, next_stack = ref_context
+        return _subtree_has_visible_rendering(ref, css, refs, style, ancestors + (element,), ref_viewport, ref_stack=next_stack)
     if (
         not _is_visibility_hidden(style)
         and tag in RENDERING_ELEMENTS
@@ -950,6 +963,7 @@ def _subtree_has_visible_rendering(
             ancestors + (element,),
             child_viewport,
             _previous_element_siblings(element, selected),
+            ref_stack,
         )
     previous_children: list[ET.Element] = []
     for child in element:
@@ -961,6 +975,7 @@ def _subtree_has_visible_rendering(
             ancestors + (element,),
             child_viewport,
             tuple(previous_children),
+            ref_stack,
         ):
             return True
         previous_children.append(child)

@@ -2789,6 +2789,28 @@ def test_analyze_svg_ignores_group_effects_without_visible_rendering() -> None:
     }
 
 
+def test_analyze_svg_ignores_group_effects_on_use_without_visible_rendering() -> None:
+    hidden = """<svg>
+      <defs><g id="glyph"><rect width="10" height="8" fill="none" stroke="none"/></g></defs>
+      <g filter="url(#blur)"><use href="#glyph"/></g>
+      <g mask="url(#fade)"><use href="#glyph"/></g>
+      <g mix-blend-mode="multiply"><use href="#glyph"/></g>
+    </svg>"""
+    visible = """<svg>
+      <defs><g id="glyph"><rect width="10" height="8"/></g></defs>
+      <g filter="url(#blur)"><use href="#glyph"/></g>
+      <g mask="url(#fade)"><use href="#glyph"/></g>
+      <g mix-blend-mode="multiply"><use href="#glyph"/></g>
+    </svg>"""
+
+    assert analyze_svg(hidden).unsupported_attributes == {}
+    assert analyze_svg(visible).unsupported_attributes == {
+        "filter": 1,
+        "mask": 1,
+        "mix-blend-mode": 1,
+    }
+
+
 def test_analyze_svg_accepts_group_rect_clip_when_descendants_can_be_clipped() -> None:
     svg = """<svg>
       <defs><clipPath id="crop"><rect x="0" y="0" width="10" height="8"/></clipPath></defs>
@@ -2843,7 +2865,7 @@ def test_analyze_svg_reports_group_clip_on_missing_use_reference() -> None:
     result = analyze_svg(svg)
 
     assert result.unsupported_elements == {"use:unsupported-reference": 1}
-    assert result.unsupported_attributes == {"clip-path": 1, "href": 1}
+    assert result.unsupported_attributes == {"href": 1}
 
 
 def test_analyze_svg_reports_group_clip_when_use_descendant_clip_overrides() -> None:
@@ -5232,6 +5254,29 @@ def test_defs_use_are_expanded_without_rendering_defs_directly() -> None:
     assert 'y="285750"' in dml
     assert analyze_svg(svg).unsupported_attributes == {}
     assert analyze_svg(svg).to_dict()["estimated_element_coverage"] == 1.0
+
+
+def test_analyze_svg_ignores_use_references_without_visible_rendering() -> None:
+    opacity = """<svg>
+      <defs><g id="glyph"><rect width="10" height="8"/></g></defs>
+      <use href="#glyph" opacity="0"/>
+    </svg>"""
+    hidden = """<svg>
+      <defs><g id="glyph"><rect width="10" height="8" display="none"/></g></defs>
+      <use href="#glyph"/>
+    </svg>"""
+    no_paint = """<svg>
+      <defs><g id="glyph"><rect width="10" height="8" fill="none" stroke="none"/></g></defs>
+      <use href="#glyph"/>
+    </svg>"""
+
+    for svg in (opacity, hidden, no_paint):
+        report = analyze_svg(svg)
+        assert svg_to_drawingml(svg).count("<p:sp>") == 0
+        assert report.unsupported_attributes == {}
+        assert report.unsupported_elements == {}
+        assert report.convertible_elements == 1
+        assert report.ignored_elements == 3
 
 
 def test_analyze_svg_reports_unsupported_use_references() -> None:
