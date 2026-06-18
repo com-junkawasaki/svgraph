@@ -7852,3 +7852,40 @@ def test_drawingml_native_table_cell_text_anchor_maps_to_svg_baseline() -> None:
 
     assert '<text fill="#000000" stroke="none" x="0" y="10" font-size="10" dominant-baseline="text-before-edge">Top</text>' in svg
     assert '<text fill="#000000" stroke="none" x="40" y="20" font-size="10" dominant-baseline="text-after-edge">Bottom</text>' in svg
+
+
+def test_drawingml_native_table_cell_list_style_alignment_maps_to_svg_text_anchor() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:graphicFrame>
+        <p:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="190500"/></p:xfrm>
+        <a:graphic><a:graphicData>
+          <a:tbl>
+            <a:tblGrid><a:gridCol w="381000"/><a:gridCol w="381000"/></a:tblGrid>
+            <a:tr h="190500">
+              <a:tc>
+                <a:txBody>
+                  <a:bodyPr/>
+                  <a:lstStyle><a:lvl1pPr algn="ctr"/></a:lstStyle>
+                  <a:p><a:r><a:rPr sz="1000"/><a:t>Center</a:t></a:r></a:p>
+                </a:txBody>
+                <a:tcPr/>
+              </a:tc>
+              <a:tc>
+                <a:txBody>
+                  <a:bodyPr/>
+                  <a:lstStyle><a:lvl1pPr algn="ctr"/><a:lvl2pPr algn="r"/></a:lstStyle>
+                  <a:p><a:pPr lvl="1"/><a:r><a:rPr sz="1000"/><a:t>Right</a:t></a:r></a:p>
+                </a:txBody>
+                <a:tcPr/>
+              </a:tc>
+            </a:tr>
+          </a:tbl>
+        </a:graphicData></a:graphic>
+      </p:graphicFrame>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert '<text fill="#000000" stroke="none" x="20" y="10" font-size="10" text-anchor="middle" dominant-baseline="middle">Center</text>' in svg
+    assert '<text fill="#000000" stroke="none" x="80" y="10" font-size="10" text-anchor="end" dominant-baseline="middle">Right</text>' in svg

@@ -624,10 +624,25 @@ def _dml_table_cell_text_paint(cell: ET.Element) -> Paint:
 
 
 def _dml_table_cell_text_anchor(cell: ET.Element) -> str | None:
-    p_pr = cell.find(f"{qn(NS_A, 'txBody')}/{qn(NS_A, 'p')}/{qn(NS_A, 'pPr')}")
+    p_pr = _dml_table_cell_paragraph_properties(cell, lambda item: item.get("algn") is not None)
     if p_pr is None:
         return None
     return {"ctr": "middle", "r": "end", "l": "start"}.get(p_pr.get("algn", ""))
+
+
+def _dml_table_cell_paragraph_properties(
+    cell: ET.Element,
+    predicate: Callable[[ET.Element], bool],
+) -> ET.Element | None:
+    tx_body = cell.find(qn(NS_A, "txBody"))
+    p_pr = tx_body.find(f"{qn(NS_A, 'p')}/{qn(NS_A, 'pPr')}") if tx_body is not None else None
+    if p_pr is not None and predicate(p_pr):
+        return p_pr
+    if tx_body is not None:
+        list_p_pr = _dml_list_style_paragraph_properties(tx_body, p_pr)
+        if list_p_pr is not None and predicate(list_p_pr):
+            return list_p_pr
+    return None
 
 
 def _dml_table_cell_text_baseline(cell: ET.Element) -> str | None:
