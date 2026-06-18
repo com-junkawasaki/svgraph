@@ -1455,6 +1455,47 @@ def test_foreign_object_html_table_caption_converts_to_text_shape() -> None:
     assert analyze_svg(svg).unsupported_elements == {}
 
 
+def test_foreign_object_html_table_bottom_caption_converts_to_text_shape() -> None:
+    svg = """<svg width="130" height="80">
+      <foreignObject x="10" y="8" width="100" height="60">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table>
+            <caption style="caption-side:bottom;font-size:10px;color:#2563eb">Metric <strong>Total</strong></caption>
+            <tr><td>A</td><td>B</td></tr>
+            <tr><td>C</td><td>D</td></tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+    root = ET.fromstring(dml)
+    ns = {
+        "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
+        "p": "http://schemas.openxmlformats.org/presentationml/2006/main",
+    }
+    table_frame = root.find("p:graphicFrame", ns)
+    table_offset = table_frame.find("p:xfrm/a:off", ns)
+    table_extent = table_frame.find("p:xfrm/a:ext", ns)
+    caption_shape = next(
+        shape
+        for shape in root.findall("p:sp", ns)
+        if shape.find(".//a:t", ns) is not None and shape.find(".//a:t", ns).text == "Metric "
+    )
+    caption_offset = caption_shape.find("p:spPr/a:xfrm/a:off", ns)
+    caption_extent = caption_shape.find("p:spPr/a:xfrm/a:ext", ns)
+
+    assert "<a:tbl>" in dml
+    assert table_offset.attrib == {"x": "95250", "y": "76200"}
+    assert table_extent.attrib == {"cx": "952500", "cy": "438150"}
+    assert caption_offset.attrib == {"x": "95250", "y": "514350"}
+    assert caption_extent.attrib == {"cx": "952500", "cy": "133350"}
+    assert "<a:t>Metric </a:t>" in dml
+    assert '<a:rPr sz="1000" b="1">' in dml
+    assert "<a:t>Total</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+
 def test_foreign_object_html_table_shorthand_styles_convert() -> None:
     svg = """<svg width="120" height="50">
       <foreignObject x="10" y="8" width="100" height="24">
