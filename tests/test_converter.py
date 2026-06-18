@@ -5388,6 +5388,38 @@ def test_analyze_svg_reports_used_gradient_href_references() -> None:
     }
 
 
+def test_analyze_svg_ignores_invisible_gradient_href_references() -> None:
+    svg = """<svg>
+      <defs>
+        <linearGradient id="missing" href="#missing-base"/>
+        <linearGradient id="external" href="gradients.svg#base"/>
+      </defs>
+      <rect width="10" height="8" fill="url(#missing)" fill-opacity="0"/>
+      <line x1="0" y1="0" x2="10" y2="0" stroke="url(#missing)" stroke-width="0"/>
+      <rect x="12" width="10" height="8" fill="url(#external)" display="none"/>
+      <rect x="24" width="10" height="8" fill="url(#external)" visibility="hidden"/>
+      <g display="none"><rect x="36" width="10" height="8" fill="url(#missing)"/></g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_analyze_svg_reports_gradient_href_references_from_visible_descendants() -> None:
+    svg = """<svg>
+      <defs>
+        <linearGradient id="missing" href="#missing-base"/>
+      </defs>
+      <g visibility="hidden">
+        <rect width="10" height="8" fill="url(#missing)" visibility="visible"/>
+      </g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {
+        "fill:paint-server": 1,
+        "href": 1,
+    }
+
+
 def test_analyze_svg_reports_missing_paint_server() -> None:
     report = analyze_svg(
         """<svg>

@@ -619,19 +619,33 @@ def _subtree_references_paint_server(
     previous_siblings: tuple[ET.Element, ...] = (),
 ) -> bool:
     tag = _local_name(element.tag)
-    style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
-    if tag not in {"defs", "linearGradient", "pattern", "radialGradient", "stop"}:
-        for attr in ("fill", "stroke"):
-            ref = _url_ref(style.get(attr))
-            if ref is not None and ref[0] == paint_server_id and not ref[1].strip():
-                return True
-    child_viewport = viewport
-    if tag == "svg" and ancestors:
+    if tag != "svg":
+        child_viewport = viewport
+    elif ancestors:
         child_viewport = _viewport_size(
             element,
             _optional_length(element.get("width"), "x", viewport),
             _optional_length(element.get("height"), "y", viewport),
         )
+    else:
+        child_viewport = viewport
+    style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
+    if _is_display_none(style):
+        return False
+    if (
+        tag not in {"defs", "linearGradient", "pattern", "radialGradient", "stop"}
+        and not _is_visibility_hidden(style)
+        and not _has_non_rendering_geometry(element, style, viewport)
+    ):
+        for attr in ("fill", "stroke"):
+            ref = _url_ref(style.get(attr))
+            if (
+                ref is not None
+                and ref[0] == paint_server_id
+                and not ref[1].strip()
+                and _paint_channel_is_visible(style, viewport, attr)
+            ):
+                return True
     previous_children: list[ET.Element] = []
     for child in element:
         if _subtree_references_paint_server(
