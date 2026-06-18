@@ -1019,9 +1019,7 @@ def test_analyze_svg_skips_hidden_unsupported_details() -> None:
 def test_analyze_svg_treats_foreign_object_as_single_unsupported_island() -> None:
     svg = """<svg>
       <foreignObject x="0" y="0" width="100" height="40">
-        <body xmlns="http://www.w3.org/1999/xhtml">
-          <table><tr><td>A</td><td>B</td></tr></table>
-        </body>
+        <body xmlns="http://www.w3.org/1999/xhtml"><p>Unsupported</p></body>
       </foreignObject>
       <foreignObject x="0" y="50" width="0" height="20">
         <body xmlns="http://www.w3.org/1999/xhtml"><p>Hidden</p></body>
@@ -1034,6 +1032,53 @@ def test_analyze_svg_treats_foreign_object_as_single_unsupported_island() -> Non
     assert report.convertible_elements == 1
     assert report.ignored_elements == 1
     assert report.unsupported_elements == {"foreignObject": 1}
+
+
+def test_foreign_object_html_table_converts_to_native_drawingml_table() -> None:
+    svg = """<svg width="120" height="60">
+      <foreignObject x="10" y="8" width="100" height="40">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table>
+            <tr>
+              <th style="background-color:#dbeafe;color:#1e3a8a;border:2px solid #2563eb">Name</th>
+              <th style="background-color:#dbeafe;color:#1e3a8a;border:2px solid #2563eb">Score</th>
+            </tr>
+            <tr>
+              <td style="background-color:#ffffff;color:#111827;border:1px solid #94a3b8">Ada</td>
+              <td style="background-color:#f8fafc;color:#111827;border:1px solid #94a3b8">42</td>
+            </tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<p:graphicFrame>" in dml
+    assert "<a:tbl>" in dml
+    assert dml.count("<a:gridCol") == 2
+    assert dml.count("<a:tr") == 2
+    assert dml.count("<a:tc>") == 4
+    assert 'val="DBEAFE"' in dml
+    assert 'val="2563EB"' in dml
+    assert "<a:t>Name</a:t>" in dml
+    assert "<a:t>42</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+
+def test_rotated_foreign_object_html_table_remains_unsupported() -> None:
+    svg = """<svg width="120" height="60">
+      <foreignObject x="10" y="8" width="100" height="40" transform="rotate(5 60 28)">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table><tr><td>A</td><td>B</td></tr></table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" not in dml
+    assert analyze_svg(svg).unsupported_elements == {"foreignObject": 1}
 
 
 def test_hidden_display_and_visibility_values_are_normalized() -> None:

@@ -16,6 +16,7 @@ from .converter import (
     _data_image_dimensions,
     _clip_path_is_supported,
     _dominant_baseline,
+    _foreign_object_table_is_supported,
     _href,
     _is_display_none,
     _is_visibility_hidden,
@@ -54,6 +55,7 @@ SUPPORTED_ELEMENTS = {
     "a",
     "circle",
     "ellipse",
+    "foreignObject",
     "g",
     "image",
     "line",
@@ -275,9 +277,21 @@ def _walk(
     if tag == "switch":
         switch_supported = _switch_selected_child(element) is not None or len(element) == 0
 
+    matrix = _matrix_multiply(inherited_matrix, _style_transform_matrix(element, style, viewport))
+    foreign_object_supported = tag != "foreignObject" or _foreign_object_table_is_supported(
+        element, style, matrix, viewport
+    )
+
     if tag in IGNORED_ELEMENTS or hidden or non_rendering_geometry or no_visible_paint:
         stats.ignored_elements += 1
-    elif tag in SUPPORTED_ELEMENTS and path_supported and points_supported and use_supported and switch_supported:
+    elif (
+        tag in SUPPORTED_ELEMENTS
+        and path_supported
+        and points_supported
+        and use_supported
+        and switch_supported
+        and foreign_object_supported
+    ):
         stats.convertible_elements += 1
     elif tag in SUPPORTED_ELEMENTS:
         stats.add_unsupported_element(_supported_element_issue(tag))
@@ -287,7 +301,6 @@ def _walk(
     if display_none or non_rendering_geometry or (no_visible_paint and not unresolved_paint_server):
         return
 
-    matrix = _matrix_multiply(inherited_matrix, _style_transform_matrix(element, style, viewport))
     child_viewport = viewport
     if tag == "svg" and ancestors:
         child_viewport = _viewport_size(
@@ -2814,6 +2827,8 @@ def _supported_element_issue(tag: str) -> str:
         return "path:unsupported-command"
     if tag in {"polygon", "polyline"}:
         return f"{tag}:invalid-points"
+    if tag == "foreignObject":
+        return "foreignObject"
     if tag == "switch":
         return "switch:unsupported-branch"
     return f"{tag}:unsupported-reference"

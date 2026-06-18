@@ -234,6 +234,11 @@ def _svg_shapes_walk(
             previous_children = _previous_element_siblings(element, selected)
             yield from _svg_shapes_walk(selected, css, refs, style, matrix, ref_stack, ancestors + (element,), child_viewport, previous_children)
         return
+    if tag == "foreignObject" and not visibility_hidden:
+        foreign_table_shapes = _svg_foreign_object_table_shapes(element, style, css, refs, matrix, viewport)
+        if foreign_table_shapes:
+            yield from foreign_table_shapes
+            return
 
     shape = None if visibility_hidden else _svg_shape_from_element(element, tag, style, matrix, refs, viewport, css, ancestors)
     if shape is not None:
@@ -397,6 +402,165 @@ def _svg_shape_from_element(
             )
             return _transformed_image_shape(x, y, width, height, matrix, href, _image_alpha(style), src_rect)
     return None
+
+
+def _svg_foreign_object_table_shapes(
+    element: ET.Element,
+    style: dict[str, str],
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    matrix: tuple[float, float, float, float, float, float],
+    viewport: tuple[float, float],
+) -> tuple[Shape, ...]:
+    table = _foreign_object_table(element)
+    if table is None:
+        return ()
+    x = _geometry_length(element, style, "x", 0, "x", viewport)
+    y = _geometry_length(element, style, "y", 0, "y", viewport)
+    width = _geometry_length(element, style, "width", 0, "x", viewport)
+    height = _geometry_length(element, style, "height", 0, "y", viewport)
+    transformed = _transformed_rect_shape(x, y, width, height, 0, 0, matrix, Paint(fill="none", stroke="none"))
+    if transformed is None or transformed.rotation is not None or transformed.flip_h or transformed.flip_v:
+        return ()
+    grid = _html_table_grid(table)
+    if width <= 0 or height <= 0 or not grid:
+        return ()
+    rows, column_count = grid
+    if column_count <= 0:
+        return ()
+    scale_x = transformed.width / width
+    scale_y = transformed.height / height
+    row_height = height / len(rows)
+    column_width = width / column_count
+    shapes: list[Shape] = []
+    for row_index, row in enumerate(rows):
+        for column_index, cell, column_span, row_span in row:
+            cell_x = transformed.x + column_index * column_width * scale_x
+            cell_y = transformed.y + row_index * row_height * scale_y
+            cell_width = column_span * column_width * scale_x
+            cell_height = row_span * row_height * scale_y
+            cell_style = _computed_style(cell, css, style, (element, table), ())
+            fill = _html_background_color(cell_style) or "#ffffff"
+            stroke = _html_border_color(cell_style) or "#000000"
+            shapes.append(
+                Shape(
+                    "rect",
+                    cell_x,
+                    cell_y,
+                    cell_width,
+                    cell_height,
+                    Paint(fill=fill, stroke=stroke, stroke_width=_html_border_width(cell_style)),
+                )
+            )
+            text = " ".join("".join(cell.itertext()).split())
+            if text:
+                inset = min(4.0 * max(scale_x, scale_y), cell_width / 4, cell_height / 4)
+                font_size = _svg_font_size(cell_style.get("font-size")) * max(scale_x, scale_y)
+                shapes.append(
+                    Shape(
+                        "text",
+                        cell_x + inset,
+                        cell_y + inset,
+                        max(0.0, cell_width - inset * 2),
+                        max(0.0, cell_height - inset * 2),
+                        Paint(fill=_html_text_color(cell_style) or "#000000", stroke="none"),
+                        text=text,
+                        font_size=font_size,
+                        font_weight=cell_style.get("font-weight") or ("bold" if _local_name(cell.tag) == "th" else None),
+                        font_style=cell_style.get("font-style"),
+                        font_family=_font_family(cell_style.get("font-family")),
+                        text_baseline="middle",
+                    )
+                )
+    return tuple(shapes)
+
+
+def _foreign_object_table(element: ET.Element) -> ET.Element | None:
+    tables = [descendant for descendant in element.iter() if descendant is not element and _local_name(descendant.tag) == "table"]
+    return tables[0] if len(tables) == 1 else None
+
+
+def _html_table_grid(table: ET.Element) -> tuple[list[list[tuple[int, ET.Element, int, int]]], int] | None:
+    source_rows = [
+        [cell for cell in row if _local_name(cell.tag) in {"td", "th"}]
+        for row in table.iter()
+        if _local_name(row.tag) == "tr"
+    ]
+    source_rows = [row for row in source_rows if row]
+    if not source_rows:
+        return None
+    occupied: dict[tuple[int, int], bool] = {}
+    rows: list[list[tuple[int, ET.Element, int, int]]] = []
+    column_count = 0
+    for row_index, source_row in enumerate(source_rows):
+        row_cells: list[tuple[int, ET.Element, int, int]] = []
+        column_index = 0
+        for cell in source_row:
+            while occupied.get((row_index, column_index), False):
+                column_index += 1
+            column_span = max(1, _dml_int(cell.get("colspan"), 1) or 1)
+            row_span = max(1, _dml_int(cell.get("rowspan"), 1) or 1)
+            row_cells.append((column_index, cell, column_span, row_span))
+            for occupied_row in range(row_index, row_index + row_span):
+                for occupied_column in range(column_index, column_index + column_span):
+                    occupied[(occupied_row, occupied_column)] = True
+            column_index += column_span
+            column_count = max(column_count, column_index)
+        rows.append(row_cells)
+    if any(row_index + row_span > len(rows) for row_index, row in enumerate(rows) for _, _, _, row_span in row):
+        return None
+    if any(
+        len({column for column in range(column_count) if occupied.get((row_index, column), False)}) != column_count
+        for row_index in range(len(rows))
+    ):
+        return None
+    return rows, column_count
+
+
+def _html_background_color(style: dict[str, str]) -> str | None:
+    return _html_color(style.get("background-color")) or _html_color((style.get("background") or "").split(" ", 1)[0])
+
+
+def _html_border_color(style: dict[str, str]) -> str | None:
+    return _html_color(style.get("border-color")) or _html_color((style.get("border") or "").rsplit(" ", 1)[-1])
+
+
+def _html_border_width(style: dict[str, str]) -> float:
+    border_width = style.get("border-width")
+    if border_width:
+        return max(0.0, _num(border_width.split()[0], 1.0))
+    border = style.get("border")
+    if border:
+        return max(0.0, _num(border.split()[0], 1.0))
+    return 1.0
+
+
+def _html_text_color(style: dict[str, str]) -> str | None:
+    return _html_color(style.get("color"))
+
+
+def _html_color(value: str | None) -> str | None:
+    color, _ = _parse_color(value)
+    return color
+
+
+def _foreign_object_table_is_supported(
+    element: ET.Element,
+    style: dict[str, str],
+    matrix: tuple[float, float, float, float, float, float],
+    viewport: tuple[float, float],
+) -> bool:
+    table = _foreign_object_table(element)
+    if table is None:
+        return False
+    width = _geometry_length(element, style, "width", 0, "x", viewport)
+    height = _geometry_length(element, style, "height", 0, "y", viewport)
+    if width <= 0 or height <= 0 or _html_table_grid(table) is None:
+        return False
+    x = _geometry_length(element, style, "x", 0, "x", viewport)
+    y = _geometry_length(element, style, "y", 0, "y", viewport)
+    transformed = _transformed_rect_shape(x, y, width, height, 0, 0, matrix, Paint(fill="none", stroke="none"))
+    return transformed is not None and transformed.rotation is None and not transformed.flip_h and not transformed.flip_v
 
 
 def _geometry_length(
