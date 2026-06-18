@@ -2819,6 +2819,38 @@ def test_drawingml_group_transform_scales_child_lines_and_pictures_to_svg() -> N
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_drawingml_group_flip_preserves_child_image_and_text_reflection() -> None:
+    dml = f"""<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+      xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+      <p:grpSp>
+        <p:nvGrpSpPr><p:cNvPr id="2" name="flipped group"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
+        <p:grpSpPr>
+          <a:xfrm flipV="1">
+            <a:off x="95250" y="190500"/><a:ext cx="190500" cy="190500"/>
+            <a:chOff x="0" y="0"/><a:chExt cx="190500" cy="190500"/>
+          </a:xfrm>
+        </p:grpSpPr>
+        <p:pic>
+          <p:nvPicPr><p:cNvPr id="3" name="image"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>
+          <p:blipFill><a:blip r:embed="{PNG_DATA_URI}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>
+          <p:spPr><a:xfrm><a:off x="47625" y="47625"/><a:ext cx="47625" cy="47625"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        </p:pic>
+        <p:sp>
+          <p:nvSpPr><p:cNvPr id="4" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+          <p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="95250" cy="95250"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+          <p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1000"><a:solidFill><a:srgbClr val="111111"/></a:solidFill></a:rPr><a:t>Flip</a:t></a:r></a:p></p:txBody>
+        </p:sp>
+      </p:grpSp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert f'<image href="{PNG_DATA_URI}" x="15" y="30" width="5" height="5" transform="translate(17.5 32.5) scale(1 -1) translate(-17.5 -32.5)"/>' in svg
+    assert '<text fill="#111111" x="10" y="40" font-size="10" transform="translate(15 35) scale(1 -1) translate(-15 -35)">Flip</text>' in svg
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_drawingml_invalid_srgb_colors_do_not_crash() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">

@@ -598,7 +598,10 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
             attrs["dominant-baseline"] = shape.text_baseline
         if shape.letter_spacing is not None:
             attrs["letter-spacing"] = _fmt(shape.letter_spacing)
-        if shape.rotation is not None:
+        transform = _svg_shape_transform(shape) if shape.flip_h or shape.flip_v else None
+        if transform:
+            attrs["transform"] = transform
+        elif shape.rotation is not None:
             attrs["rotate"] = _fmt(shape.rotation)
         element = ET.Element(qn(NS_SVG, "text"), attrs)
         lines = (shape.text or "").split("\n")
@@ -2670,7 +2673,7 @@ def _dml_group_matrix(element: ET.Element) -> tuple[float, float, float, float, 
     scale_y = height / child_height if child_height else 1.0
     matrix = (scale_x, 0.0, 0.0, scale_y, x - child_x * scale_x, y - child_y * scale_y)
     if xfrm.get("flipH") in {"1", "true"}:
-        matrix = _matrix_multiply(( -1.0, 0.0, 0.0, 1.0, x * 2 + width, 0.0), matrix)
+        matrix = _matrix_multiply((-1.0, 0.0, 0.0, 1.0, x * 2 + width, 0.0), matrix)
     if xfrm.get("flipV") in {"1", "true"}:
         matrix = _matrix_multiply((1.0, 0.0, 0.0, -1.0, 0.0, y * 2 + height), matrix)
     rotation_value = _dml_float(xfrm.get("rot")) if xfrm.get("rot") is not None else None
@@ -2708,10 +2711,13 @@ def _transform_dml_box_shape(shape: Shape, matrix: tuple[float, float, float, fl
     center_x = sum(px for px, _ in points) / 4
     center_y = sum(py for _, py in points) / 4
     rotation = math.degrees(math.atan2(ux[1], ux[0])) % 360
+    determinant = ux[0] * vy[1] - ux[1] * vy[0]
     if abs(rotation) < 1e-9 or abs(rotation - 360) < 1e-9:
         rotation = 0.0
     if shape.rotation is not None:
         rotation = (rotation + shape.rotation) % 360
+        if abs(rotation) < 1e-9 or abs(rotation - 360) < 1e-9:
+            rotation = 0.0
     scale = _matrix_scale(matrix)
     return replace(
         shape,
@@ -2724,6 +2730,7 @@ def _transform_dml_box_shape(shape: Shape, matrix: tuple[float, float, float, fl
         letter_spacing=shape.letter_spacing * scale if shape.letter_spacing is not None else None,
         rx=min(shape.rx * scale, width / 2) if shape.rx is not None else None,
         ry=min(shape.ry * scale, height / 2) if shape.ry is not None else None,
+        flip_v=shape.flip_v ^ (determinant < 0),
         rotation=rotation or None,
     )
 
