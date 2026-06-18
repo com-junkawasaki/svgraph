@@ -87,6 +87,23 @@ def test_readme_documents_supported_drawingml_presets() -> None:
     assert _documented_drawingml_preset_names() == _implemented_drawingml_preset_names()
 
 
+def test_readme_documents_rectangular_clip_path_targets() -> None:
+    readme = (_project_root() / "README.md").read_text(encoding="utf-8")
+    clipping_line = next(line for line in readme.splitlines() if line.startswith("- Clipping:"))
+
+    for target in [
+        "`rect`/rounded `rect`",
+        "`circle`/`ellipse`",
+        "`line`",
+        "two-point open `polyline`/`path`",
+        "`text`",
+        "embedded `image`",
+        "`userSpaceOnUse`",
+        "`objectBoundingBox`",
+    ]:
+        assert target in clipping_line
+
+
 def test_readme_project_links_point_to_packaged_docs() -> None:
     root = _project_root()
     readme = (root / "README.md").read_text(encoding="utf-8")
