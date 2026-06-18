@@ -32,3 +32,7 @@ python -m zipfile --test tmp/drawingml-svg-coverage.pptx
 ## Reporting issues
 
 Please include a minimal SVG or DrawingML fragment, the command or API call used, the expected output, and the actual output.
+
+## Conduct and security
+
+Follow `CODE_OF_CONDUCT.md` in project discussions. Report suspected vulnerabilities privately using `SECURITY.md`.
