@@ -1395,9 +1395,13 @@ def test_unconverted_text_layout_attributes_are_reported() -> None:
       <text x="0" y="80" style="baseline-shift: super">Shift</text>
       <text x="0" y="100" font-stretch="normal" font-size-adjust="none" text-orientation="mixed" baseline-shift="0">Noop</text>
       <text x="0" y="120" font-stretch="100.0%">Percent noop</text>
+      <text x="0" y="140" baseline-shift="0%" font-size-adjust="none">Zero percent noop</text>
+      <text x="0" y="160" baseline-shift="-0.0em">Zero em noop</text>
+      <text x="0" y="180" baseline-shift="10%">Percent shift</text>
     </svg>"""
 
     assert analyze_svg(svg).unsupported_attributes == {
+        "baseline-shift": 1,
         "font-size-adjust": 1,
         "font-stretch": 1,
         "text-orientation": 1,

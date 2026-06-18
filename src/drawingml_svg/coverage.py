@@ -6,6 +6,7 @@ from xml.etree import ElementTree as ET
 
 from .converter import (
     CssRule,
+    NUMBER_RE,
     _alpha_value,
     _collect_css,
     _collect_refs,
@@ -737,7 +738,47 @@ def _baseline_shift_has_no_effect(style: dict[str, str]) -> bool:
     value = style.get("baseline-shift")
     if value is None:
         return False
-    return value.strip().lower() in {"", "baseline", "0", "0px", "0pt", "0pc", "0in", "0cm", "0mm", "0q"}
+    normalized = value.strip().lower()
+    if normalized in {"", "baseline"}:
+        return True
+    return _zero_length_or_percentage_value(normalized)
+
+
+def _zero_length_or_percentage_value(value: str) -> bool:
+    match = re.fullmatch(rf"({NUMBER_RE})([a-z%]*)", value)
+    if not match:
+        return False
+    unit = match.group(2)
+    if unit not in {
+        "",
+        "%",
+        "cap",
+        "ch",
+        "cm",
+        "em",
+        "ex",
+        "ic",
+        "in",
+        "lh",
+        "mm",
+        "pc",
+        "pt",
+        "px",
+        "q",
+        "rem",
+        "rlh",
+        "vb",
+        "vh",
+        "vi",
+        "vmax",
+        "vmin",
+        "vw",
+    }:
+        return False
+    try:
+        return float(match.group(1)) == 0
+    except ValueError:
+        return False
 
 
 def _baseline_shift_is_supported(element: ET.Element, style: dict[str, str]) -> bool:
