@@ -7400,3 +7400,50 @@ def test_drawingml_text_body_insets_adjust_middle_and_bottom_svg_baselines() -> 
     assert 'dominant-baseline="middle"' in svg
     assert 'y="70"' in svg
     assert 'dominant-baseline="text-after-edge"' in svg
+
+
+def test_drawingml_native_table_converts_to_svg_cells_and_text() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:graphicFrame>
+        <p:nvGraphicFramePr><p:cNvPr id="2" name="Table"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
+        <p:xfrm><a:off x="95250" y="190500"/><a:ext cx="1143000" cy="381000"/></p:xfrm>
+        <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">
+          <a:tbl>
+            <a:tblGrid><a:gridCol w="571500"/><a:gridCol w="571500"/></a:tblGrid>
+            <a:tr h="190500">
+              <a:tc>
+                <a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr algn="ctr"/><a:r><a:rPr sz="1200" b="1"><a:solidFill><a:srgbClr val="111827"/></a:solidFill></a:rPr><a:t>Metric</a:t></a:r></a:p></a:txBody>
+                <a:tcPr><a:solidFill><a:srgbClr val="E0F2FE"/></a:solidFill><a:lnL w="9525"><a:solidFill><a:srgbClr val="0284C7"/></a:solidFill></a:lnL></a:tcPr>
+              </a:tc>
+              <a:tc>
+                <a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1200"><a:solidFill><a:srgbClr val="111827"/></a:solidFill></a:rPr><a:t>Value</a:t></a:r></a:p></a:txBody>
+                <a:tcPr><a:solidFill><a:srgbClr val="F0FDF4"/></a:solidFill><a:lnL w="9525"><a:solidFill><a:srgbClr val="16A34A"/></a:solidFill></a:lnL></a:tcPr>
+              </a:tc>
+            </a:tr>
+            <a:tr h="190500">
+              <a:tc>
+                <a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1200"/><a:t>Rows</a:t></a:r></a:p></a:txBody>
+                <a:tcPr><a:lnL w="9525"><a:solidFill><a:srgbClr val="94A3B8"/></a:solidFill></a:lnL></a:tcPr>
+              </a:tc>
+              <a:tc>
+                <a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1200"/><a:t>2</a:t></a:r></a:p></a:txBody>
+                <a:tcPr><a:lnL w="9525"><a:solidFill><a:srgbClr val="94A3B8"/></a:solidFill></a:lnL></a:tcPr>
+              </a:tc>
+            </a:tr>
+          </a:tbl>
+        </a:graphicData></a:graphic>
+      </p:graphicFrame>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert svg.count("<rect") == 4
+    assert svg.count("<text") == 4
+    assert 'fill="#e0f2fe"' in svg
+    assert 'stroke="#0284c7"' in svg
+    assert 'text-anchor="middle"' in svg
+    assert 'dominant-baseline="middle"' in svg
+    assert "Metric" in svg
+    assert "Value" in svg
+    assert "Rows" in svg

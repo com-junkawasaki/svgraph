@@ -420,12 +420,114 @@ def _dml_shapes_walk(
         for child in element:
             yield from _dml_shapes_walk(child, matrix)
         return
+    if tag == "graphicFrame":
+        for shape in _dml_table_shapes(element):
+            yield _transform_dml_shape(shape, matrix)
+        return
     shape = _dml_shape_from_element(element)
     if shape is not None:
         yield _transform_dml_shape(shape, matrix)
         return
     for child in element:
         yield from _dml_shapes_walk(child, matrix)
+
+
+def _dml_table_shapes(element: ET.Element) -> Iterable[Shape]:
+    table = element.find(f".//{qn(NS_A, 'tbl')}")
+    if table is None:
+        return ()
+    x, y, width, height, _, _, _ = _dml_xfrm(element.find(qn(NS_P, "xfrm")))
+    grid_widths = [_px(_dml_int(col.get("w"), 0) or 0) for col in table.findall(f"{qn(NS_A, 'tblGrid')}/{qn(NS_A, 'gridCol')}")]
+    rows = table.findall(qn(NS_A, "tr"))
+    row_heights = [_px(_dml_int(row.get("h"), 0) or 0) for row in rows]
+    if not rows or not grid_widths:
+        return ()
+    total_grid_width = sum(grid_widths)
+    total_row_height = sum(row_heights)
+    scale_x = width / total_grid_width if width > 0 and total_grid_width > 0 else 1.0
+    scale_y = height / total_row_height if height > 0 and total_row_height > 0 else 1.0
+    shapes: list[Shape] = []
+    top = y
+    for row, row_height in zip(rows, row_heights, strict=False):
+        left = x
+        cells = row.findall(qn(NS_A, "tc"))
+        for index, cell in enumerate(cells[: len(grid_widths)]):
+            cell_width = grid_widths[index] * scale_x
+            cell_height = row_height * scale_y
+            cell_fill, fill_alpha = _dml_table_cell_fill(cell)
+            stroke, stroke_width = _dml_table_cell_stroke(cell)
+            shapes.append(
+                Shape(
+                    "rect",
+                    left,
+                    top,
+                    cell_width,
+                    cell_height,
+                    Paint(fill=cell_fill, stroke=stroke, stroke_width=stroke_width, fill_alpha=fill_alpha),
+                )
+            )
+            text = _dml_table_cell_text(cell)
+            if text:
+                inset = min(cell_width, cell_height, 4.0)
+                shapes.append(
+                    Shape(
+                        "text",
+                        left + inset,
+                        top,
+                        max(0.0, cell_width - inset * 2),
+                        cell_height,
+                        _dml_table_cell_text_paint(cell),
+                        text=text,
+                        font_size=_dml_font_size(cell),
+                        font_weight=_dml_font_weight(cell),
+                        font_style=_dml_font_style(cell),
+                        font_family=_dml_font_family(cell),
+                        text_anchor=_dml_table_cell_text_anchor(cell),
+                        text_baseline="middle",
+                    )
+                )
+            left += cell_width
+        top += row_height * scale_y
+    return tuple(shapes)
+
+
+def _dml_table_cell_text(cell: ET.Element) -> str:
+    tx_body = cell.find(qn(NS_A, "txBody"))
+    if tx_body is None:
+        return ""
+    paragraphs = tx_body.findall(qn(NS_A, "p"))
+    return "\n".join(_dml_paragraph_text(tx_body, paragraph, index + 1) for index, paragraph in enumerate(paragraphs))
+
+
+def _dml_table_cell_fill(cell: ET.Element) -> tuple[str | None, float | None]:
+    fill = cell.find(f"{qn(NS_A, 'tcPr')}/{qn(NS_A, 'solidFill')}")
+    if fill is None:
+        return "none", None
+    return _dml_color(fill), _dml_alpha(fill)
+
+
+def _dml_table_cell_stroke(cell: ET.Element) -> tuple[str | None, float | None]:
+    tc_pr = cell.find(qn(NS_A, "tcPr"))
+    if tc_pr is None:
+        return "#000000", 1.0
+    for tag in ("lnL", "lnR", "lnT", "lnB"):
+        line = tc_pr.find(qn(NS_A, tag))
+        if line is not None:
+            return _dml_line_color(line) or "#000000", _dml_line_width(line) or 1.0
+    return "#000000", 1.0
+
+
+def _dml_table_cell_text_paint(cell: ET.Element) -> Paint:
+    fill_element = cell.find(f".//{qn(NS_A, 'rPr')}/{qn(NS_A, 'solidFill')}")
+    fill = _dml_color(fill_element) if fill_element is not None else None
+    return Paint(fill=fill or "#000000", stroke="none")
+
+
+def _dml_table_cell_text_anchor(cell: ET.Element) -> str | None:
+    p_pr = cell.find(f"{qn(NS_A, 'txBody')}/{qn(NS_A, 'p')}/{qn(NS_A, 'pPr')}")
+    if p_pr is None:
+        return None
+    return {"ctr": "middle", "r": "end", "l": "start"}.get(p_pr.get("algn", ""))
 
 
 def _dml_shape_from_element(element: ET.Element) -> Shape | None:
