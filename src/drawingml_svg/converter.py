@@ -2983,6 +2983,57 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (left, y + height * 0.8),
             (left, y + height * 0.2),
         ]
+    if kind == "ribbon":
+        return [
+            (left, y + height * 0.18),
+            (x + width * 0.2, y + height * 0.3),
+            (x + width * 0.2, top),
+            (x + width * 0.8, top),
+            (x + width * 0.8, y + height * 0.3),
+            (right, y + height * 0.18),
+            (x + width * 0.9, center_y),
+            (right, y + height * 0.82),
+            (x + width * 0.8, y + height * 0.7),
+            (x + width * 0.8, bottom),
+            (x + width * 0.2, bottom),
+            (x + width * 0.2, y + height * 0.7),
+            (left, y + height * 0.82),
+            (x + width * 0.1, center_y),
+        ]
+    if kind == "ribbon2":
+        return [
+            (left, y + height * 0.32),
+            (x + width * 0.2, y + height * 0.2),
+            (x + width * 0.2, top),
+            (x + width * 0.8, top),
+            (x + width * 0.8, y + height * 0.2),
+            (right, y + height * 0.32),
+            (x + width * 0.9, center_y),
+            (right, y + height * 0.68),
+            (x + width * 0.8, y + height * 0.8),
+            (x + width * 0.8, bottom),
+            (x + width * 0.2, bottom),
+            (x + width * 0.2, y + height * 0.8),
+            (left, y + height * 0.68),
+            (x + width * 0.1, center_y),
+        ]
+    if kind == "leftRightRibbon":
+        return [
+            (left, top),
+            (x + width * 0.18, y + height * 0.22),
+            (x + width * 0.18, y + height * 0.08),
+            (x + width * 0.82, y + height * 0.08),
+            (x + width * 0.82, y + height * 0.22),
+            (right, top),
+            (x + width * 0.9, center_y),
+            (right, bottom),
+            (x + width * 0.82, y + height * 0.78),
+            (x + width * 0.82, y + height * 0.92),
+            (x + width * 0.18, y + height * 0.92),
+            (x + width * 0.18, y + height * 0.78),
+            (left, bottom),
+            (x + width * 0.1, center_y),
+        ]
     if kind == "leftBracket":
         return [(right, top), (left, top), (left, bottom), (right, bottom), (right, three_quarter_y), (quarter_x, three_quarter_y), (quarter_x, quarter_y), (right, quarter_y)]
     if kind == "rightBracket":

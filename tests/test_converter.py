@@ -3001,6 +3001,42 @@ def test_drawingml_corner_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#fce7f3" points="217,20 241,20 249,24 249,36 241,40 217,40 209,36 209,24"/>' in svg
 
 
+def test_drawingml_ribbon_presets_round_trip_to_svg_polygons() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="ribbon"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="95250" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="ribbon"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DBEAFE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="ribbon 2"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="571500" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="ribbon2"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEE2E2"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="4" name="left right ribbon"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1047750" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="leftRightRibbon"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DCFCE7"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert '<polygon fill="#dbeafe" points="10,23.6 18,26 18,20 42,20 42,26 50,23.6 46,30 50,36.4 42,34 42,40 18,40 18,34 10,36.4 14,30"/>' in svg
+    assert '<polygon fill="#fee2e2" points="60,26.4 68,24 68,20 92,20 92,24 100,26.4 96,30 100,33.6 92,36 92,40 68,40 68,36 60,33.6 64,30"/>' in svg
+    assert '<polygon fill="#dcfce7" points="110,20 117.2,24.4 117.2,21.6 142.8,21.6 142.8,24.4 150,20 146,30 150,40 142.8,35.6 142.8,38.4 117.2,38.4 117.2,35.6 110,40 114,30"/>' in svg
+
+
 def test_drawingml_bracket_presets_round_trip_to_svg_polygons() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
