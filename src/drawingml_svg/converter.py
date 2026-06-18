@@ -436,9 +436,16 @@ def _svg_foreign_object_table_shapes(
     scale_y = transformed.height / height
     table_width = _html_table_element_size(table, "width", width) or width
     table_height = _html_table_element_size(table, "height", height) or height
+    caption = _html_table_caption(table)
+    caption_style = _html_table_cell_style(element, caption, css, style) if caption is not None else {}
+    caption_text = _html_table_cell_text(caption) if caption is not None else ""
+    caption_height = _html_table_caption_height(caption_text, caption_style, table_height)
+    grid_height = max(0.0, table_height - caption_height)
     table_x = _html_table_x_offset(table, width, table_width)
     table_y = _html_table_y_offset(table)
-    row_heights = _html_table_row_heights(table, len(rows), table_height)
+    caption_side = _html_table_caption_side(caption_style)
+    grid_y = table_y + caption_height if caption_text and caption_side == "top" else table_y
+    row_heights = _html_table_row_heights(table, len(rows), grid_height or table_height)
     row_edges = [0.0]
     for row_height in row_heights:
         row_edges.append(row_edges[-1] + row_height)
@@ -448,12 +455,27 @@ def _svg_foreign_object_table_shapes(
         column_edges.append(column_edges[-1] + column_width)
     column_backgrounds = _html_table_column_backgrounds(element, table, column_count, css)
     shapes: list[Shape] = []
+    if caption_text:
+        caption_y = table_y if caption_side == "top" else table_y + grid_height
+        shapes.append(
+            _html_table_caption_shape(
+                caption,
+                caption_text,
+                caption_style,
+                transformed.x + table_x * scale_x,
+                transformed.y + caption_y * scale_y,
+                table_width * scale_x,
+                caption_height * scale_y,
+                css,
+                max(scale_x, scale_y),
+            )
+        )
     for row_index, row in enumerate(rows):
         for column_index, cell, column_span, row_span in row:
             end_column = min(column_count, column_index + column_span)
             end_row = min(len(rows), row_index + row_span)
             cell_x = transformed.x + (table_x + column_edges[column_index]) * scale_x
-            cell_y = transformed.y + (table_y + row_edges[row_index]) * scale_y
+            cell_y = transformed.y + (grid_y + row_edges[row_index]) * scale_y
             cell_width = (column_edges[end_column] - column_edges[column_index]) * scale_x
             cell_height = (row_edges[end_row] - row_edges[row_index]) * scale_y
             cell_style = _html_table_cell_style(element, cell, css, style)
@@ -522,6 +544,54 @@ def _svg_foreign_object_table_shapes(
 def _foreign_object_table(element: ET.Element) -> ET.Element | None:
     tables = [descendant for descendant in element.iter() if descendant is not element and _local_name(descendant.tag) == "table"]
     return tables[0] if len(tables) == 1 else None
+
+
+def _html_table_caption(table: ET.Element) -> ET.Element | None:
+    return next((child for child in table if _local_name(child.tag) == "caption"), None)
+
+
+def _html_table_caption_side(style: dict[str, str]) -> str:
+    return "bottom" if (style.get("caption-side") or "").strip().lower() == "bottom" else "top"
+
+
+def _html_table_caption_height(text: str, style: dict[str, str], table_height: float) -> float:
+    if not text or table_height <= 0:
+        return 0.0
+    return min(max(1.0, _svg_font_size(style.get("font-size")) * 1.4), table_height / 3)
+
+
+def _html_table_caption_shape(
+    caption: ET.Element | None,
+    text: str,
+    style: dict[str, str],
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    css: list[CssRule],
+    scale: float,
+) -> Shape:
+    fill, fill_alpha = _html_text_fill(style)
+    return Shape(
+        "text",
+        x,
+        y,
+        width,
+        height,
+        Paint(fill=fill or "#000000", stroke="none", fill_alpha=fill_alpha),
+        text=text,
+        font_size=_svg_font_size(style.get("font-size")) * scale,
+        font_weight=style.get("font-weight"),
+        font_style=style.get("font-style"),
+        font_family=_font_family(style.get("font-family")),
+        font_variant=_font_variant(style.get("font-variant")),
+        text_anchor=_html_text_anchor(style) or "middle",
+        text_baseline="middle",
+        text_direction=_text_direction(style.get("direction")),
+        text_wrap=_html_text_wrap(style),
+        letter_spacing=_svg_letter_spacing(style, (0.0, 0.0)),
+        text_runs=_html_table_cell_text_runs(caption, css, style, scale) if caption is not None else (),
+    )
 
 
 def _html_table_cell_style(
