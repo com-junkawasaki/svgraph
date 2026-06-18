@@ -2857,6 +2857,33 @@ def test_drawingml_arrow_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#fef3c7" points="145,20 145,46 140,46 150,60 160,46 155,46 155,20"/>' in svg
 
 
+def test_drawingml_bidirectional_arrow_presets_round_trip_to_svg_polygons() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="left right arrow"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="95250" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="leftRightArrow"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DBEAFE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="up down arrow"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="571500" y="190500"/><a:ext cx="190500" cy="381000"/></a:xfrm>
+          <a:prstGeom prst="upDownArrow"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEE2E2"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert '<polygon fill="#dbeafe" points="10,30 20,20 20,25 40,25 40,20 50,30 40,40 40,35 20,35 20,40"/>' in svg
+    assert '<polygon fill="#fee2e2" points="70,20 80,30 75,30 75,50 80,50 70,60 60,50 65,50 65,30 60,30"/>' in svg
+
+
 def test_drawingml_symbol_presets_round_trip_to_svg_polygons() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
