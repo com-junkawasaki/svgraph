@@ -2815,6 +2815,10 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
     bottom = y + height
     quarter_x = x + width / 4
     three_quarter_x = x + width * 3 / 4
+    quarter_y = y + height / 4
+    three_quarter_y = y + height * 3 / 4
+    arrow_head_x = x + width * 0.65
+    arrow_head_y = y + height * 0.65
     if kind == "triangle":
         return [(center_x, top), (right, bottom), (left, bottom)]
     if kind == "rtTriangle":
@@ -2829,6 +2833,14 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
         return [(center_x, top), (right, y + height * 0.38), (x + width * 0.81, bottom), (x + width * 0.19, bottom), (left, y + height * 0.38)]
     if kind == "hexagon":
         return [(quarter_x, top), (three_quarter_x, top), (right, center_y), (three_quarter_x, bottom), (quarter_x, bottom), (left, center_y)]
+    if kind == "rightArrow":
+        return [(left, quarter_y), (arrow_head_x, quarter_y), (arrow_head_x, top), (right, center_y), (arrow_head_x, bottom), (arrow_head_x, three_quarter_y), (left, three_quarter_y)]
+    if kind == "leftArrow":
+        return [(right, quarter_y), (x + width * 0.35, quarter_y), (x + width * 0.35, top), (left, center_y), (x + width * 0.35, bottom), (x + width * 0.35, three_quarter_y), (right, three_quarter_y)]
+    if kind == "upArrow":
+        return [(quarter_x, bottom), (quarter_x, y + height * 0.35), (left, y + height * 0.35), (center_x, top), (right, y + height * 0.35), (three_quarter_x, y + height * 0.35), (three_quarter_x, bottom)]
+    if kind == "downArrow":
+        return [(quarter_x, top), (quarter_x, arrow_head_y), (left, arrow_head_y), (center_x, bottom), (right, arrow_head_y), (three_quarter_x, arrow_head_y), (three_quarter_x, top)]
     return []
 
 
