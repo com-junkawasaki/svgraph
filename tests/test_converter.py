@@ -1477,6 +1477,28 @@ def test_analyze_svg_reports_inherited_text_decoration_with_visible_text() -> No
     }
 
 
+def test_analyze_svg_reports_inherited_text_decoration_on_use_visible_text() -> None:
+    svg = """<svg>
+      <defs>
+        <g id="over"><text>Over</text></g>
+        <g id="color"><text fill="#111111">Color</text></g>
+        <g id="thick"><text>Thick</text></g>
+      </defs>
+      <g text-decoration-line="overline"><use href="#over"/></g>
+      <g text-decoration-line="underline" text-decoration-color="#dc2626"><use href="#color"/></g>
+      <g text-decoration-line="underline" text-decoration-thickness="2px"><use href="#thick"/></g>
+      <g text-decoration-line="overline"><use href="#missing"/></g>
+      <g text-decoration-line="overline"><rect width="10" height="8"/></g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {
+        "href": 1,
+        "text-decoration-color": 1,
+        "text-decoration-line": 1,
+        "text-decoration-thickness": 1,
+    }
+
+
 def test_text_decoration_thickness_is_reported_when_visible() -> None:
     svg = """<svg>
       <style>.thick { text-decoration-thickness: from-font; }</style>
@@ -1660,6 +1682,30 @@ def test_analyze_svg_reports_inherited_text_layout_with_visible_text() -> None:
       <g writing-mode="vertical-rl"><text>Vertical</text></g>
       <g font-stretch="expanded"><text>Wide</text></g>
       <g word-spacing="4px"><text>Wide gap</text></g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {
+        "direction": 1,
+        "font-stretch": 1,
+        "word-spacing": 1,
+        "writing-mode": 1,
+    }
+
+
+def test_analyze_svg_reports_inherited_text_layout_on_use_visible_text() -> None:
+    svg = """<svg>
+      <defs>
+        <g id="rtl"><text>RTL</text></g>
+        <g id="vertical"><text>Vertical</text></g>
+        <g id="wide"><text>Wide</text></g>
+        <g id="gap"><text>Wide gap</text></g>
+        <g id="graphic"><rect width="10" height="8"/></g>
+      </defs>
+      <g direction="rtl"><use href="#rtl"/></g>
+      <g writing-mode="vertical-rl"><use href="#vertical"/></g>
+      <g font-stretch="expanded"><use href="#wide"/></g>
+      <g word-spacing="4px"><use href="#gap"/></g>
+      <g writing-mode="vertical-rl"><use href="#graphic"/></g>
     </svg>"""
 
     assert analyze_svg(svg).unsupported_attributes == {

@@ -1101,10 +1101,17 @@ def _subtree_has_visible_text(
     style: dict[str, str],
     ancestors: tuple[ET.Element, ...],
     viewport: tuple[float, float],
+    ref_stack: frozenset[str] = frozenset(),
 ) -> bool:
     if _is_display_none(style) or _is_visibility_hidden(style):
         return False
     tag = _local_name(element.tag)
+    if tag == "use":
+        ref_context = _use_reference_context(element, refs, viewport, ref_stack)
+        if ref_context is None:
+            return False
+        ref, ref_viewport, next_stack = ref_context
+        return _subtree_has_visible_text(ref, css, refs, style, ancestors + (element,), ref_viewport, next_stack)
     if (
         tag in {"text", "tspan"}
         and _element_has_own_text(element)
@@ -1129,11 +1136,13 @@ def _subtree_has_visible_text(
             ancestors + (element,),
             _previous_element_siblings(element, selected),
         )
-        return _subtree_has_visible_text(selected, css, refs, selected_style, ancestors + (element,), child_viewport)
+        return _subtree_has_visible_text(
+            selected, css, refs, selected_style, ancestors + (element,), child_viewport, ref_stack
+        )
     previous_children: list[ET.Element] = []
     for child in element:
         child_style = _computed_style(child, css, style, ancestors + (element,), tuple(previous_children))
-        if _subtree_has_visible_text(child, css, refs, child_style, ancestors + (element,), child_viewport):
+        if _subtree_has_visible_text(child, css, refs, child_style, ancestors + (element,), child_viewport, ref_stack):
             return True
         previous_children.append(child)
     return False
