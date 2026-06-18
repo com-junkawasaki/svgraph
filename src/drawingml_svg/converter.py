@@ -6116,6 +6116,10 @@ def _computed_style(
             else:
                 apply_declaration(attr, element.get(attr, ""), False, (0, 0, 0, 0), -1)
 
+    for attr, style_key in (("align", "text-align"), ("valign", "vertical-align"), ("bgcolor", "background-color")):
+        if element.get(attr) is not None:
+            apply_declaration(style_key, element.get(attr, ""), False, (0, 0, 0, 0), -1)
+
     for selector, declarations, specificity, order in css:
         if _selector_matches(selector, element, ancestors, previous_siblings):
             css_specificity = (0, *specificity)
