@@ -1857,13 +1857,13 @@ def _dml_text(element: ET.Element) -> str | None:
     paragraphs = tx_body.findall(qn(NS_A, "p"))
     if not paragraphs:
         return ""
-    text = "\n".join(_dml_paragraph_text(tx_body, paragraph) for paragraph in paragraphs)
+    text = "\n".join(_dml_paragraph_text(tx_body, paragraph, index + 1) for index, paragraph in enumerate(paragraphs))
     return text if text else ""
 
 
-def _dml_paragraph_text(tx_body: ET.Element, paragraph: ET.Element) -> str:
+def _dml_paragraph_text(tx_body: ET.Element, paragraph: ET.Element, number: int) -> str:
     parts = []
-    bullet = _dml_paragraph_bullet(tx_body, paragraph)
+    bullet = _dml_paragraph_bullet(tx_body, paragraph, number)
     if bullet is not None:
         parts.append(f"{bullet} ")
     for node in paragraph:
@@ -1876,17 +1876,36 @@ def _dml_paragraph_text(tx_body: ET.Element, paragraph: ET.Element) -> str:
     return "".join(parts)
 
 
-def _dml_paragraph_bullet(tx_body: ET.Element, paragraph: ET.Element) -> str | None:
+def _dml_paragraph_bullet(tx_body: ET.Element, paragraph: ET.Element, number: int) -> str | None:
     p_pr = paragraph.find(qn(NS_A, "pPr"))
     if p_pr is not None and p_pr.find(qn(NS_A, "buNone")) is not None:
         return None
     bullet = p_pr.find(qn(NS_A, "buChar")) if p_pr is not None else None
-    if bullet is None:
+    if bullet is not None and bullet.get("char"):
+        return bullet.get("char")
+    auto_number = p_pr.find(qn(NS_A, "buAutoNum")) if p_pr is not None else None
+    if auto_number is None:
         lvl1p_pr = tx_body.find(f"{qn(NS_A, 'lstStyle')}/{qn(NS_A, 'lvl1pPr')}")
         if lvl1p_pr is not None and lvl1p_pr.find(qn(NS_A, "buNone")) is not None:
             return None
         bullet = lvl1p_pr.find(qn(NS_A, "buChar")) if lvl1p_pr is not None else None
-    return bullet.get("char") if bullet is not None and bullet.get("char") else None
+        if bullet is not None and bullet.get("char"):
+            return bullet.get("char")
+        auto_number = lvl1p_pr.find(qn(NS_A, "buAutoNum")) if lvl1p_pr is not None else None
+    return _dml_auto_number_bullet(auto_number, number)
+
+
+def _dml_auto_number_bullet(element: ET.Element | None, number: int) -> str | None:
+    if element is None:
+        return None
+    start = _dml_int(element.get("startAt"), 1) or 1
+    value = start + number - 1
+    return {
+        "arabicPeriod": f"{value}.",
+        "arabicParenR": f"{value})",
+        "arabicParenBoth": f"({value})",
+        "arabicPlain": str(value),
+    }.get(element.get("type", ""), f"{value}.")
 
 
 def _dml_text_run_properties(element: ET.Element) -> ET.Element | None:
