@@ -1857,12 +1857,15 @@ def _dml_text(element: ET.Element) -> str | None:
     paragraphs = tx_body.findall(qn(NS_A, "p"))
     if not paragraphs:
         return ""
-    text = "\n".join(_dml_paragraph_text(paragraph) for paragraph in paragraphs)
+    text = "\n".join(_dml_paragraph_text(tx_body, paragraph) for paragraph in paragraphs)
     return text if text else ""
 
 
-def _dml_paragraph_text(paragraph: ET.Element) -> str:
+def _dml_paragraph_text(tx_body: ET.Element, paragraph: ET.Element) -> str:
     parts = []
+    bullet = _dml_paragraph_bullet(tx_body, paragraph)
+    if bullet is not None:
+        parts.append(f"{bullet} ")
     for node in paragraph:
         if node.tag == qn(NS_A, "br"):
             parts.append("\n")
@@ -1871,6 +1874,19 @@ def _dml_paragraph_text(paragraph: ET.Element) -> str:
         if text_node is not None:
             parts.append(text_node.text or "")
     return "".join(parts)
+
+
+def _dml_paragraph_bullet(tx_body: ET.Element, paragraph: ET.Element) -> str | None:
+    p_pr = paragraph.find(qn(NS_A, "pPr"))
+    if p_pr is not None and p_pr.find(qn(NS_A, "buNone")) is not None:
+        return None
+    bullet = p_pr.find(qn(NS_A, "buChar")) if p_pr is not None else None
+    if bullet is None:
+        lvl1p_pr = tx_body.find(f"{qn(NS_A, 'lstStyle')}/{qn(NS_A, 'lvl1pPr')}")
+        if lvl1p_pr is not None and lvl1p_pr.find(qn(NS_A, "buNone")) is not None:
+            return None
+        bullet = lvl1p_pr.find(qn(NS_A, "buChar")) if lvl1p_pr is not None else None
+    return bullet.get("char") if bullet is not None and bullet.get("char") else None
 
 
 def _dml_text_run_properties(element: ET.Element) -> ET.Element | None:

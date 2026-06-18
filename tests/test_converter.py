@@ -3868,6 +3868,47 @@ def test_drawingml_paragraph_alignment_overrides_list_style_alignment() -> None:
     assert 'text-anchor="middle"' not in svg
 
 
+def test_drawingml_paragraph_bullet_character_round_trips_to_svg_text() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="285750"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        <p:txBody>
+          <a:bodyPr/><a:lstStyle/>
+          <a:p><a:pPr><a:buChar char="*"/></a:pPr><a:r><a:rPr sz="1200"/><a:t>Item</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert ">* Item</text>" in svg
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_drawingml_list_style_bullet_character_falls_back_to_svg_text() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="571500"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        <p:txBody>
+          <a:bodyPr/><a:lstStyle><a:lvl1pPr><a:buChar char="-"/></a:lvl1pPr></a:lstStyle>
+          <a:p><a:r><a:rPr sz="1200"/><a:t>First</a:t></a:r></a:p>
+          <a:p><a:pPr><a:buNone/></a:pPr><a:r><a:rPr sz="1200"/><a:t>Plain</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert "- First" in svg
+    assert "<a:t>Plain</a:t>" not in svg
+    assert "Plain</tspan>" in svg
+    assert "- Plain</tspan>" not in svg
+
+
 def test_alignment_baseline_maps_to_text_anchor_when_dominant_baseline_is_absent() -> None:
     source = '<svg><text x="100" y="40" alignment-baseline=" hanging " font-size="20" fill="#111111">Top</text></svg>'
     dml = svg_to_drawingml(source)
