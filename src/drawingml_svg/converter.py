@@ -4282,7 +4282,7 @@ def _apply_rect_clip(
     refs: dict[str, ET.Element],
     matrix: tuple[float, float, float, float, float, float],
 ) -> Shape | None:
-    if shape.kind not in {"rect", "roundRect", "ellipse", "line", "text", "image"}:
+    if shape.kind not in {"rect", "roundRect", "ellipse", "line", "freeform", "text", "image"}:
         return shape
     clip_bounds = _rect_clip_bounds(shape, style, refs, matrix)
     if clip_bounds is None:
@@ -4303,6 +4303,13 @@ def _apply_rect_clip(
             flip_h=line_x2 < line_x1,
             flip_v=line_y2 < line_y1,
         )
+    if shape.kind == "freeform":
+        if shape.closed or len(shape.points) != 2:
+            return shape
+        clipped_line = _clip_segment_to_rect(shape.points[0], shape.points[1], clip_x, clip_y, clip_width, clip_height)
+        if clipped_line is None:
+            return None
+        return _freeform_shape([clipped_line[0], clipped_line[1]], shape.paint, closed=False)
     x1 = max(shape.x, clip_x)
     y1 = max(shape.y, clip_y)
     x2 = min(shape.x + shape.width, clip_x + clip_width)
@@ -4349,6 +4356,19 @@ def _clip_line_to_rect(
     x2 = shape.x if shape.flip_h else shape.x + shape.width
     y1 = shape.y + shape.height if shape.flip_v else shape.y
     y2 = shape.y if shape.flip_v else shape.y + shape.height
+    return _clip_segment_to_rect((x1, y1), (x2, y2), clip_x, clip_y, clip_width, clip_height)
+
+
+def _clip_segment_to_rect(
+    point1: tuple[float, float],
+    point2: tuple[float, float],
+    clip_x: float,
+    clip_y: float,
+    clip_width: float,
+    clip_height: float,
+) -> tuple[tuple[float, float], tuple[float, float]] | None:
+    x1, y1 = point1
+    x2, y2 = point2
     dx = x2 - x1
     dy = y2 - y1
     start = 0.0
@@ -4442,7 +4462,12 @@ def _clip_path_is_supported(
     clip_path = style.get("clip-path")
     if not clip_path or clip_path == "none":
         return True
-    if _local_name(element.tag) not in {"rect", "circle", "ellipse", "line", "text", "image"}:
+    tag = _local_name(element.tag)
+    if tag == "polyline":
+        points = _parse_points(element.get("points", ""))
+        if len(points) != 2:
+            return False
+    elif tag not in {"rect", "circle", "ellipse", "line", "text", "image"}:
         return False
     return _rect_clip_bounds(None, style, refs, matrix) is not None or _rect_clip_path_has_object_bbox_rect(style, refs)
 
