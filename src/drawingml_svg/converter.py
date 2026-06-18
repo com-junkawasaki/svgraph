@@ -4673,6 +4673,7 @@ def _computed_style(
         "text-decoration-color",
         "text-decoration-line",
         "text-decoration-style",
+        "text-decoration-thickness",
         "text-anchor",
         "text-orientation",
         "text-transform",

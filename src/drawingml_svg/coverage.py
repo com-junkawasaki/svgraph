@@ -117,6 +117,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "text-decoration-color",
     "text-decoration-line",
     "text-decoration-style",
+    "text-decoration-thickness",
     "text-orientation",
     "text-rendering",
     "text-transform",
@@ -390,6 +391,8 @@ def _inspect_attributes(
         ):
             continue
         if attr == "text-decoration-style" and _text_decoration_style_is_supported_or_noop(specified_style):
+            continue
+        if attr == "text-decoration-thickness" and _text_decoration_thickness_has_no_effect(specified_style):
             continue
         if attr == "text-orientation" and _text_orientation_has_no_effect(specified_style):
             continue
@@ -868,6 +871,13 @@ def _text_decoration_style_is_supported_or_noop(style: dict[str, str]) -> bool:
     if shorthand and not _text_decoration_shorthand_line_is_supported_or_noop(style.get("text-decoration")):
         return False
     return normalized in (TEXT_DECORATION_STYLE_TOKENS - {"solid"}) and _has_only_visible_underline(style)
+
+
+def _text_decoration_thickness_has_no_effect(style: dict[str, str]) -> bool:
+    value = style.get("text-decoration-thickness")
+    if value is None:
+        return False
+    return not _has_visible_text_decoration(style) or value.strip().lower() in {"", "auto"}
 
 
 def _text_decoration_shorthand_is_supported_or_noop(
