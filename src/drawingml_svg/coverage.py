@@ -569,7 +569,7 @@ def _inspect_attributes(
             )
         ):
             continue
-        if attr == "direction" and _direction_has_no_effect(specified_style):
+        if attr == "direction" and _direction_is_supported_or_noop(element, specified_style):
             continue
         if attr == "unicode-bidi" and _unicode_bidi_has_no_effect(specified_style):
             continue
@@ -1988,9 +1988,14 @@ def _dominant_baseline_is_supported_or_noop(element: ET.Element, style: dict[str
     return _dominant_baseline(value) is not None
 
 
-def _direction_has_no_effect(style: dict[str, str]) -> bool:
+def _direction_is_supported_or_noop(element: ET.Element, style: dict[str, str]) -> bool:
     value = style.get("direction")
-    return value is not None and value.strip().lower() in {"", "ltr"}
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if normalized in {"", "ltr"}:
+        return True
+    return normalized == "rtl" and _local_name(element.tag) == "text"
 
 
 def _unicode_bidi_has_no_effect(style: dict[str, str]) -> bool:

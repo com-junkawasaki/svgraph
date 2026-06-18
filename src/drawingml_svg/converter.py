@@ -84,6 +84,7 @@ class Shape:
     text_decoration_style: str | None = None
     text_anchor: str | None = None
     text_baseline: str | None = None
+    text_direction: str | None = None
     text_baseline_shift: str | None = None
     letter_spacing: float | None = None
     rx: float | None = None
@@ -378,6 +379,7 @@ def _svg_shape_from_element(
                 ),
                 text_anchor=anchor,
                 text_baseline=baseline,
+                text_direction=_text_direction(style.get("direction")),
                 text_baseline_shift=_baseline_shift(style.get("baseline-shift")),
                 letter_spacing=_svg_text_effective_letter_spacing(style, text, font_size, viewport),
                 rotation=_svg_text_rotation(element, style, css, ancestors),
@@ -1207,6 +1209,7 @@ def _dml_shape_from_element(element: ET.Element) -> Shape | None:
             text_decoration_style=_dml_text_decoration_style(element),
             text_anchor=_dml_text_anchor(element),
             text_baseline=_dml_text_baseline(element),
+            text_direction=_dml_text_direction(element),
             text_baseline_shift=_dml_text_baseline_shift(element),
             letter_spacing=_dml_letter_spacing(element),
             rotation=rotation,
@@ -1383,6 +1386,8 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
             attrs["text-anchor"] = shape.text_anchor
         if shape.text_baseline:
             attrs["dominant-baseline"] = shape.text_baseline
+        if shape.text_direction:
+            attrs["direction"] = shape.text_direction
         if shape.text_baseline_shift:
             attrs["baseline-shift"] = shape.text_baseline_shift
         if shape.letter_spacing is not None:
@@ -2105,9 +2110,9 @@ def _append_svg_table_cell_text_body(parent: ET.Element, rect: Shape | None, tex
     ET.SubElement(tx_body, qn(NS_A, "bodyPr"), attrs)
     ET.SubElement(tx_body, qn(NS_A, "lstStyle"))
     paragraph = ET.SubElement(tx_body, qn(NS_A, "p"))
-    paragraph_align = _text_anchor_to_dml(text.text_anchor if text is not None else None)
-    if paragraph_align:
-        ET.SubElement(paragraph, qn(NS_A, "pPr"), {"algn": paragraph_align})
+    paragraph_attrs = _paragraph_attrs(text.text_anchor if text is not None else None, text.text_direction if text is not None else None)
+    if paragraph_attrs:
+        ET.SubElement(paragraph, qn(NS_A, "pPr"), paragraph_attrs)
     if text is not None:
         _append_shape_text_runs(paragraph, text)
     ET.SubElement(paragraph, qn(NS_A, "endParaRPr"))
@@ -2551,9 +2556,9 @@ def _append_text_body(parent: ET.Element, shape: Shape) -> None:
     ET.SubElement(tx_body, qn(NS_A, "bodyPr"), body_pr_attrs)
     ET.SubElement(tx_body, qn(NS_A, "lstStyle"))
     paragraph = ET.SubElement(tx_body, qn(NS_A, "p"))
-    paragraph_align = _text_anchor_to_dml(shape.text_anchor)
-    if paragraph_align:
-        ET.SubElement(paragraph, qn(NS_A, "pPr"), {"algn": paragraph_align})
+    paragraph_attrs = _paragraph_attrs(shape.text_anchor, shape.text_direction)
+    if paragraph_attrs:
+        ET.SubElement(paragraph, qn(NS_A, "pPr"), paragraph_attrs)
     if shape.text_runs:
         for text_run in shape.text_runs:
             if text_run.break_before:
@@ -3813,9 +3818,31 @@ def _text_anchor_to_dml(value: str | None) -> str | None:
     return {"middle": "ctr", "end": "r", "start": "l"}.get(value or "")
 
 
+def _paragraph_attrs(text_anchor: str | None, text_direction: str | None) -> dict[str, str]:
+    attrs = {}
+    paragraph_align = _text_anchor_to_dml(text_anchor)
+    if paragraph_align:
+        attrs["algn"] = paragraph_align
+    if text_direction == "rtl":
+        attrs["rtl"] = "1"
+    return attrs
+
+
 def _text_anchor(value: str | None) -> str | None:
     normalized = value.strip().lower() if value is not None else ""
     return normalized if normalized in {"middle", "end", "start"} else None
+
+
+def _text_direction(value: str | None) -> str | None:
+    normalized = value.strip().lower() if value is not None else ""
+    return normalized if normalized == "rtl" else None
+
+
+def _dml_text_direction(element: ET.Element) -> str | None:
+    p_pr = _dml_paragraph_properties(element, lambda item: item.get("rtl") is not None)
+    if p_pr is None:
+        return None
+    return "rtl" if p_pr.get("rtl") in {"1", "true"} else None
 
 
 def _dml_text_baseline(element: ET.Element) -> str | None:

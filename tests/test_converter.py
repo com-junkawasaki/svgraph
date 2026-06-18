@@ -2070,6 +2070,16 @@ def test_text_baseline_shift_super_and_sub_convert_to_drawingml() -> None:
     assert 'baseline-shift="sub"' in drawingml_to_svg(sub_dml)
 
 
+def test_text_direction_rtl_maps_to_drawingml_paragraph_direction() -> None:
+    svg = '<svg><text x="10" y="20" direction="rtl" font-size="10" fill="#111111">RTL</text></svg>'
+
+    dml = svg_to_drawingml(svg)
+
+    assert '<a:pPr rtl="1"/>' in dml
+    assert analyze_svg(svg).unsupported_attributes == {}
+    assert 'direction="rtl"' in drawingml_to_svg(dml)
+
+
 def test_tspan_baseline_shift_converts_to_run_baseline() -> None:
     svg = '<svg><text x="0" y="20">A<tspan baseline-shift="super">2</tspan></text></svg>'
     dml = svg_to_drawingml(svg)
@@ -2102,7 +2112,6 @@ def test_unconverted_text_direction_and_typography_attributes_are_reported() -> 
 
     assert analyze_svg(svg).unsupported_attributes == {
         "alignment-baseline": 1,
-        "direction": 1,
         "dominant-baseline": 1,
         "font-feature-settings": 1,
         "font-kerning": 1,
