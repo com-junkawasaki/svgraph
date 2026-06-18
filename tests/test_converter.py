@@ -2701,6 +2701,32 @@ def test_analyze_svg_ignores_group_effects_without_visible_rendering() -> None:
     }
 
 
+def test_analyze_svg_accepts_group_rect_clip_when_descendants_can_be_clipped() -> None:
+    svg = """<svg>
+      <defs><clipPath id="crop"><rect x="0" y="0" width="10" height="8"/></clipPath></defs>
+      <g clip-path="url(#crop)">
+        <rect width="20" height="20" fill="#111111"/>
+        <line x1="0" y1="0" x2="20" y2="20" stroke="#111111" stroke-width="2"/>
+      </g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_analyze_svg_reports_group_clip_when_descendant_clip_overrides() -> None:
+    svg = """<svg>
+      <defs>
+        <clipPath id="group-crop"><rect x="0" y="0" width="10" height="8"/></clipPath>
+        <clipPath id="child-crop"><rect x="2" y="2" width="6" height="4"/></clipPath>
+      </defs>
+      <g clip-path="url(#group-crop)">
+        <rect width="20" height="20" fill="#111111" clip-path="url(#child-crop)"/>
+      </g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {"clip-path": 1}
+
+
 def test_analyze_svg_ignores_noop_blend_and_dash_offset() -> None:
     svg = """<svg>
       <rect width="10" height="8" mix-blend-mode="normal"/>

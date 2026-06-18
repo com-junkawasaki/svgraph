@@ -356,7 +356,10 @@ def _inspect_attributes(
             continue
         if attr in TEXT_LAYOUT_ATTRIBUTES and not _subtree_has_visible_text(element, css, refs, style, ancestors, viewport):
             continue
-        if attr == "clip-path" and _clip_path_is_supported(element, style, refs, matrix):
+        if attr == "clip-path" and (
+            _clip_path_is_supported(element, style, refs, matrix)
+            or _subtree_clip_path_is_supported(element, css, refs, style, matrix, ancestors, viewport)
+        ):
             continue
         if attr == "clip-rule" and _clip_rule_has_no_effect(ancestors):
             continue
@@ -869,6 +872,69 @@ def _subtree_has_visible_rendering(
             return True
         previous_children.append(child)
     return False
+
+
+def _subtree_clip_path_is_supported(
+    element: ET.Element,
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    inherited_style: dict[str, str],
+    inherited_matrix: tuple[float, float, float, float, float, float],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+    previous_siblings: tuple[ET.Element, ...] = (),
+) -> bool:
+    style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
+    if _is_display_none(style):
+        return True
+    specified_style = _computed_style(element, css, {}, ancestors, previous_siblings)
+    if specified_style.get("clip-path") is not None and specified_style.get("clip-path") != inherited_style.get("clip-path"):
+        return not _subtree_has_visible_rendering(element, css, refs, style, ancestors, viewport, previous_siblings)
+    matrix = _matrix_multiply(inherited_matrix, _style_transform_matrix(element, style, viewport))
+    tag = _local_name(element.tag)
+    if (
+        not _is_visibility_hidden(style)
+        and tag in RENDERING_ELEMENTS
+        and not _has_non_rendering_geometry(element, style, viewport)
+        and not _has_no_visible_paint(element, style, refs, css, viewport)
+    ):
+        return _clip_path_is_supported(element, style, refs, matrix)
+    child_viewport = viewport
+    if tag == "svg" and ancestors:
+        child_viewport = _viewport_size(
+            element,
+            _optional_length(element.get("width"), "x", viewport),
+            _optional_length(element.get("height"), "y", viewport),
+        )
+    if tag == "switch":
+        selected = _switch_selected_child(element)
+        if selected is None:
+            return True
+        return _subtree_clip_path_is_supported(
+            selected,
+            css,
+            refs,
+            style,
+            matrix,
+            ancestors + (element,),
+            child_viewport,
+            _previous_element_siblings(element, selected),
+        )
+    previous_children: list[ET.Element] = []
+    for child in element:
+        if not _subtree_clip_path_is_supported(
+            child,
+            css,
+            refs,
+            style,
+            matrix,
+            ancestors + (element,),
+            child_viewport,
+            tuple(previous_children),
+        ):
+            return False
+        previous_children.append(child)
+    return True
 
 
 def _subtree_has_visible_fill(
