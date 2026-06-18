@@ -5357,6 +5357,12 @@ def test_zero_dasharray_is_treated_as_no_dash() -> None:
     svg = drawingml_to_svg(dml)
     assert "stroke-dasharray" not in svg
     assert analyze_svg('<svg><line x1="0" y1="0" x2="10" y2="0" stroke="#111111" stroke-dasharray="0 0"/></svg>').unsupported_attributes == {}
+    assert (
+        analyze_svg(
+            '<svg><line x1="0" y1="0" x2="10" y2="0" stroke="#111111" stroke-dasharray="0 0" stroke-dashoffset="4"/></svg>'
+        ).unsupported_attributes
+        == {}
+    )
 
 
 def test_negative_dasharray_is_treated_as_invalid_and_solid() -> None:
@@ -5368,6 +5374,12 @@ def test_negative_dasharray_is_treated_as_invalid_and_solid() -> None:
     svg = drawingml_to_svg(dml)
     assert "stroke-dasharray" not in svg
     assert analyze_svg('<svg><line x1="0" y1="0" x2="10" y2="0" stroke="#111111" stroke-dasharray="-1 2"/></svg>').unsupported_attributes == {}
+    assert (
+        analyze_svg(
+            '<svg><line x1="0" y1="0" x2="10" y2="0" stroke="#111111" stroke-dasharray="-1 2" stroke-dashoffset="4"/></svg>'
+        ).unsupported_attributes
+        == {}
+    )
 
 
 def test_drawingml_preset_dash_patterns_round_trip_to_svg_dasharray() -> None:

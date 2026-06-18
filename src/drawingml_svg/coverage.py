@@ -1224,6 +1224,8 @@ def _stroke_dashoffset_has_no_effect(style: dict[str, str], viewport: tuple[floa
     if dasharray is None or dasharray.strip().lower() in {"", "none"}:
         return True
     period = _dash_pattern_period(dasharray, viewport)
+    if period is None:
+        return True
     if period and _is_multiple_of(abs(parsed), period):
         return True
     stroke = style.get("stroke")
