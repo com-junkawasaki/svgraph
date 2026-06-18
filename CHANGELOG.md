@@ -30,6 +30,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added simple SVG `foreignObject` HTML table cell and inline text color alpha conversion.
 - Added simple SVG `foreignObject` HTML table first-row cell width conversion.
 - Added simple SVG `foreignObject` HTML table `bordercolor` presentation attribute conversion.
+- Added simple SVG `foreignObject` HTML table inline `font` tag `face`/`size` attribute conversion.
 - Fixed DrawingML native table vertical merge continuation cell placement.
 - Added simple SVG text `direction="rtl"` conversion to DrawingML paragraph direction.
 - Added simple SVG `foreignObject` HTML table cell RTL text direction conversion.

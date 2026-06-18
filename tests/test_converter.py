@@ -1589,6 +1589,32 @@ def test_foreign_object_html_table_inline_text_styles_convert_to_runs() -> None:
     assert analyze_svg(svg).unsupported_elements == {}
 
 
+def test_foreign_object_html_table_font_tag_attrs_convert_to_inline_text_style() -> None:
+    svg = """<svg width="170" height="50">
+      <foreignObject x="10" y="8" width="140" height="24">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table>
+            <tr>
+              <td>Plain <font face="Aptos" size="18px" color="#2563eb">Font</font></td>
+              <td>Other</td>
+            </tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert "<a:t>Plain </a:t>" in dml
+    assert '<a:rPr sz="1800">' in dml
+    assert '<a:latin typeface="Aptos"/>' in dml
+    assert 'val="2563EB"' in dml
+    assert "<a:t>Font</a:t>" in dml
+    assert "<a:t>Other</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+
 def test_foreign_object_html_table_inline_text_decorations_convert_to_runs() -> None:
     svg = """<svg width="180" height="50">
       <foreignObject x="10" y="8" width="150" height="24">
