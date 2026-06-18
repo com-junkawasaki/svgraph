@@ -3392,6 +3392,22 @@ def test_drawingml_additional_flowchart_presets_round_trip_to_svg_shapes() -> No
           <a:solidFill><a:srgbClr val="FEE2E2"/></a:solidFill>
         </p:spPr>
       </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="10" name="punched card"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="3333750" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="flowChartPunchedCard"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DBEAFE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="11" name="delay"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="3810000" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="flowChartDelay"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DCFCE7"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
     </p:spTree>"""
 
     svg = drawingml_to_svg(dml)
@@ -3404,6 +3420,8 @@ def test_drawingml_additional_flowchart_presets_round_trip_to_svg_shapes() -> No
     assert '<polygon fill="#ccfbf1" points="240,20 280,20 280,36.4 270,40 260,37.6 250,40 240,36.4"/>' in svg
     assert '<polygon fill="#fef9c3" points="300,20 310,40 290,40"/>' in svg
     assert '<polygon fill="#fee2e2" points="320,20 340,20 330,40"/>' in svg
+    assert '<polygon fill="#dbeafe" points="357.2,20 390,20 390,40 350,40 350,23.6"/>' in svg
+    assert '<polygon fill="#dcfce7" points="400,20 428,20 440,30 428,40 400,40"/>' in svg
 
 
 def test_drawingml_group_transform_scales_child_shapes_to_svg() -> None:

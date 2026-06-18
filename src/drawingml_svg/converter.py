@@ -2864,6 +2864,10 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (quarter_x, bottom),
             (left, y + height * 0.82),
         ]
+    if kind == "flowChartPunchedCard":
+        return [(x + width * 0.18, top), (right, top), (right, bottom), (left, bottom), (left, y + height * 0.18)]
+    if kind == "flowChartDelay":
+        return [(left, top), (x + width * 0.7, top), (right, center_y), (x + width * 0.7, bottom), (left, bottom)]
     if kind == "pentagon":
         return [(center_x, top), (right, y + height * 0.38), (x + width * 0.81, bottom), (x + width * 0.19, bottom), (left, y + height * 0.38)]
     if kind in {"hexagon", "flowChartPreparation"}:
