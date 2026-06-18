@@ -2983,7 +2983,20 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (left, y + height * 0.8),
             (left, y + height * 0.2),
         ]
-    if kind in {"actionButtonBlank", "actionButtonHome", "actionButtonInformation"}:
+    if kind in {
+        "actionButtonBackPrevious",
+        "actionButtonBeginning",
+        "actionButtonBlank",
+        "actionButtonDocument",
+        "actionButtonEnd",
+        "actionButtonForwardNext",
+        "actionButtonHelp",
+        "actionButtonHome",
+        "actionButtonInformation",
+        "actionButtonMovie",
+        "actionButtonReturn",
+        "actionButtonSound",
+    }:
         radius_x = width * 0.12
         radius_y = height * 0.12
         return [

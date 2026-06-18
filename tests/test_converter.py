@@ -3132,6 +3132,96 @@ def test_drawingml_action_button_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#fee2e2" points="114.8,20 145.2,20 150,22.4 150,37.6 145.2,40 114.8,40 110,37.6 110,22.4"/>' in svg
 
 
+def test_drawingml_additional_action_button_presets_round_trip_to_svg_polygons() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="action previous"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="95250" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonBackPrevious"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DBEAFE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="action next"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="571500" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonForwardNext"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DCFCE7"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="4" name="action beginning"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1047750" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonBeginning"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEE2E2"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="5" name="action end"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1524000" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonEnd"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEF3C7"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="6" name="action return"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="2000250" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonReturn"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="EDE9FE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="7" name="action document"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="2476500" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonDocument"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FCE7F3"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="8" name="action sound"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="2952750" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonSound"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="E0F2FE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="9" name="action movie"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="3429000" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonMovie"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEF9C3"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="10" name="action help"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="3905250" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="actionButtonHelp"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="CCFBF1"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert '<polygon fill="#dbeafe" points="14.8,20 45.2,20 50,22.4 50,37.6 45.2,40 14.8,40 10,37.6 10,22.4"/>' in svg
+    assert '<polygon fill="#dcfce7" points="64.8,20 95.2,20 100,22.4 100,37.6 95.2,40 64.8,40 60,37.6 60,22.4"/>' in svg
+    assert '<polygon fill="#fee2e2" points="114.8,20 145.2,20 150,22.4 150,37.6 145.2,40 114.8,40 110,37.6 110,22.4"/>' in svg
+    assert '<polygon fill="#fef3c7" points="164.8,20 195.2,20 200,22.4 200,37.6 195.2,40 164.8,40 160,37.6 160,22.4"/>' in svg
+    assert '<polygon fill="#ede9fe" points="214.8,20 245.2,20 250,22.4 250,37.6 245.2,40 214.8,40 210,37.6 210,22.4"/>' in svg
+    assert '<polygon fill="#fce7f3" points="264.8,20 295.2,20 300,22.4 300,37.6 295.2,40 264.8,40 260,37.6 260,22.4"/>' in svg
+    assert '<polygon fill="#e0f2fe" points="314.8,20 345.2,20 350,22.4 350,37.6 345.2,40 314.8,40 310,37.6 310,22.4"/>' in svg
+    assert '<polygon fill="#fef9c3" points="364.8,20 395.2,20 400,22.4 400,37.6 395.2,40 364.8,40 360,37.6 360,22.4"/>' in svg
+    assert '<polygon fill="#ccfbf1" points="414.8,20 445.2,20 450,22.4 450,37.6 445.2,40 414.8,40 410,37.6 410,22.4"/>' in svg
+
+
 def test_drawingml_bracket_presets_round_trip_to_svg_polygons() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
