@@ -1,0 +1,22 @@
+## Summary
+
+-
+
+## Converter impact
+
+- [ ] SVG to DrawingML behavior changed
+- [ ] DrawingML to SVG behavior changed
+- [ ] Analyzer behavior changed
+- [ ] Documentation or project metadata only
+
+## Testing
+
+- [ ] `ruff check .`
+- [ ] `PYTHONPATH=src python -m pytest -q`
+- [ ] `PYTHONPATH=src python -m drawingml_svg.cli analyze examples/coverage.svg`
+- [ ] `PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx`
+- [ ] `python -m zipfile --test tmp/drawingml-svg-coverage.pptx`
+
+## Notes
+
+If this adds DrawingML preset support, update the "Supported DrawingML presets" section in `README.md`.

@@ -1,0 +1,66 @@
+name: Bug report
+description: Report incorrect SVG, DrawingML, analyzer, or PPTX smoke behavior.
+title: "[bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: dropdown
+    id: direction
+    attributes:
+      label: Conversion direction
+      options:
+        - SVG to DrawingML
+        - DrawingML to SVG
+        - Analyzer
+        - PPTX smoke/example
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Minimal input
+      description: Paste the smallest SVG or DrawingML fragment that reproduces the issue.
+      render: xml
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or API call
+      description: Include the exact CLI command or Python API call.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected output
+      description: Describe the expected SVG, DrawingML, analyzer report, or PPTX behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual output
+      description: Include output snippets, analyzer JSON, traceback, or PPTX observations.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Package version, git commit, or branch.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Python version, operating system, and any relevant Office/PowerPoint version.
+      render: text
