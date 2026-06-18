@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import colorsys
 import math
 import re
 from dataclasses import dataclass
@@ -1185,6 +1186,9 @@ def _dml_color(parent: ET.Element) -> str | None:
     scrgb = parent.find(qn(NS_A, "scrgbClr"))
     if scrgb is not None:
         return _dml_scrgb_color(scrgb)
+    hsl = parent.find(qn(NS_A, "hslClr"))
+    if hsl is not None:
+        return _dml_hsl_color(hsl)
     scheme = parent.find(qn(NS_A, "schemeClr"))
     if scheme is not None and scheme.get("val"):
         return _dml_scheme_color(scheme)
@@ -1206,6 +1210,17 @@ def _dml_scrgb_color(element: ET.Element) -> str | None:
         round(_dml_percentage(element.get("b"), 0) * 255),
     )
     color = _rgb_to_hex(tuple(max(0, min(255, channel)) for channel in channels))
+    return _apply_dml_luminance_modifiers(color, element)
+
+
+def _dml_hsl_color(element: ET.Element) -> str | None:
+    if element.get("hue") is None or element.get("sat") is None or element.get("lum") is None:
+        return None
+    hue = (_dml_float(element.get("hue"), 0) or 0) / 60000 % 360
+    saturation = _dml_percentage(element.get("sat"), 0)
+    luminance = _dml_percentage(element.get("lum"), 0)
+    red, green, blue = colorsys.hls_to_rgb(hue / 360, luminance, saturation)
+    color = _rgb_to_hex((round(red * 255), round(green * 255), round(blue * 255)))
     return _apply_dml_luminance_modifiers(color, element)
 
 
