@@ -997,12 +997,15 @@ def _dml_paint(sp_pr: ET.Element) -> Paint:
     fill = None
     solid_fill = sp_pr.find(qn(NS_A, "solidFill"))
     grad_fill = sp_pr.find(qn(NS_A, "gradFill"))
+    pattern_fill = sp_pr.find(qn(NS_A, "pattFill"))
     no_fill = sp_pr.find(qn(NS_A, "noFill"))
     if solid_fill is not None:
         fill = _dml_color(solid_fill)
         fill_alpha = _dml_alpha(solid_fill)
     elif grad_fill is not None:
         fill, fill_alpha = _dml_gradient_fill(grad_fill)
+    elif pattern_fill is not None:
+        fill, fill_alpha = _dml_pattern_fill(pattern_fill)
     elif no_fill is not None:
         fill = "none"
         fill_alpha = None
@@ -1073,6 +1076,9 @@ def _dml_text_fill(r_pr: ET.Element | None, shape_paint: Paint) -> tuple[str | N
     grad_fill = r_pr.find(qn(NS_A, "gradFill"))
     if grad_fill is not None:
         return _dml_gradient_fill(grad_fill)
+    pattern_fill = r_pr.find(qn(NS_A, "pattFill"))
+    if pattern_fill is not None:
+        return _dml_pattern_fill(pattern_fill)
     return shape_paint.fill, shape_paint.fill_alpha
 
 
@@ -1220,6 +1226,25 @@ def _dml_gradient_fill(element: ET.Element) -> tuple[str | None, float | None]:
     count = len(stops)
     rgb_avg = tuple(round(sum(stop[index] for stop in stops) / count) for index in range(3))
     alpha_avg = sum(stop[3] for stop in stops) / count
+    return _rgb_to_hex(rgb_avg), alpha_avg if alpha_avg < 1 else None
+
+
+def _dml_pattern_fill(element: ET.Element) -> tuple[str | None, float | None]:
+    colors = []
+    for tag in ("fgClr", "bgClr"):
+        color_element = element.find(qn(NS_A, tag))
+        if color_element is None:
+            continue
+        color = _dml_color(color_element)
+        rgb = _hex_to_rgb(color or "")
+        if rgb is not None:
+            alpha = _dml_alpha(color_element)
+            colors.append((*rgb, 1.0 if alpha is None else alpha))
+    if not colors:
+        return None, None
+    count = len(colors)
+    rgb_avg = tuple(round(sum(color[index] for color in colors) / count) for index in range(3))
+    alpha_avg = sum(color[3] for color in colors) / count
     return _rgb_to_hex(rgb_avg), alpha_avg if alpha_avg < 1 else None
 
 
@@ -1517,6 +1542,9 @@ def _dml_line_color(ln: ET.Element | None) -> str | None:
     grad_line = ln.find(qn(NS_A, "gradFill"))
     if grad_line is not None:
         return _dml_gradient_fill(grad_line)[0]
+    pattern_line = ln.find(qn(NS_A, "pattFill"))
+    if pattern_line is not None:
+        return _dml_pattern_fill(pattern_line)[0]
     return None
 
 
@@ -1529,6 +1557,9 @@ def _dml_line_alpha(ln: ET.Element | None) -> float | None:
     grad_line = ln.find(qn(NS_A, "gradFill"))
     if grad_line is not None:
         return _dml_gradient_fill(grad_line)[1]
+    pattern_line = ln.find(qn(NS_A, "pattFill"))
+    if pattern_line is not None:
+        return _dml_pattern_fill(pattern_line)[1]
     return None
 
 

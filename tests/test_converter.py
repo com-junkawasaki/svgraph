@@ -2125,6 +2125,54 @@ def test_drawingml_gradient_fill_falls_back_to_average_svg_color() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_drawingml_pattern_fill_falls_back_to_average_svg_color() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="shape"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="0"/><a:ext cx="95250" cy="95250"/></a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+          <a:pattFill prst="pct50">
+            <a:fgClr><a:srgbClr val="FF0000"><a:alpha val="50000"/></a:srgbClr></a:fgClr>
+            <a:bgClr><a:srgbClr val="0000FF"/></a:bgClr>
+          </a:pattFill>
+          <a:ln>
+            <a:pattFill prst="ltHorz">
+              <a:fgClr><a:srgbClr val="008000"><a:alpha val="50000"/></a:srgbClr></a:fgClr>
+              <a:bgClr><a:srgbClr val="000000"/></a:bgClr>
+            </a:pattFill>
+          </a:ln>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="190500"/><a:ext cx="762000" cy="285750"/></a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+          <a:noFill/>
+          <a:ln><a:noFill/></a:ln>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr/><a:lstStyle/>
+          <a:p><a:r><a:rPr sz="1200"><a:pattFill prst="pct25">
+            <a:fgClr><a:srgbClr val="FFFF00"/></a:fgClr>
+            <a:bgClr><a:srgbClr val="00FFFF"/></a:bgClr>
+          </a:pattFill></a:rPr><a:t>Pattern</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'fill="#800080"' in svg
+    assert 'fill-opacity="0.75"' in svg
+    assert 'stroke="#004000"' in svg
+    assert 'stroke-opacity="0.75"' in svg
+    assert 'fill="#80ff80"' in svg
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_drawingml_tint_and_shade_modifiers_round_trip_to_svg_hex_colors() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
