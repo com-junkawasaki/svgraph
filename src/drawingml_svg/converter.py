@@ -448,12 +448,20 @@ def _dml_table_shapes(element: ET.Element) -> Iterable[Shape]:
     scale_y = height / total_row_height if height > 0 and total_row_height > 0 else 1.0
     shapes: list[Shape] = []
     top = y
-    for row, row_height in zip(rows, row_heights, strict=False):
+    for row_index, (row, row_height) in enumerate(zip(rows, row_heights, strict=False)):
         left = x
         cells = row.findall(qn(NS_A, "tc"))
-        for index, cell in enumerate(cells[: len(grid_widths)]):
-            cell_width = grid_widths[index] * scale_x
-            cell_height = row_height * scale_y
+        column_index = 0
+        for cell in cells:
+            if column_index >= len(grid_widths):
+                break
+            column_span, row_span = _dml_table_cell_span(cell)
+            if _dml_table_cell_is_merge_continuation(cell):
+                continue
+            end_column = min(len(grid_widths), column_index + column_span)
+            end_row = min(len(row_heights), row_index + row_span)
+            cell_width = sum(grid_widths[column_index:end_column]) * scale_x
+            cell_height = sum(row_heights[row_index:end_row]) * scale_y or row_height * scale_y
             cell_fill, fill_alpha = _dml_table_cell_fill(cell)
             stroke, stroke_width = _dml_table_cell_stroke(cell)
             shapes.append(
@@ -484,11 +492,27 @@ def _dml_table_shapes(element: ET.Element) -> Iterable[Shape]:
                         font_family=_dml_font_family(cell),
                         text_anchor=_dml_table_cell_text_anchor(cell),
                         text_baseline="middle",
-                    )
                 )
+            )
             left += cell_width
+            column_index = end_column
         top += row_height * scale_y
     return tuple(shapes)
+
+
+def _dml_table_cell_span(cell: ET.Element) -> tuple[int, int]:
+    column_span = max(1, _dml_int(cell.get("gridSpan"), 1) or 1)
+    row_span = max(1, _dml_int(cell.get("rowSpan"), 1) or 1)
+    return column_span, row_span
+
+
+def _dml_table_cell_is_merge_continuation(cell: ET.Element) -> bool:
+    return _dml_bool_attr(cell, "hMerge") or _dml_bool_attr(cell, "vMerge")
+
+
+def _dml_bool_attr(element: ET.Element, attr: str) -> bool:
+    value = element.get(attr)
+    return value is not None and value.strip().lower() not in {"", "0", "false", "none"}
 
 
 def _dml_table_cell_text(cell: ET.Element) -> str:
