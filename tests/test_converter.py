@@ -1518,6 +1518,35 @@ def test_foreign_object_html_table_cell_rtl_direction_converts() -> None:
     assert analyze_svg(svg).unsupported_elements == {}
 
 
+def test_foreign_object_html_table_cell_nowrap_converts_to_text_body_wrap() -> None:
+    svg = """<svg width="180" height="50">
+      <foreignObject x="10" y="8" width="150" height="24">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table>
+            <tr>
+              <td nowrap="nowrap">Attr nowrap</td>
+              <td style="white-space:nowrap">CSS nowrap</td>
+            </tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert dml.count('wrap="none"') == 2
+    assert "<a:t>Attr nowrap</a:t>" in dml
+    assert "<a:t>CSS nowrap</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+    round_trip = drawingml_to_svg(dml)
+    root = ET.fromstring(round_trip)
+    texts = root.findall("{http://www.w3.org/2000/svg}text")
+    assert {text.text for text in texts} >= {"Attr nowrap", "CSS nowrap"}
+    assert sum(1 for text in texts if text.get("white-space") == "nowrap") == 2
+
+
 def test_foreign_object_html_table_cell_padding_converts_to_text_insets() -> None:
     svg = """<svg width="150" height="60">
       <style>

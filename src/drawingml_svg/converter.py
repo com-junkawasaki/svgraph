@@ -85,6 +85,7 @@ class Shape:
     text_anchor: str | None = None
     text_baseline: str | None = None
     text_direction: str | None = None
+    text_wrap: str | None = None
     text_baseline_shift: str | None = None
     letter_spacing: float | None = None
     rx: float | None = None
@@ -496,6 +497,7 @@ def _svg_foreign_object_table_shapes(
                         text_anchor=_html_text_anchor(cell_style),
                         text_baseline=_html_vertical_align(cell_style) or "middle",
                         text_direction=_text_direction(cell_style.get("direction")),
+                        text_wrap=_html_text_wrap(cell_style),
                         letter_spacing=_svg_letter_spacing(cell_style, (0.0, 0.0)),
                         text_runs=_html_table_cell_text_runs(cell, css, cell_style, max(scale_x, scale_y)),
                     )
@@ -963,6 +965,11 @@ def _html_vertical_align(style: dict[str, str]) -> str | None:
     }.get(normalized)
 
 
+def _html_text_wrap(style: dict[str, str]) -> str | None:
+    white_space = " ".join((style.get("white-space") or "").strip().lower().split())
+    return "none" if white_space in {"nowrap", "pre", "pre-line", "pre-wrap"} else None
+
+
 def _html_color(value: str | None) -> str | None:
     color, _ = _parse_color(value)
     return color
@@ -1153,6 +1160,7 @@ def _dml_table_shapes(element: ET.Element) -> Iterable[Shape]:
                         text_decoration_style=_dml_text_decoration_style_from_properties(text_properties),
                         text_anchor=_dml_table_cell_text_anchor(cell),
                         text_direction=_dml_table_cell_text_direction(cell),
+                        text_wrap=_dml_table_cell_text_wrap(cell),
                         text_baseline=_dml_table_cell_text_baseline(cell) or "middle",
                         text_baseline_shift=_dml_text_baseline_shift_from_properties(text_properties),
                         letter_spacing=_dml_letter_spacing_from_properties(text_properties),
@@ -1335,6 +1343,13 @@ def _dml_table_cell_text_baseline(cell: ET.Element) -> str | None:
     if body_pr is None:
         return None
     return {"ctr": "middle", "b": "text-after-edge", "t": "text-before-edge"}.get(body_pr.get("anchor", ""))
+
+
+def _dml_table_cell_text_wrap(cell: ET.Element) -> str | None:
+    body_pr = cell.find(f"{qn(NS_A, 'txBody')}/{qn(NS_A, 'bodyPr')}")
+    if body_pr is None:
+        return None
+    return "none" if body_pr.get("wrap") == "none" else None
 
 
 def _dml_shape_from_element(element: ET.Element) -> Shape | None:
@@ -1555,6 +1570,8 @@ def _shape_to_svg(shape: Shape) -> ET.Element:
             attrs["dominant-baseline"] = shape.text_baseline
         if shape.text_direction:
             attrs["direction"] = shape.text_direction
+        if shape.text_wrap == "none":
+            attrs["white-space"] = "nowrap"
         if shape.text_baseline_shift:
             attrs["baseline-shift"] = shape.text_baseline_shift
         if shape.letter_spacing is not None:
@@ -2274,6 +2291,8 @@ def _append_svg_table_cell_text_body(parent: ET.Element, rect: Shape | None, tex
     body_anchor = _text_baseline_to_dml(text.text_baseline if text is not None else None)
     if body_anchor:
         attrs["anchor"] = body_anchor
+    if text is not None and text.text_wrap == "none":
+        attrs["wrap"] = "none"
     ET.SubElement(tx_body, qn(NS_A, "bodyPr"), attrs)
     ET.SubElement(tx_body, qn(NS_A, "lstStyle"))
     paragraph = ET.SubElement(tx_body, qn(NS_A, "p"))
@@ -6176,6 +6195,7 @@ def _computed_style(
         "transform",
         "transform-origin",
         "vertical-align",
+        "white-space",
         "writing-mode",
         "word-spacing",
     ):
@@ -6202,6 +6222,8 @@ def _computed_style(
             apply_declaration("font-family", element.get("face", ""), False, (0, 0, 0, 0), -1)
         if element.get("size") is not None:
             apply_declaration("font-size", _html_font_tag_size(element.get("size", "")), False, (0, 0, 0, 0), -1)
+    if element.get("nowrap") is not None:
+        apply_declaration("white-space", "nowrap", False, (0, 0, 0, 0), -1)
 
     for selector, declarations, specificity, order in css:
         if _selector_matches(selector, element, ancestors, previous_siblings):
@@ -6363,14 +6385,19 @@ def _apply_rect_clip(
         font_family=shape.font_family,
         font_variant=shape.font_variant,
         text_decoration=shape.text_decoration,
+        text_decoration_style=shape.text_decoration_style,
         text_anchor=shape.text_anchor,
         text_baseline=shape.text_baseline,
+        text_direction=shape.text_direction,
+        text_wrap=shape.text_wrap,
+        text_baseline_shift=shape.text_baseline_shift,
         letter_spacing=shape.letter_spacing,
         rx=min(shape.rx or 0, (x2 - x1) / 2) if shape.rx is not None else None,
         ry=min(shape.ry or 0, (y2 - y1) / 2) if shape.ry is not None else None,
         image_href=shape.image_href,
         image_src_rect=shape.image_src_rect,
         rotation=shape.rotation,
+        text_runs=shape.text_runs,
     )
 
 
