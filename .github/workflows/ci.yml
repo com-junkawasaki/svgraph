@@ -105,6 +105,31 @@ jobs:
           assert any(name.startswith("ppt/media/image") for name in names), "PPTX media image was not embedded"
           PY
 
+          python examples/make_pptx.py examples/complex.svg -o tmp/ci-complex.pptx
+          python -m zipfile --test tmp/ci-complex.pptx
+          python - <<'PY'
+          import zipfile
+
+          with zipfile.ZipFile("tmp/ci-complex.pptx") as pptx:
+              slide = pptx.read("ppt/slides/slide1.xml").decode("utf-8")
+              rels = pptx.read("ppt/slides/_rels/slide1.xml.rels").decode("utf-8")
+              names = set(pptx.namelist())
+
+          assert slide.count("<p:sp>") >= 16, "complex SVG did not produce the expected editable shape surface"
+          assert "<p:pic>" in slide and '<a:alphaModFix amt="72000"' in slide, "complex embedded image was not converted with opacity"
+          assert 'val="F8FAFC"' in slide and 'val="DBEAFE"' in slide and 'val="DCFCE7"' in slide, "complex base shapes were not converted"
+          assert 'val="FEF3C7"' in slide and 'val="E0F2FE"' in slide, "complex ellipse/freeform shapes were not converted"
+          assert 'val="F0ABFC"' in slide and 'val="86198F"' in slide, "complex use reference was not expanded"
+          assert '<a:alpha val="55000"' in slide, "complex reused opacity was not preserved"
+          assert 'val="8A7443"' in slide and 'val="991B1B"' in slide, "complex pattern fallback colors were not emitted"
+          assert 'val="E0E7FF"' in slide and 'val="4338CA"' in slide, "complex gradient fallback shape was not emitted"
+          assert 'val="BE123C"' in slide, "complex transformed dashed line was not emitted"
+          assert 'cap="all"' in slide and 'spc="' in slide, "complex text variant and spacing were not preserved"
+          assert "<a:t>Text</a:t>" in slide and "<a:t>converts</a:t>" in slide, "complex tspan text was not extracted"
+          assert 'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"' in rels
+          assert any(name.startswith("ppt/media/image") for name in names), "complex PPTX media image was not embedded"
+          PY
+
       - name: Build distribution smoke
         run: |
           python -m build --sdist --wheel -o tmp/dist
