@@ -43,6 +43,7 @@ jobs:
           assert coverage.unsupported_elements == {}, coverage
           assert coverage.unsupported_attributes == {}, coverage
           assert coverage.unsupported_path_commands == {}, coverage
+          assert coverage.ignored_elements == 18, coverage
 
           complex_report = analyze_svg(Path("examples/complex.svg").read_text(encoding="utf-8"))
           assert complex_report.estimated_element_coverage == 1.0, complex_report
@@ -75,6 +76,7 @@ jobs:
           assert "<a:custDash>" in slide, "non-zero custom dash was not written"
           assert '<a:ln w="14288">' in slide, "transformed text outline width was not scaled"
           assert 'x="266700"' in slide and 'val="BFDBFE"' in slide, "CSS transform property was not applied to fixture geometry"
+          assert 'x="1752600" y="914400"' not in slide, "transparent blend-only fixture should not produce a visible shape"
           assert 'val="DCFCE7"' in slide, "visible descendant inside hidden group was not rendered"
           assert 'rot="600000"' in slide and 'val="E9D5FF"' in slide, "absolute transform-origin was not applied to CSS transform"
           assert slide.count('x="2743200" y="2324100"') >= 2, "two-point path/polyline clip geometry was not reflected in DrawingML"
