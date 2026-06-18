@@ -36,6 +36,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Refined analyzer handling for additional `text-decoration` shorthand color functions such as `rgba(...)` and `hsl(...)`.
 - Added analyzer reporting for unsupported visible SVG `text-decoration-thickness` values.
 - Added analyzer reporting for unsupported visible SVG `text-underline-offset` and `text-decoration-skip-ink` values.
+- Refined analyzer handling for no-op `auto` thickness tokens in SVG `text-decoration` shorthand.
 - Refined analyzer handling for SVG kerning attributes on single-character text.
 - Refined analyzer handling for run-level `tspan` `text-anchor` values that do not create a positioned text chunk.
 - Refined analyzer handling for normal-equivalent percentage SVG `font-stretch` values.

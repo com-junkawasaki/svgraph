@@ -1441,6 +1441,22 @@ def test_text_decoration_thickness_is_reported_when_visible() -> None:
     assert analyze_svg(svg).unsupported_attributes == {"text-decoration-thickness": 2}
 
 
+def test_text_decoration_shorthand_auto_thickness_is_noop() -> None:
+    svg = """<svg>
+      <text x="0" y="20" text-decoration="underline auto">Auto</text>
+      <text x="0" y="40" fill="#111111" text-decoration="underline dotted auto #111111">Styled auto</text>
+      <text x="0" y="60" text-decoration="underline from-font">Font thickness</text>
+      <text x="0" y="80" text-decoration="underline 2px">Length thickness</text>
+    </svg>"""
+    dml = svg_to_drawingml(svg)
+
+    root = ET.fromstring(dml)
+    run_prs = root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}rPr")
+    assert run_prs[0].get("u") == "sng"
+    assert run_prs[1].get("u") == "dotted"
+    assert analyze_svg(svg).unsupported_attributes == {"text-decoration": 2}
+
+
 def test_underline_offset_and_skip_ink_are_reported_when_visible() -> None:
     svg = """<svg>
       <style>

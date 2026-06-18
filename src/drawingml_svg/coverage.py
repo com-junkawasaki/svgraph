@@ -71,6 +71,7 @@ SUPPORTED_ELEMENTS = {
 IGNORED_ELEMENTS = {"defs", "desc", "linearGradient", "metadata", "pattern", "radialGradient", "stop", "title"}
 TEXT_DECORATION_LINE_TOKENS = {"none", "underline", "line-through", "overline", "blink"}
 TEXT_DECORATION_STYLE_TOKENS = {"solid", "dashed", "dotted", "double", "wavy"}
+TEXT_DECORATION_NOOP_THICKNESS_TOKENS = {"auto"}
 SUPPORTED_TEXT_DECORATION_LINE_TOKENS = {"underline", "line-through"}
 GRADIENT_ELEMENTS = {"linearGradient", "radialGradient", "stop"}
 
@@ -923,7 +924,7 @@ def _text_decoration_shorthand_line_is_supported_or_noop(value: str | None) -> b
     if value is None:
         return False
     tokens = _text_decoration_tokens(value)
-    known = TEXT_DECORATION_LINE_TOKENS | TEXT_DECORATION_STYLE_TOKENS
+    known = TEXT_DECORATION_LINE_TOKENS | TEXT_DECORATION_STYLE_TOKENS | TEXT_DECORATION_NOOP_THICKNESS_TOKENS
     if any(token not in known and not _text_decoration_color_token(token) for token in tokens):
         return False
     line_tokens = {token for token in tokens if token in TEXT_DECORATION_LINE_TOKENS}
@@ -959,7 +960,11 @@ def _text_decoration_shorthand_color_has_no_effect(
 
 def _text_decoration_color_token(value: str) -> str | None:
     normalized = value.strip().lower()
-    if normalized in TEXT_DECORATION_LINE_TOKENS or normalized in TEXT_DECORATION_STYLE_TOKENS:
+    if (
+        normalized in TEXT_DECORATION_LINE_TOKENS
+        or normalized in TEXT_DECORATION_STYLE_TOKENS
+        or normalized in TEXT_DECORATION_NOOP_THICKNESS_TOKENS
+    ):
         return None
     if normalized == "currentcolor":
         return value
