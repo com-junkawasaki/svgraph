@@ -509,6 +509,8 @@ def _inspect_attributes(
             or _transform_origin_is_supported(element, specified_style, viewport)
         ):
             continue
+        if attr == "vector-effect" and not _subtree_has_visible_stroke(element, css, refs, style, ancestors, viewport):
+            continue
         if attr == "baseline-shift" and (
             _baseline_shift_has_no_effect(specified_style)
             or _baseline_shift_is_supported(element, specified_style)
@@ -917,6 +919,52 @@ def _subtree_has_visible_fill(
             ancestors + (element,),
             child_viewport,
         ):
+            return True
+        previous_children.append(child)
+    return False
+
+
+def _subtree_has_visible_stroke(
+    element: ET.Element,
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    style: dict[str, str],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+) -> bool:
+    if _is_display_none(style):
+        return False
+    tag = _local_name(element.tag)
+    if (
+        not _is_visibility_hidden(style)
+        and tag in {"circle", "ellipse", "line", "path", "polygon", "polyline", "rect", "text", "tspan"}
+        and not _has_non_rendering_geometry(element, style, viewport)
+        and not _stroke_has_no_effect(element, style, refs, css, viewport)
+    ):
+        return True
+    child_viewport = viewport
+    if tag == "svg" and ancestors:
+        child_viewport = _viewport_size(
+            element,
+            _optional_length(element.get("width"), "x", viewport),
+            _optional_length(element.get("height"), "y", viewport),
+        )
+    if tag == "switch":
+        selected = _switch_selected_child(element)
+        if selected is None:
+            return False
+        selected_style = _computed_style(
+            selected,
+            css,
+            style,
+            ancestors + (element,),
+            _previous_element_siblings(element, selected),
+        )
+        return _subtree_has_visible_stroke(selected, css, refs, selected_style, ancestors + (element,), child_viewport)
+    previous_children: list[ET.Element] = []
+    for child in element:
+        child_style = _computed_style(child, css, style, ancestors + (element,), tuple(previous_children))
+        if _subtree_has_visible_stroke(child, css, refs, child_style, ancestors + (element,), child_viewport):
             return True
         previous_children.append(child)
     return False

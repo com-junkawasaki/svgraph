@@ -2518,6 +2518,32 @@ def test_analyze_svg_ignores_default_visual_attribute_values() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_analyze_svg_ignores_vector_effect_without_visible_stroke() -> None:
+    svg = """<svg>
+      <rect width="10" height="8" fill="#111111" stroke="none" vector-effect="non-scaling-size"/>
+      <g vector-effect="non-scaling-size">
+        <rect x="12" width="10" height="8" fill="#111111" stroke="none"/>
+      </g>
+      <g vector-effect="non-scaling-size" visibility="hidden">
+        <rect x="24" width="10" height="8" fill="none" stroke="#111111" visibility="visible"/>
+      </g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_analyze_svg_reports_vector_effect_with_visible_stroke() -> None:
+    direct = '<svg><rect width="10" height="8" fill="#111111" stroke="#222222" stroke-width="2" vector-effect="non-scaling-size"/></svg>'
+    inherited = """<svg>
+      <g vector-effect="non-scaling-size" stroke="#222222" stroke-width="2">
+        <rect width="10" height="8" fill="#111111"/>
+      </g>
+    </svg>"""
+
+    assert analyze_svg(direct).unsupported_attributes == {"vector-effect": 1}
+    assert analyze_svg(inherited).unsupported_attributes == {"vector-effect": 1}
+
+
 def test_analyze_svg_ignores_clip_rule_outside_clip_path() -> None:
     svg = '<svg><path d="M0 0 H10 V10 Z" clip-rule="evenodd" fill="#111111"/></svg>'
 
