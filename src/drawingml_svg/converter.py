@@ -1188,6 +1188,9 @@ def _dml_color(parent: ET.Element) -> str | None:
     system = parent.find(qn(NS_A, "sysClr"))
     if system is not None and system.get("lastClr"):
         return _apply_dml_luminance_modifiers(f"#{system.get('lastClr', '').lower()}", system)
+    preset = parent.find(qn(NS_A, "prstClr"))
+    if preset is not None and preset.get("val"):
+        return _dml_preset_color(preset)
     return None
 
 
@@ -1209,6 +1212,53 @@ def _dml_scheme_color(element: ET.Element) -> str | None:
         "lt2": "#e7e6e6",
         "tx1": "#000000",
         "tx2": "#44546a",
+    }.get(element.get("val", ""))
+    if color is None:
+        return None
+    return _apply_dml_luminance_modifiers(color, element)
+
+
+def _dml_preset_color(element: ET.Element) -> str | None:
+    color = {
+        "aliceBlue": "#f0f8ff",
+        "antiqueWhite": "#faebd7",
+        "aqua": "#00ffff",
+        "aquamarine": "#7fffd4",
+        "azure": "#f0ffff",
+        "beige": "#f5f5dc",
+        "bisque": "#ffe4c4",
+        "black": "#000000",
+        "blue": "#0000ff",
+        "blueViolet": "#8a2be2",
+        "brown": "#a52a2a",
+        "cyan": "#00ffff",
+        "dkBlue": "#00008b",
+        "dkCyan": "#008b8b",
+        "dkGray": "#a9a9a9",
+        "dkGreen": "#006400",
+        "dkGrey": "#a9a9a9",
+        "dkMagenta": "#8b008b",
+        "dkRed": "#8b0000",
+        "dkYellow": "#808000",
+        "gold": "#ffd700",
+        "gray": "#808080",
+        "green": "#008000",
+        "grey": "#808080",
+        "ltBlue": "#add8e6",
+        "ltCyan": "#e0ffff",
+        "ltGray": "#d3d3d3",
+        "ltGreen": "#90ee90",
+        "ltGrey": "#d3d3d3",
+        "ltPink": "#ffb6c1",
+        "ltYellow": "#ffffe0",
+        "magenta": "#ff00ff",
+        "orange": "#ffa500",
+        "pink": "#ffc0cb",
+        "purple": "#800080",
+        "red": "#ff0000",
+        "silver": "#c0c0c0",
+        "white": "#ffffff",
+        "yellow": "#ffff00",
     }.get(element.get("val", ""))
     if color is None:
         return None
