@@ -138,6 +138,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "marker-start",
     "mask",
     "mix-blend-mode",
+    "opacity",
     "paint-order",
     "pathLength",
     "preserveAspectRatio",
@@ -425,6 +426,8 @@ def _inspect_attributes(
         ):
             continue
         if attr == "mix-blend-mode" and _mix_blend_mode_has_no_effect(element, specified_style, style, refs, css, viewport):
+            continue
+        if attr == "opacity" and _opacity_is_supported_or_noop(element, specified_style, css, refs, style, ancestors, viewport):
             continue
         if attr == "paint-order" and not _subtree_has_unsupported_paint_order(
             element,
@@ -1102,6 +1105,107 @@ def _subtree_has_visible_rendering(
             return True
         previous_children.append(child)
     return False
+
+
+def _opacity_is_supported_or_noop(
+    element: ET.Element,
+    specified_style: dict[str, str],
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    inherited_style: dict[str, str],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+) -> bool:
+    value = specified_style.get("opacity")
+    if value is None:
+        return False
+    alpha = _alpha_value(value)
+    if alpha is None or alpha >= 1:
+        return True
+    tag = _local_name(element.tag)
+    if tag in RENDERING_ELEMENTS:
+        return True
+    return _visible_rendering_descendant_count(element, css, refs, inherited_style, ancestors, viewport, limit=2) < 2
+
+
+def _visible_rendering_descendant_count(
+    element: ET.Element,
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    inherited_style: dict[str, str],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+    limit: int,
+    previous_siblings: tuple[ET.Element, ...] = (),
+    ref_stack: frozenset[str] = frozenset(),
+) -> int:
+    if limit <= 0:
+        return 0
+    style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
+    if _is_display_none(style):
+        return 0
+    tag = _local_name(element.tag)
+    if tag == "use":
+        ref_context = _use_reference_context(element, refs, viewport, ref_stack)
+        if ref_context is None:
+            return 0
+        ref, ref_viewport, next_stack = ref_context
+        return _visible_rendering_descendant_count(
+            ref,
+            css,
+            refs,
+            style,
+            ancestors + (element,),
+            ref_viewport,
+            limit,
+            ref_stack=next_stack,
+        )
+    if not _is_visibility_hidden(style) and tag in RENDERING_ELEMENTS and not _has_non_rendering_geometry(
+        element,
+        style,
+        viewport,
+    ) and not _has_no_visible_paint(element, style, refs, css, viewport):
+        return 1
+    child_viewport = viewport
+    if tag == "svg" and ancestors:
+        child_viewport = _viewport_size(
+            element,
+            _optional_length(element.get("width"), "x", viewport),
+            _optional_length(element.get("height"), "y", viewport),
+        )
+    if tag == "switch":
+        selected = _switch_selected_child(element)
+        if selected is None:
+            return 0
+        return _visible_rendering_descendant_count(
+            selected,
+            css,
+            refs,
+            style,
+            ancestors + (element,),
+            child_viewport,
+            limit,
+            _previous_element_siblings(element, selected),
+            ref_stack,
+        )
+    total = 0
+    previous_children: list[ET.Element] = []
+    for child in element:
+        total += _visible_rendering_descendant_count(
+            child,
+            css,
+            refs,
+            style,
+            ancestors + (element,),
+            child_viewport,
+            limit - total,
+            tuple(previous_children),
+            ref_stack,
+        )
+        if total >= limit:
+            return total
+        previous_children.append(child)
+    return total
 
 
 def _subtree_clip_path_is_supported(

@@ -5410,6 +5410,31 @@ def test_opacity_css_math_functions_are_written_as_drawingml_alpha() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_analyze_svg_reports_group_opacity_with_multiple_visible_descendants() -> None:
+    single_child = '<svg><g opacity="0.5"><rect width="10" height="8" fill="#ff0000"/></g></svg>'
+    multiple_children = """<svg>
+      <g opacity="0.5">
+        <rect width="10" height="8" fill="#ff0000"/>
+        <rect x="4" y="4" width="10" height="8" fill="#00ff00"/>
+      </g>
+    </svg>"""
+    with_use = """<svg>
+      <defs><g id="glyph"><rect width="10" height="8"/><rect x="4" y="4" width="10" height="8"/></g></defs>
+      <g opacity="0.5"><use href="#glyph"/></g>
+    </svg>"""
+    invisible = """<svg>
+      <g opacity="0.5">
+        <rect width="10" height="8" fill="none" stroke="none"/>
+        <rect width="10" height="8" opacity="0"/>
+      </g>
+    </svg>"""
+
+    assert analyze_svg(single_child).unsupported_attributes == {}
+    assert analyze_svg(multiple_children).unsupported_attributes == {"opacity": 1}
+    assert analyze_svg(with_use).unsupported_attributes == {"opacity": 1}
+    assert analyze_svg(invisible).unsupported_attributes == {}
+
+
 def test_zero_alpha_paint_is_skipped_as_invisible() -> None:
     dml = svg_to_drawingml(
         '<svg><rect width="10" height="8" fill="#111111" fill-opacity="0" stroke="#222222" stroke-opacity="0" stroke-width="2"/></svg>'
