@@ -1447,6 +1447,8 @@ def test_text_decoration_shorthand_auto_thickness_is_noop() -> None:
       <text x="0" y="40" fill="#111111" text-decoration="underline dotted auto #111111">Styled auto</text>
       <text x="0" y="60" text-decoration="underline from-font">Font thickness</text>
       <text x="0" y="80" text-decoration="underline 2px">Length thickness</text>
+      <text x="0" y="100" text-decoration="none wavy from-font #dc2626">Hidden font thickness</text>
+      <text x="0" y="120" text-decoration="none dotted calc(1px + 1px) red">Hidden length thickness</text>
     </svg>"""
     dml = svg_to_drawingml(svg)
 
@@ -1521,6 +1523,7 @@ def test_unconverted_text_layout_attributes_are_reported() -> None:
       <text x="0" y="220" font-stretch="calc(50% + 50%)">Calc stretch noop</text>
       <text x="0" y="240" font-stretch="clamp(75%, 100%, 125%)">Clamp stretch noop</text>
       <text x="0" y="260" font-stretch="max(75%, 80%)">Function stretch</text>
+      <text x="0" y="280" baseline-shift="calc(2px - 2px)">Calc baseline noop</text>
     </svg>"""
 
     assert analyze_svg(svg).unsupported_attributes == {

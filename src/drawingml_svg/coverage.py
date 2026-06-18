@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import asdict, dataclass
 from xml.etree import ElementTree as ET
@@ -758,7 +759,8 @@ def _baseline_shift_has_no_effect(style: dict[str, str]) -> bool:
 def _zero_length_or_percentage_value(value: str) -> bool:
     match = re.fullmatch(rf"({NUMBER_RE})([a-z%]*)", value)
     if not match:
-        return False
+        resolved = _length(value, math.nan, "x", (100.0, 100.0))
+        return math.isfinite(resolved) and resolved == 0
     unit = match.group(2)
     if unit not in {
         "",
@@ -905,21 +907,31 @@ def _text_decoration_shorthand_is_supported_or_noop(
     value = style.get("text-decoration")
     if value is None:
         return False
-    if not _text_decoration_shorthand_line_is_supported_or_noop(value):
+    has_visible_decoration = _has_visible_text_decoration(style)
+    if not _text_decoration_shorthand_line_is_supported_or_noop(
+        value,
+        allow_noop_thickness=not has_visible_decoration,
+    ):
         return False
     if not _text_decoration_shorthand_color_has_no_effect(style, refs, css, viewport):
         return False
     style_value = _text_decoration_shorthand_style(value)
-    if style_value is None or style_value == "solid" or not _has_visible_text_decoration(style):
+    if style_value is None or style_value == "solid" or not has_visible_decoration:
         return True
     return style_value in (TEXT_DECORATION_STYLE_TOKENS - {"solid"}) and _has_only_visible_underline(style)
 
 
-def _text_decoration_shorthand_line_is_supported_or_noop(value: str | None) -> bool:
+def _text_decoration_shorthand_line_is_supported_or_noop(
+    value: str | None,
+    *,
+    allow_noop_thickness: bool = False,
+) -> bool:
     if value is None:
         return False
     tokens = _text_decoration_tokens(value)
     known = TEXT_DECORATION_LINE_TOKENS | TEXT_DECORATION_STYLE_TOKENS | TEXT_DECORATION_NOOP_THICKNESS_TOKENS
+    if allow_noop_thickness:
+        known = known | {token for token in tokens if _text_decoration_thickness_token(token)}
     if any(token not in known and not _text_decoration_color_token(token) for token in tokens):
         return False
     line_tokens = {token for token in tokens if token in TEXT_DECORATION_LINE_TOKENS}
@@ -959,12 +971,21 @@ def _text_decoration_color_token(value: str) -> str | None:
         normalized in TEXT_DECORATION_LINE_TOKENS
         or normalized in TEXT_DECORATION_STYLE_TOKENS
         or normalized in TEXT_DECORATION_NOOP_THICKNESS_TOKENS
+        or _text_decoration_thickness_token(normalized)
     ):
         return None
     if normalized == "currentcolor":
         return value
     color, _ = _parse_color(value)
     return value if color is not None else None
+
+
+def _text_decoration_thickness_token(value: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"auto", "from-font"}:
+        return True
+    resolved = _length(normalized, math.nan, "x", (100.0, 100.0))
+    return math.isfinite(resolved) and resolved >= 0
 
 
 def _text_decoration_shorthand_style(value: str | None) -> str | None:

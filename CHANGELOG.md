@@ -37,6 +37,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added analyzer reporting for unsupported visible SVG `text-decoration-thickness` values.
 - Added analyzer reporting for unsupported visible SVG `text-underline-offset` and `text-decoration-skip-ink` values.
 - Refined analyzer handling for no-op `auto` thickness tokens in SVG `text-decoration` shorthand.
+- Refined analyzer handling for hidden SVG `text-decoration` shorthand thickness values.
 - Refined analyzer handling for normal-equivalent SVG `font-size-adjust` values.
 - Refined analyzer handling for no-op SVG `font-variant="none"` values.
 - Refined analyzer handling for SVG kerning attributes on single-character text.
@@ -45,6 +46,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Refined analyzer handling for normal-equivalent CSS math SVG `font-stretch` values.
 - Refined analyzer handling for zero-equivalent SVG glyph orientation angles.
 - Refined analyzer handling for zero-equivalent SVG `baseline-shift` length and percentage values.
+- Refined analyzer handling for zero-equivalent CSS math SVG `baseline-shift` values.
 
 ## 0.1.0
 
