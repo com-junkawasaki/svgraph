@@ -545,8 +545,12 @@ def _html_table_cell_text_runs(
 ) -> tuple[TextRun, ...]:
     runs: list[TextRun] = []
     _append_html_text_runs(cell, css, inherited_style, (), (), scale, runs, False)
-    if len(runs) <= 1 and not any(run.break_before for run in runs):
+    if not runs:
         return ()
+    if len(runs) == 1 and not runs[0].break_before:
+        default_run = _html_text_run(runs[0].text, inherited_style, scale, False)
+        if runs[0] == default_run:
+            return ()
     return tuple(runs)
 
 
@@ -6194,9 +6198,10 @@ def _computed_style(
             apply_declaration(style_key, element.get(attr, ""), False, (0, 0, 0, 0), -1)
 
     if _local_name(element.tag) == "font":
-        for attr, style_key in (("face", "font-family"), ("size", "font-size")):
-            if element.get(attr) is not None:
-                apply_declaration(style_key, element.get(attr, ""), False, (0, 0, 0, 0), -1)
+        if element.get("face") is not None:
+            apply_declaration("font-family", element.get("face", ""), False, (0, 0, 0, 0), -1)
+        if element.get("size") is not None:
+            apply_declaration("font-size", _html_font_tag_size(element.get("size", "")), False, (0, 0, 0, 0), -1)
 
     for selector, declarations, specificity, order in css:
         if _selector_matches(selector, element, ancestors, previous_siblings):
@@ -6238,6 +6243,25 @@ def _resolve_context_paint_values(style: dict[str, str], inherited: dict[str, st
         context_value = context_paints.get(style.get(key, "").strip().lower())
         if context_value is not None:
             style[key] = context_value
+
+
+def _html_font_tag_size(value: str) -> str:
+    normalized = value.strip()
+    if re.fullmatch(r"[+-]?\d+", normalized):
+        index = int(normalized)
+        if normalized.startswith(("+", "-")):
+            index += 3
+        legacy_sizes = {
+            1: "10px",
+            2: "13px",
+            3: "16px",
+            4: "18px",
+            5: "24px",
+            6: "32px",
+            7: "48px",
+        }
+        return legacy_sizes[min(7, max(1, index))]
+    return value
 
 
 def _previous_element_siblings(parent: ET.Element, element: ET.Element) -> tuple[ET.Element, ...]:
