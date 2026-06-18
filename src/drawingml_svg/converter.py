@@ -3082,6 +3082,22 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
         outer = _ellipse_arc_points(center_x, center_y, width / 2, height / 2, -90, 270, 16)
         inner = _ellipse_arc_points(x + width * 0.62, center_y, width * 0.34, height * 0.42, 270, -90, 16)
         return [*outer, *inner]
+    if kind == "cloud":
+        return [
+            (x + width * 0.15, y + height * 0.62),
+            (x + width * 0.08, y + height * 0.48),
+            (x + width * 0.2, y + height * 0.36),
+            (x + width * 0.34, y + height * 0.38),
+            (x + width * 0.42, y + height * 0.22),
+            (x + width * 0.62, y + height * 0.2),
+            (x + width * 0.72, y + height * 0.35),
+            (x + width * 0.86, y + height * 0.36),
+            (x + width * 0.96, y + height * 0.52),
+            (x + width * 0.88, y + height * 0.7),
+            (x + width * 0.62, y + height * 0.76),
+            (x + width * 0.38, y + height * 0.74),
+            (x + width * 0.22, y + height * 0.74),
+        ]
     if kind == "star4":
         return [
             (center_x, top),
@@ -3165,6 +3181,10 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
         return _regular_star_points(12, x, y, width, height)
     if kind == "star16":
         return _regular_star_points(16, x, y, width, height)
+    if kind == "irregularSeal1":
+        return _regular_star_points(16, x, y, width, height, 0.62)
+    if kind == "irregularSeal2":
+        return _regular_star_points(24, x, y, width, height, 0.68)
     if kind == "rightArrow":
         return [(left, quarter_y), (arrow_head_x, quarter_y), (arrow_head_x, top), (right, center_y), (arrow_head_x, bottom), (arrow_head_x, three_quarter_y), (left, three_quarter_y)]
     if kind == "notchedRightArrow":
