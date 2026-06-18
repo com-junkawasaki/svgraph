@@ -398,7 +398,7 @@ def _inspect_attributes(
             continue
         if attr == "pathLength" and _path_length_has_no_effect(element, style, refs, css, viewport):
             continue
-        if attr == "preserveAspectRatio" and _preserve_aspect_ratio_is_supported_or_noop(element, specified_style):
+        if attr == "preserveAspectRatio" and _preserve_aspect_ratio_is_supported_or_noop(element, specified_style, refs):
             continue
         if attr == "rotate" and _text_rotate_is_supported(element, specified_style):
             continue
@@ -1176,13 +1176,22 @@ def _path_length_has_no_effect(
     return _stroke_has_no_effect(element, style, refs, css, viewport)
 
 
-def _preserve_aspect_ratio_is_supported_or_noop(element: ET.Element, style: dict[str, str]) -> bool:
+def _preserve_aspect_ratio_is_supported_or_noop(
+    element: ET.Element,
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+) -> bool:
     value = style.get("preserveAspectRatio")
     if value is None:
         return False
     tag = _local_name(element.tag)
     if tag in {"svg", "symbol"}:
         return True
+    if tag == "use":
+        href = _href(element)
+        if not href or not href.startswith("#"):
+            return False
+        return _local_name(refs.get(href[1:], ET.Element("")).tag) in {"svg", "symbol"}
     if tag == "image":
         align, _ = _preserve_aspect_ratio(value)
         return align == "none" or _data_image_dimensions(_href(element) or "") is not None

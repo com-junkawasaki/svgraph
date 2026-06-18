@@ -194,7 +194,7 @@ def _svg_shapes_walk(
                 use_height = _optional_length(element.get("height"), "y", viewport)
                 use_matrix = _matrix_multiply(
                     use_matrix,
-                    _viewbox_matrix(ref, use_width, use_height),
+                    _viewbox_matrix(ref, use_width, use_height, element.get("preserveAspectRatio")),
                 )
                 ref_viewport = _viewport_size(ref, use_width, use_height)
             yield from _svg_shapes_walk(ref, css, refs, style, use_matrix, ref_stack | {href[1:]}, ancestors + (element,), ref_viewport, ())
@@ -4508,6 +4508,7 @@ def _viewbox_matrix(
     element: ET.Element,
     width_override: float | None = None,
     height_override: float | None = None,
+    preserve_aspect_ratio_override: str | None = None,
 ) -> tuple[float, float, float, float, float, float]:
     view_box = element.get("viewBox")
     if not view_box:
@@ -4520,7 +4521,9 @@ def _viewbox_matrix(
     height = height_override if height_override is not None else _num(element.get("height"), view_height)
     sx = width / view_width
     sy = height / view_height
-    align, meet_or_slice = _preserve_aspect_ratio(element.get("preserveAspectRatio"))
+    align, meet_or_slice = _preserve_aspect_ratio(
+        preserve_aspect_ratio_override if preserve_aspect_ratio_override is not None else element.get("preserveAspectRatio")
+    )
     if align == "none":
         return _matrix_multiply((sx, 0, 0, sy, 0, 0), (1, 0, 0, 1, -min_x, -min_y))
 

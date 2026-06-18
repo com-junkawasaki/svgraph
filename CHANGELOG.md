@@ -23,6 +23,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added first-positioned SVG `tspan` baseline fallback conversion and analyzer support.
 - Added percentage SVG `transform-origin` conversion and analyzer support for elements with a resolvable reference box.
 - Added keyword SVG `transform-origin` conversion and analyzer support for elements with a resolvable reference box.
+- Added SVG `use` `preserveAspectRatio` conversion and analyzer support for referenced `symbol` or `svg` viewBoxes.
 - Added SVG underline `text-decoration-style` conversion and analyzer support for dashed, dotted, double, and wavy styles.
 - Added SVG `text-decoration` shorthand style extraction for supported underline styles.
 - Added SVG `stroke-linejoin="miter-clip"` conversion and analyzer support as a DrawingML miter approximation.

@@ -2293,6 +2293,43 @@ def test_symbol_use_viewbox_width_height_preserves_aspect_ratio_by_default() -> 
     assert shape_ext.attrib == {"cx": "190500", "cy": "190500"}
 
 
+def test_use_preserve_aspect_ratio_overrides_symbol_viewbox_scaling() -> None:
+    none_dml = svg_to_drawingml(
+        """<svg>
+          <defs>
+            <symbol id="icon" viewBox="-5 -5 10 10">
+              <circle cx="0" cy="0" r="5" fill="#2563eb"/>
+            </symbol>
+          </defs>
+          <use href="#icon" x="20" y="30" width="40" height="20" preserveAspectRatio="none"/>
+        </svg>"""
+    )
+    slice_dml = svg_to_drawingml(
+        """<svg>
+          <defs>
+            <symbol id="icon" viewBox="-5 -5 10 10">
+              <circle cx="0" cy="0" r="5" fill="#2563eb"/>
+            </symbol>
+          </defs>
+          <use href="#icon" x="20" y="30" width="40" height="20" preserveAspectRatio="xMaxYMax slice"/>
+        </svg>"""
+    )
+
+    none_root = ET.fromstring(none_dml)
+    none_off = none_root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    none_ext = none_root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    slice_root = ET.fromstring(slice_dml)
+    slice_off = slice_root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}off")[1]
+    slice_ext = slice_root.findall(".//{http://schemas.openxmlformats.org/drawingml/2006/main}ext")[1]
+    assert none_off.attrib == {"x": "190500", "y": "285750"}
+    assert none_ext.attrib == {"cx": "381000", "cy": "190500"}
+    assert slice_off.attrib == {"x": "190500", "y": "95250"}
+    assert slice_ext.attrib == {"cx": "381000", "cy": "381000"}
+    assert analyze_svg(
+        '<svg><defs><symbol id="icon" viewBox="-5 -5 10 10"><circle cx="0" cy="0" r="5"/></symbol></defs><use href="#icon" width="40" height="20" preserveAspectRatio="none"/></svg>'
+    ).unsupported_attributes == {}
+
+
 def test_xlink_use_reference_converts() -> None:
     svg = """<svg xmlns:xlink="http://www.w3.org/1999/xlink">
       <defs><g id="glyph"><rect x="0" y="0" width="10" height="8" fill="#123456"/></g></defs>
