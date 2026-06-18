@@ -1374,6 +1374,9 @@ def test_supported_underline_styles_map_to_drawingml_underline_values() -> None:
       <text x="0" y="140" font-size="10" fill="#111111" text-decoration="underline dotted #111111">Same color</text>
       <text x="0" y="160" font-size="10" fill="#111111" text-decoration="underline dotted rgb(17 17 17)">Space rgb</text>
       <text x="0" y="180" font-size="10" fill="#111111" text-decoration="underline dotted rgb(17, 17, 17)">Comma rgb</text>
+      <text x="0" y="200" font-size="10" fill="#111111" text-decoration="underline dotted rgb(17 17 17 / 100%)">Slash rgb</text>
+      <text x="0" y="220" font-size="10" fill="#111111" text-decoration="underline dotted rgba(17, 17, 17, 1)">Rgba</text>
+      <text x="0" y="240" font-size="10" fill="#121212" text-decoration="underline dotted hsl(0 0% 7%)">Hsl</text>
     </svg>"""
     dml = svg_to_drawingml(svg)
 
@@ -1388,6 +1391,9 @@ def test_supported_underline_styles_map_to_drawingml_underline_values() -> None:
     assert run_prs[6].get("u") == "dotted"
     assert run_prs[7].get("u") == "dotted"
     assert run_prs[8].get("u") == "dotted"
+    assert run_prs[9].get("u") == "dotted"
+    assert run_prs[10].get("u") == "dotted"
+    assert run_prs[11].get("u") == "dotted"
     assert analyze_svg(svg).unsupported_attributes == {}
 
     round_trip = drawingml_to_svg(dml)

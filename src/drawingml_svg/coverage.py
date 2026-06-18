@@ -892,7 +892,7 @@ def _text_decoration_shorthand_is_supported_or_noop(
 def _text_decoration_shorthand_line_is_supported_or_noop(value: str | None) -> bool:
     if value is None:
         return False
-    tokens = [part.lower() for part in _css_value_tokens(value)]
+    tokens = _text_decoration_tokens(value)
     known = TEXT_DECORATION_LINE_TOKENS | TEXT_DECORATION_STYLE_TOKENS
     if any(token not in known and not _text_decoration_color_token(token) for token in tokens):
         return False
@@ -911,7 +911,7 @@ def _text_decoration_shorthand_color_has_no_effect(
     value = style.get("text-decoration")
     if value is None:
         return False
-    color_tokens = [_text_decoration_color_token(part) for part in _css_value_tokens(value)]
+    color_tokens = [_text_decoration_color_token(part) for part in _text_decoration_tokens(value)]
     color_tokens = [token for token in color_tokens if token is not None]
     if not color_tokens:
         return True
@@ -940,10 +940,9 @@ def _text_decoration_color_token(value: str) -> str | None:
 def _text_decoration_shorthand_style(value: str | None) -> str | None:
     if value is None:
         return None
-    for part in _css_value_tokens(value):
-        normalized = part.lower()
-        if normalized in TEXT_DECORATION_STYLE_TOKENS:
-            return normalized
+    for token in _text_decoration_tokens(value):
+        if token in TEXT_DECORATION_STYLE_TOKENS:
+            return token
     return None
 
 
@@ -951,7 +950,7 @@ def _text_decoration_line_is_supported_or_noop(style: dict[str, str]) -> bool:
     value = style.get("text-decoration-line", style.get("text-decoration"))
     if value is None:
         return False
-    tokens = {part.lower() for part in value.strip().split() if part.lower() in TEXT_DECORATION_LINE_TOKENS}
+    tokens = {token for token in _text_decoration_tokens(value) if token in TEXT_DECORATION_LINE_TOKENS}
     if not tokens or tokens <= {"none"}:
         return True
     return tokens <= SUPPORTED_TEXT_DECORATION_LINE_TOKENS
@@ -961,7 +960,7 @@ def _has_visible_text_decoration(style: dict[str, str]) -> bool:
     value = style.get("text-decoration-line", style.get("text-decoration"))
     if value is None:
         return False
-    tokens = {part.lower() for part in value.strip().split() if part.lower() in TEXT_DECORATION_LINE_TOKENS - {"none"}}
+    tokens = {token for token in _text_decoration_tokens(value) if token in TEXT_DECORATION_LINE_TOKENS - {"none"}}
     return bool(tokens & {"underline", "line-through"})
 
 
@@ -969,8 +968,12 @@ def _has_only_visible_underline(style: dict[str, str]) -> bool:
     value = style.get("text-decoration-line", style.get("text-decoration"))
     if value is None:
         return False
-    tokens = {part.lower() for part in value.strip().split() if part.lower() in TEXT_DECORATION_LINE_TOKENS - {"none"}}
+    tokens = {token for token in _text_decoration_tokens(value) if token in TEXT_DECORATION_LINE_TOKENS - {"none"}}
     return "underline" in tokens and "line-through" not in tokens
+
+
+def _text_decoration_tokens(value: str) -> list[str]:
+    return [token.lower() for token in _css_value_tokens(value)]
 
 
 def _transform_origin_is_supported(
