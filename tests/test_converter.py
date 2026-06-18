@@ -5645,6 +5645,18 @@ def test_analyze_svg_ignores_unused_gradient_href_references() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_analyze_svg_ignores_gradient_href_references_only_used_by_unreferenced_defs_content() -> None:
+    svg = """<svg>
+      <defs>
+        <linearGradient id="missing" href="#missing-base"/>
+        <g id="unused"><rect width="10" height="8" fill="url(#missing)"/></g>
+      </defs>
+      <rect width="10" height="8" fill="#111111"/>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
 def test_analyze_svg_reports_used_gradient_href_references() -> None:
     svg = """<svg>
       <style>.css-fill { fill: url(#external); }</style>

@@ -718,19 +718,23 @@ def _paint_server_is_referenced(
     paint_server_id = paint_server.get("id")
     if not paint_server_id or not ancestors:
         return False
-    return _subtree_references_paint_server(ancestors[0], paint_server_id, css, {}, (), viewport)
+    return _subtree_references_paint_server(ancestors[0], paint_server_id, css, refs, {}, (), viewport)
 
 
 def _subtree_references_paint_server(
     element: ET.Element,
     paint_server_id: str,
     css: list[CssRule],
+    refs: dict[str, ET.Element],
     inherited_style: dict[str, str],
     ancestors: tuple[ET.Element, ...],
     viewport: tuple[float, float],
     previous_siblings: tuple[ET.Element, ...] = (),
+    ref_stack: frozenset[str] = frozenset(),
 ) -> bool:
     tag = _local_name(element.tag)
+    if tag == "defs":
+        return False
     if tag != "svg":
         child_viewport = viewport
     elif ancestors:
@@ -744,6 +748,22 @@ def _subtree_references_paint_server(
     style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
     if _is_display_none(style):
         return False
+    if tag == "use":
+        ref_context = _use_reference_context(element, refs, viewport, ref_stack)
+        if ref_context is None:
+            return False
+        ref, ref_viewport, next_stack = ref_context
+        return _subtree_references_paint_server(
+            ref,
+            paint_server_id,
+            css,
+            refs,
+            style,
+            ancestors + (element,),
+            ref_viewport,
+            (),
+            next_stack,
+        )
     if (
         tag not in {"defs", "linearGradient", "pattern", "radialGradient", "stop"}
         and not _is_visibility_hidden(style)
@@ -764,10 +784,12 @@ def _subtree_references_paint_server(
             child,
             paint_server_id,
             css,
+            refs,
             style,
             ancestors + (element,),
             child_viewport,
             tuple(previous_children),
+            ref_stack,
         ):
             return True
         previous_children.append(child)

@@ -50,6 +50,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added analyzer reporting for inherited SVG text attributes that affect visible `use` references.
 - Added analyzer reporting for unresolved SVG paint servers referenced from visible `use` descendants.
 - Refined analyzer coverage for `use` references whose expanded contents have no visible rendering.
+- Refined analyzer paint-server reference checks so unreferenced `defs` content does not report unsupported gradient inheritance.
 - Refined analyzer handling for default SVG `isolation="auto"` values.
 - Refined analyzer handling for group-level clipping and effect attributes when the subtree has no visible rendering.
 - Refined analyzer handling for `text-decoration-color` values that match the visible text fill.
