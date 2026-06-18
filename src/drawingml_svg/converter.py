@@ -1092,7 +1092,7 @@ def _dml_text_paint(element: ET.Element, sp_pr: ET.Element) -> Paint:
     end_para_r_pr = _dml_end_paragraph_text_run_properties(element)
     ln = _dml_text_line_properties(r_pr, def_r_pr, end_para_r_pr)
     shape_paint = _dml_paint(sp_pr, element)
-    fill, fill_alpha = _dml_text_fill(r_pr, def_r_pr, end_para_r_pr, shape_paint)
+    fill, fill_alpha = _dml_text_fill(element, r_pr, def_r_pr, end_para_r_pr, shape_paint)
     return Paint(
         fill=fill,
         stroke=_dml_line_color(ln) if ln is not None else shape_paint.stroke,
@@ -1107,6 +1107,7 @@ def _dml_text_paint(element: ET.Element, sp_pr: ET.Element) -> Paint:
 
 
 def _dml_text_fill(
+    element: ET.Element,
     r_pr: ET.Element | None,
     def_r_pr: ET.Element | None,
     end_para_r_pr: ET.Element | None,
@@ -1118,6 +1119,9 @@ def _dml_text_fill(
     if source is None:
         source = _dml_text_fill_properties(end_para_r_pr)
     if source is None:
+        font_fill, font_alpha = _dml_style_color(element, "fontRef")
+        if font_fill is not None:
+            return font_fill, font_alpha
         return shape_paint.fill, shape_paint.fill_alpha
     if source.find(qn(NS_A, "noFill")) is not None:
         return "none", None
