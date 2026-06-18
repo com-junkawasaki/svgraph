@@ -22,6 +22,7 @@ from .converter import (
     _matrix_multiply,
     _optional_length,
     _paint_server_value,
+    _parse_color,
     _parse_linear_path,
     _parse_points,
     _preserve_aspect_ratio,
@@ -373,7 +374,9 @@ def _inspect_attributes(
             continue
         if attr == "text-decoration-line" and _text_decoration_line_is_supported_or_noop(specified_style):
             continue
-        if attr == "text-decoration-color" and _text_decoration_color_has_no_effect(specified_style):
+        if attr == "text-decoration-color" and _text_decoration_color_has_no_effect(
+            style, refs, css, viewport
+        ):
             continue
         if attr == "text-decoration-style" and _text_decoration_style_is_supported_or_noop(specified_style):
             continue
@@ -722,8 +725,23 @@ def _writing_mode_has_no_effect(style: dict[str, str]) -> bool:
     return value is not None and value.strip().lower() in {"", "horizontal-tb", "lr", "lr-tb", "rl", "rl-tb"}
 
 
-def _text_decoration_color_has_no_effect(style: dict[str, str]) -> bool:
-    return not _has_visible_text_decoration(style)
+def _text_decoration_color_has_no_effect(
+    style: dict[str, str],
+    refs: dict[str, ET.Element],
+    css: list[CssRule],
+    viewport: tuple[float, float],
+) -> bool:
+    if not _has_visible_text_decoration(style):
+        return True
+    value = style.get("text-decoration-color")
+    if value is None:
+        return False
+    paint = _svg_paint(style, refs, default_fill=True, css=css, viewport=viewport)
+    if paint.fill in {None, "none"} or (paint.fill_alpha is not None and paint.fill_alpha < 1):
+        return False
+    color_value = style.get("color") if value.strip().lower() == "currentcolor" else value
+    decoration_color, decoration_alpha = _parse_color(color_value)
+    return decoration_color == paint.fill and decoration_alpha in {None, 1.0}
 
 
 def _text_decoration_style_is_supported_or_noop(style: dict[str, str]) -> bool:

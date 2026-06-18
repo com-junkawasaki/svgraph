@@ -1347,12 +1347,21 @@ def test_text_decoration_color_and_non_solid_style_are_reported_when_visible() -
       <text x="0" y="40" text-decoration="line-through" text-decoration-style="dashed">Style</text>
       <text x="0" y="60" text-decoration-style="dotted">No decoration</text>
       <text x="0" y="80" text-decoration-line="underline" text-decoration-style="solid">Solid</text>
+      <text x="0" y="100" fill="#111111" text-decoration-line="underline" text-decoration-color="#111111">Same</text>
+      <text x="0" y="120" color="#111111" fill="currentColor" text-decoration-line="underline"
+        text-decoration-color="currentColor">Current</text>
     </svg>"""
 
     assert analyze_svg(svg).unsupported_attributes == {
         "text-decoration-color": 1,
         "text-decoration-style": 1,
     }
+
+
+def test_text_decoration_color_is_reported_when_same_rgb_has_different_alpha() -> None:
+    svg = '<svg><text x="0" y="20" fill="#111111" fill-opacity=".5" text-decoration-line="underline" text-decoration-color="#111111">Dim</text></svg>'
+
+    assert analyze_svg(svg).unsupported_attributes == {"text-decoration-color": 1}
 
 
 def test_unsupported_text_decoration_tokens_are_reported() -> None:

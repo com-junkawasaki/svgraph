@@ -21,6 +21,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added first-positioned SVG `tspan` `text-anchor` fallback conversion and analyzer support.
 - Added first-positioned SVG `tspan` baseline fallback conversion and analyzer support.
 - Refined analyzer handling for marker-only `paint-order` changes that have no visible effect without markers.
+- Refined analyzer handling for `text-decoration-color` values that match the visible text fill.
 
 ## 0.1.0
 
