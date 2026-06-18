@@ -2074,6 +2074,70 @@ def test_drawingml_run_properties_override_default_run_properties() -> None:
     assert 'fill="#334455"' not in svg
 
 
+def test_drawingml_end_paragraph_run_properties_fall_back_to_svg_text_style() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="285750"/></a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr/><a:lstStyle/>
+          <a:p>
+            <a:r><a:t>End defaults</a:t></a:r>
+            <a:endParaRPr sz="1600" b="1" i="1" spc="120" u="sng">
+              <a:solidFill><a:srgbClr val="224466"/></a:solidFill>
+              <a:ln w="19050"><a:solidFill><a:srgbClr val="CC5500"/></a:solidFill></a:ln>
+              <a:latin typeface="Aptos"/>
+            </a:endParaRPr>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'font-size="16"' in svg
+    assert 'font-weight="bold"' in svg
+    assert 'font-style="italic"' in svg
+    assert 'font-family="Aptos"' in svg
+    assert 'letter-spacing="1.6"' in svg
+    assert 'text-decoration="underline"' in svg
+    assert 'fill="#224466"' in svg
+    assert 'stroke="#cc5500"' in svg
+    assert 'stroke-width="2"' in svg
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_drawingml_run_properties_override_end_paragraph_run_properties() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="text"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="285750"/></a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr/><a:lstStyle/>
+          <a:p>
+            <a:r><a:rPr sz="1200"><a:solidFill><a:srgbClr val="AA5500"/></a:solidFill></a:rPr><a:t>Run wins</a:t></a:r>
+            <a:endParaRPr sz="1800" b="1"><a:solidFill><a:srgbClr val="334455"/></a:solidFill></a:endParaRPr>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'font-size="12"' in svg
+    assert 'font-weight="bold"' in svg
+    assert 'fill="#aa5500"' in svg
+    assert 'fill="#334455"' not in svg
+
+
 def test_drawingml_non_latin_typefaces_fall_back_to_svg_font_family() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">

@@ -1055,9 +1055,10 @@ def _dml_paint(sp_pr: ET.Element) -> Paint:
 def _dml_text_paint(element: ET.Element, sp_pr: ET.Element) -> Paint:
     r_pr = _dml_text_run_properties(element)
     def_r_pr = _dml_default_text_run_properties(element)
-    ln = _dml_text_line_properties(r_pr, def_r_pr)
+    end_para_r_pr = _dml_end_paragraph_text_run_properties(element)
+    ln = _dml_text_line_properties(r_pr, def_r_pr, end_para_r_pr)
     shape_paint = _dml_paint(sp_pr)
-    fill, fill_alpha = _dml_text_fill(r_pr, def_r_pr, shape_paint)
+    fill, fill_alpha = _dml_text_fill(r_pr, def_r_pr, end_para_r_pr, shape_paint)
     return Paint(
         fill=fill,
         stroke=_dml_line_color(ln) if ln is not None else shape_paint.stroke,
@@ -1074,11 +1075,14 @@ def _dml_text_paint(element: ET.Element, sp_pr: ET.Element) -> Paint:
 def _dml_text_fill(
     r_pr: ET.Element | None,
     def_r_pr: ET.Element | None,
+    end_para_r_pr: ET.Element | None,
     shape_paint: Paint,
 ) -> tuple[str | None, float | None]:
     source = _dml_text_fill_properties(r_pr)
     if source is None:
         source = _dml_text_fill_properties(def_r_pr)
+    if source is None:
+        source = _dml_text_fill_properties(end_para_r_pr)
     if source is None:
         return shape_paint.fill, shape_paint.fill_alpha
     if source.find(qn(NS_A, "noFill")) is not None:
@@ -1104,11 +1108,17 @@ def _dml_text_fill_properties(element: ET.Element | None) -> ET.Element | None:
     return None
 
 
-def _dml_text_line_properties(r_pr: ET.Element | None, def_r_pr: ET.Element | None) -> ET.Element | None:
+def _dml_text_line_properties(
+    r_pr: ET.Element | None,
+    def_r_pr: ET.Element | None,
+    end_para_r_pr: ET.Element | None = None,
+) -> ET.Element | None:
     if r_pr is not None and r_pr.find(qn(NS_A, "ln")) is not None:
         return r_pr.find(qn(NS_A, "ln"))
     if def_r_pr is not None and def_r_pr.find(qn(NS_A, "ln")) is not None:
         return def_r_pr.find(qn(NS_A, "ln"))
+    if end_para_r_pr is not None and end_para_r_pr.find(qn(NS_A, "ln")) is not None:
+        return end_para_r_pr.find(qn(NS_A, "ln"))
     return None
 
 
@@ -1976,6 +1986,10 @@ def _dml_default_text_run_properties(element: ET.Element) -> ET.Element | None:
     return element.find(f".//{qn(NS_A, 'defRPr')}")
 
 
+def _dml_end_paragraph_text_run_properties(element: ET.Element) -> ET.Element | None:
+    return element.find(f".//{qn(NS_A, 'endParaRPr')}")
+
+
 def _dml_text_property(
     element: ET.Element,
     predicate: Callable[[ET.Element], bool],
@@ -1986,6 +2000,9 @@ def _dml_text_property(
     def_r_pr = _dml_default_text_run_properties(element)
     if def_r_pr is not None and predicate(def_r_pr):
         return def_r_pr
+    end_para_r_pr = _dml_end_paragraph_text_run_properties(element)
+    if end_para_r_pr is not None and predicate(end_para_r_pr):
+        return end_para_r_pr
     return None
 
 
