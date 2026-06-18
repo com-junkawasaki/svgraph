@@ -2854,6 +2854,8 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
         return [(quarter_x, top), (right, top), (three_quarter_x, bottom), (left, bottom)]
     if kind in {"trapezoid", "flowChartManualInput"}:
         return [(quarter_x, top), (three_quarter_x, top), (right, bottom), (left, bottom)]
+    if kind == "nonIsoscelesTrapezoid":
+        return [(x + width * 0.18, top), (right, top), (x + width * 0.82, bottom), (left, bottom)]
     if kind == "flowChartManualOperation":
         return [(left, top), (right, top), (three_quarter_x, bottom), (quarter_x, bottom)]
     if kind == "flowChartDocument":
@@ -2930,6 +2932,17 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
         return [(left, top), (right, top), (right, quarter_y), (quarter_x, quarter_y), (quarter_x, bottom), (left, bottom)]
     if kind == "diagStripe":
         return [(left, bottom), (quarter_x, bottom), (right, top), (three_quarter_x, top)]
+    if kind == "plaque":
+        return [
+            (x + width * 0.2, top),
+            (x + width * 0.8, top),
+            (right, y + height * 0.2),
+            (right, y + height * 0.8),
+            (x + width * 0.8, bottom),
+            (x + width * 0.2, bottom),
+            (left, y + height * 0.8),
+            (left, y + height * 0.2),
+        ]
     if kind == "leftBracket":
         return [(right, top), (left, top), (left, bottom), (right, bottom), (right, three_quarter_y), (quarter_x, three_quarter_y), (quarter_x, quarter_y), (right, quarter_y)]
     if kind == "rightBracket":

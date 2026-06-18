@@ -2864,6 +2864,14 @@ def test_drawingml_cut_corner_presets_round_trip_to_svg_polygons() -> None:
           <a:solidFill><a:srgbClr val="EDE9FE"/></a:solidFill>
         </p:spPr>
       </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="7" name="non-isosceles trapezoid"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="2466975" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="nonIsoscelesTrapezoid"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FCE7F3"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
     </p:spTree>"""
 
     svg = drawingml_to_svg(dml)
@@ -2873,6 +2881,7 @@ def test_drawingml_cut_corner_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#dcfce7" points="110,20 140,20 150,25 150,40 110,40"/>' in svg
     assert '<polygon fill="#fef3c7" points="170,20 200,20 200,35 190,40 160,40 160,25"/>' in svg
     assert '<polygon fill="#ede9fe" points="209,20 239,20 249,25 249,40 219,40 209,35"/>' in svg
+    assert '<polygon fill="#fce7f3" points="266.2,20 299,20 291.8,40 259,40"/>' in svg
 
 
 def test_drawingml_step_diagram_presets_round_trip_to_svg_polygons() -> None:
@@ -2937,6 +2946,14 @@ def test_drawingml_corner_presets_round_trip_to_svg_polygons() -> None:
           <a:solidFill><a:srgbClr val="DCFCE7"/></a:solidFill>
         </p:spPr>
       </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="6" name="plaque"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1990725" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="plaque"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FCE7F3"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
     </p:spTree>"""
 
     svg = drawingml_to_svg(dml)
@@ -2945,6 +2962,7 @@ def test_drawingml_corner_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#ede9fe" points="60,20 100,20 100,25 70,25 70,40 60,40"/>' in svg
     assert '<polygon fill="#dbeafe" points="110,20 150,20 150,25 120,25 120,40 110,40"/>' in svg
     assert '<polygon fill="#dcfce7" points="160,40 170,40 200,20 190,20"/>' in svg
+    assert '<polygon fill="#fce7f3" points="217,20 241,20 249,24 249,36 241,40 217,40 209,36 209,24"/>' in svg
 
 
 def test_drawingml_bracket_presets_round_trip_to_svg_polygons() -> None:
