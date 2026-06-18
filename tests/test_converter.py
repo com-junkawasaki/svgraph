@@ -5751,6 +5751,27 @@ def test_marker_mid_without_interior_vertices_is_noop() -> None:
     assert analyze_svg(svg).unsupported_attributes == {"marker-mid": 1}
 
 
+def test_inherited_marker_mid_without_interior_vertices_is_noop() -> None:
+    svg = """<svg>
+      <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <g marker-mid="url(#arrow)">
+        <line x1="0" y1="0" x2="10" y2="0" stroke="#111111"/>
+        <polyline points="0,4 10,4" fill="none" stroke="#111111"/>
+        <path d="M0 8 L10 8" fill="none" stroke="#111111"/>
+        <polyline points="0,12 10,12 10,20" fill="none" stroke="#111111"/>
+      </g>
+    </svg>"""
+    invisible = """<svg>
+      <defs><marker id="arrow" viewBox="0 0 10 10"><path d="M0 0 L10 5 L0 10 Z"/></marker></defs>
+      <g marker-mid="url(#arrow)">
+        <polyline points="0,0 10,0 10,10" fill="none" stroke="none"/>
+      </g>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {"marker-mid": 1}
+    assert analyze_svg(invisible).unsupported_attributes == {}
+
+
 def test_data_uri_image_converts_to_picture_and_round_trips() -> None:
     svg = f'<svg><image href="{PNG_DATA_URI}" x="10" y="12" width="20" height="16"/></svg>'
     dml = svg_to_drawingml(svg)

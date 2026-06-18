@@ -363,7 +363,10 @@ def _inspect_attributes(
             or _subtree_marker_is_supported(element, css, refs, style, ancestors, viewport)
         ):
             continue
-        if attr == "marker-mid" and _marker_mid_has_no_effect(element, specified_style):
+        if attr == "marker-mid" and (
+            _marker_mid_has_no_effect(element, specified_style)
+            or _subtree_marker_mid_has_no_effect(element, css, refs, style, ancestors, viewport)
+        ):
             continue
         if attr == "font-variant" and _font_variant_is_supported(specified_style):
             continue
@@ -764,6 +767,62 @@ def _subtree_marker_is_supported(
     previous_children: list[ET.Element] = []
     for child in element:
         if not _subtree_marker_is_supported(
+            child,
+            css,
+            refs,
+            style,
+            ancestors + (element,),
+            child_viewport,
+            tuple(previous_children),
+        ):
+            return False
+        previous_children.append(child)
+    return True
+
+
+def _subtree_marker_mid_has_no_effect(
+    element: ET.Element,
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    inherited_style: dict[str, str],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+    previous_siblings: tuple[ET.Element, ...] = (),
+) -> bool:
+    style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
+    if _is_display_none(style):
+        return True
+    tag = _local_name(element.tag)
+    if (
+        not _is_visibility_hidden(style)
+        and tag in RENDERING_ELEMENTS
+        and not _has_non_rendering_geometry(element, style, viewport)
+        and not _has_no_visible_paint(element, style, refs, css, viewport)
+    ):
+        return _marker_mid_has_no_effect(element, style)
+    child_viewport = viewport
+    if tag == "svg" and ancestors:
+        child_viewport = _viewport_size(
+            element,
+            _optional_length(element.get("width"), "x", viewport),
+            _optional_length(element.get("height"), "y", viewport),
+        )
+    if tag == "switch":
+        selected = _switch_selected_child(element)
+        if selected is None:
+            return True
+        return _subtree_marker_mid_has_no_effect(
+            selected,
+            css,
+            refs,
+            style,
+            ancestors + (element,),
+            child_viewport,
+            _previous_element_siblings(element, selected),
+        )
+    previous_children: list[ET.Element] = []
+    for child in element:
+        if not _subtree_marker_mid_has_no_effect(
             child,
             css,
             refs,
