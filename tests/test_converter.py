@@ -4206,3 +4206,34 @@ def test_drawingml_text_body_insets_adjust_centered_svg_text_anchor() -> None:
 
     assert 'x="40"' in svg
     assert 'text-anchor="middle"' in svg
+
+
+def test_drawingml_text_body_insets_adjust_middle_and_bottom_svg_baselines() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="middle"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="952500" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        <p:txBody>
+          <a:bodyPr anchor="ctr" tIns="95250" bIns="95250"/>
+          <a:lstStyle/>
+          <a:p><a:r><a:rPr sz="1200"/><a:t>Middle</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="bottom"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="0" y="476250"/><a:ext cx="952500" cy="381000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>
+        <p:txBody>
+          <a:bodyPr anchor="b" tIns="95250" bIns="190500"/>
+          <a:lstStyle/>
+          <a:p><a:r><a:rPr sz="1200"/><a:t>Bottom</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert 'y="20"' in svg
+    assert 'dominant-baseline="middle"' in svg
+    assert 'y="70"' in svg
+    assert 'dominant-baseline="text-after-edge"' in svg
