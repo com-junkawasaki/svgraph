@@ -3118,6 +3118,33 @@ def test_drawingml_symbol_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#fef3c7" points="50,20 52.4,27.6 60,27.6 53.8,31.8 56.2,40 50,34.4 43.8,40 46.2,31.8 40,27.6 47.6,27.6"/>' in svg
 
 
+def test_drawingml_additional_star_presets_round_trip_to_svg_polygons() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="four point star"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="95250" y="190500"/><a:ext cx="190500" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="star4"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DBEAFE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="eight point star"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="381000" y="190500"/><a:ext cx="190500" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="star8"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEE2E2"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert '<polygon fill="#dbeafe" points="20,20 22,28 30,30 22,32 20,40 18,32 10,30 18,28"/>' in svg
+    assert '<polygon fill="#fee2e2" points="50,20 51.6,26.4 57,23 53.6,28.4 60,30 53.6,31.6 57,37 51.6,33.6 50,40 48.4,33.6 43,37 46.4,31.6 40,30 46.4,28.4 43,23 48.4,26.4"/>' in svg
+
+
 def test_drawingml_math_symbol_presets_round_trip_to_svg_polygons() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">

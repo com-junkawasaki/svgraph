@@ -2914,6 +2914,17 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (x + width * 0.3, center_y),
             (left, y + height * 0.2),
         ]
+    if kind == "star4":
+        return [
+            (center_x, top),
+            (x + width * 0.6, y + height * 0.4),
+            (right, center_y),
+            (x + width * 0.6, y + height * 0.6),
+            (center_x, bottom),
+            (x + width * 0.4, y + height * 0.6),
+            (left, center_y),
+            (x + width * 0.4, y + height * 0.4),
+        ]
     if kind == "star5":
         return [
             (center_x, top),
@@ -2926,6 +2937,25 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (x + width * 0.31, y + height * 0.59),
             (left, y + height * 0.38),
             (x + width * 0.38, y + height * 0.38),
+        ]
+    if kind == "star8":
+        return [
+            (center_x, top),
+            (x + width * 0.58, y + height * 0.32),
+            (x + width * 0.85, y + height * 0.15),
+            (x + width * 0.68, y + height * 0.42),
+            (right, center_y),
+            (x + width * 0.68, y + height * 0.58),
+            (x + width * 0.85, y + height * 0.85),
+            (x + width * 0.58, y + height * 0.68),
+            (center_x, bottom),
+            (x + width * 0.42, y + height * 0.68),
+            (x + width * 0.15, y + height * 0.85),
+            (x + width * 0.32, y + height * 0.58),
+            (left, center_y),
+            (x + width * 0.32, y + height * 0.42),
+            (x + width * 0.15, y + height * 0.15),
+            (x + width * 0.42, y + height * 0.32),
         ]
     if kind == "rightArrow":
         return [(left, quarter_y), (arrow_head_x, quarter_y), (arrow_head_x, top), (right, center_y), (arrow_head_x, bottom), (arrow_head_x, three_quarter_y), (left, three_quarter_y)]
