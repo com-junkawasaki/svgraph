@@ -522,7 +522,7 @@ def _dml_table_shapes(element: ET.Element) -> Iterable[Shape]:
                         font_style=_dml_font_style(cell),
                         font_family=_dml_font_family(cell),
                         text_anchor=_dml_table_cell_text_anchor(cell),
-                        text_baseline="middle",
+                        text_baseline=_dml_table_cell_text_baseline(cell) or "middle",
                 )
             )
             left += cell_width
@@ -628,6 +628,13 @@ def _dml_table_cell_text_anchor(cell: ET.Element) -> str | None:
     if p_pr is None:
         return None
     return {"ctr": "middle", "r": "end", "l": "start"}.get(p_pr.get("algn", ""))
+
+
+def _dml_table_cell_text_baseline(cell: ET.Element) -> str | None:
+    body_pr = cell.find(f"{qn(NS_A, 'txBody')}/{qn(NS_A, 'bodyPr')}")
+    if body_pr is None:
+        return None
+    return {"ctr": "middle", "b": "text-after-edge", "t": "text-before-edge"}.get(body_pr.get("anchor", ""))
 
 
 def _dml_shape_from_element(element: ET.Element) -> Shape | None:
