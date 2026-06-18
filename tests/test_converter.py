@@ -5359,6 +5359,35 @@ def test_gradient_href_cycle_can_use_fallback_color() -> None:
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
+def test_analyze_svg_ignores_unused_gradient_href_references() -> None:
+    svg = """<svg>
+      <defs>
+        <linearGradient id="missing" href="#missing-base"/>
+        <radialGradient id="external" href="gradients.svg#base"/>
+      </defs>
+      <rect width="10" height="8" fill="#111111"/>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_analyze_svg_reports_used_gradient_href_references() -> None:
+    svg = """<svg>
+      <style>.css-fill { fill: url(#external); }</style>
+      <defs>
+        <linearGradient id="missing" href="#missing-base"/>
+        <radialGradient id="external" href="gradients.svg#base"/>
+      </defs>
+      <rect width="10" height="8" fill="url(#missing)"/>
+      <rect class="css-fill" x="12" width="10" height="8"/>
+    </svg>"""
+
+    assert analyze_svg(svg).unsupported_attributes == {
+        "fill:paint-server": 2,
+        "href": 2,
+    }
+
+
 def test_analyze_svg_reports_missing_paint_server() -> None:
     report = analyze_svg(
         """<svg>

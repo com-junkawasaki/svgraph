@@ -556,7 +556,10 @@ def _inspect_attributes(
         if not _use_href_is_supported(element, refs):
             stats.add_unsupported_attribute("href")
     elif _local_name(element.tag) in {"linearGradient", "radialGradient"} and href is not None:
-        if not href.startswith("#") or href[1:] not in refs:
+        if (
+            (not href.startswith("#") or href[1:] not in refs)
+            and _paint_server_is_referenced(element, css, refs, ancestors, viewport)
+        ):
             stats.add_unsupported_attribute("href")
     for attr in ("fill", "stroke"):
         value = style.get(attr)
@@ -591,6 +594,58 @@ def _paint_channel_is_visible(
         and not _alpha_is_zero(style.get("stroke-opacity"))
         and stroke_width != 0
     )
+
+
+def _paint_server_is_referenced(
+    paint_server: ET.Element,
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+) -> bool:
+    paint_server_id = paint_server.get("id")
+    if not paint_server_id or not ancestors:
+        return False
+    return _subtree_references_paint_server(ancestors[0], paint_server_id, css, {}, (), viewport)
+
+
+def _subtree_references_paint_server(
+    element: ET.Element,
+    paint_server_id: str,
+    css: list[CssRule],
+    inherited_style: dict[str, str],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+    previous_siblings: tuple[ET.Element, ...] = (),
+) -> bool:
+    tag = _local_name(element.tag)
+    style = _computed_style(element, css, inherited_style, ancestors, previous_siblings)
+    if tag not in {"defs", "linearGradient", "pattern", "radialGradient", "stop"}:
+        for attr in ("fill", "stroke"):
+            ref = _url_ref(style.get(attr))
+            if ref is not None and ref[0] == paint_server_id and not ref[1].strip():
+                return True
+    child_viewport = viewport
+    if tag == "svg" and ancestors:
+        child_viewport = _viewport_size(
+            element,
+            _optional_length(element.get("width"), "x", viewport),
+            _optional_length(element.get("height"), "y", viewport),
+        )
+    previous_children: list[ET.Element] = []
+    for child in element:
+        if _subtree_references_paint_server(
+            child,
+            paint_server_id,
+            css,
+            style,
+            ancestors + (element,),
+            child_viewport,
+            tuple(previous_children),
+        ):
+            return True
+        previous_children.append(child)
+    return False
 
 
 def _inspect_tspan_run_attributes(
