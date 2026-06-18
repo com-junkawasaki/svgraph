@@ -53,6 +53,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added analyzer reporting for unsupported visible content expanded through SVG `use` references.
 - Added analyzer reporting for visible SVG marker definitions that cannot be represented as DrawingML arrowheads.
 - Added analyzer reporting for SVG group opacity when multiple visible descendants cannot be represented as one DrawingML compositing group.
+- Added analyzer reporting for explicit SVG viewport `overflow` clipping that is not represented in DrawingML output.
 - Refined analyzer paint-server reference checks so unreferenced `defs` content does not report unsupported gradient inheritance.
 - Refined analyzer handling for default SVG `isolation="auto"` values.
 - Refined analyzer handling for group-level clipping and effect attributes when the subtree has no visible rendering.

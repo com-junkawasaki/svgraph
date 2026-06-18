@@ -4712,6 +4712,7 @@ def _computed_style(
         "marker-end",
         "mask",
         "mix-blend-mode",
+        "overflow",
         "paint-order",
         "pathLength",
         "preserveAspectRatio",

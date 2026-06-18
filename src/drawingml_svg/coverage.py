@@ -139,6 +139,7 @@ UNSUPPORTED_ATTRIBUTES = {
     "mask",
     "mix-blend-mode",
     "opacity",
+    "overflow",
     "paint-order",
     "pathLength",
     "preserveAspectRatio",
@@ -354,6 +355,7 @@ def _inspect_attributes(
         "marker-mid",
         "marker-start",
         "mask",
+        "overflow",
         "paint-order",
         "shape-rendering",
         "text-rendering",
@@ -428,6 +430,8 @@ def _inspect_attributes(
         if attr == "mix-blend-mode" and _mix_blend_mode_has_no_effect(element, specified_style, style, refs, css, viewport):
             continue
         if attr == "opacity" and _opacity_is_supported_or_noop(element, specified_style, css, refs, style, ancestors, viewport):
+            continue
+        if attr == "overflow" and _overflow_is_supported_or_noop(element, css, refs, style, ancestors, viewport):
             continue
         if attr == "paint-order" and not _subtree_has_unsupported_paint_order(
             element,
@@ -1126,6 +1130,25 @@ def _opacity_is_supported_or_noop(
     if tag in RENDERING_ELEMENTS:
         return True
     return _visible_rendering_descendant_count(element, css, refs, inherited_style, ancestors, viewport, limit=2) < 2
+
+
+def _overflow_is_supported_or_noop(
+    element: ET.Element,
+    css: list[CssRule],
+    refs: dict[str, ET.Element],
+    inherited_style: dict[str, str],
+    ancestors: tuple[ET.Element, ...],
+    viewport: tuple[float, float],
+) -> bool:
+    value = inherited_style.get("overflow")
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if normalized in {"", "visible"}:
+        return True
+    if _local_name(element.tag) not in {"svg", "symbol"}:
+        return True
+    return not _subtree_has_visible_rendering(element, css, refs, inherited_style, ancestors, viewport)
 
 
 def _visible_rendering_descendant_count(

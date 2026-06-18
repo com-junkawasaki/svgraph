@@ -2121,6 +2121,26 @@ def test_nested_svg_viewbox_translates_scales_and_sets_child_viewport() -> None:
     assert analyze_svg(svg).estimated_element_coverage == 1.0
 
 
+def test_analyze_svg_reports_explicit_svg_overflow_clipping() -> None:
+    hidden_root = '<svg width="10" height="10" overflow="hidden"><rect width="20" height="20" fill="#ff0000"/></svg>'
+    hidden_nested = """<svg>
+      <svg x="0" y="0" width="10" height="10" overflow="hidden">
+        <rect width="20" height="20" fill="#ff0000"/>
+      </svg>
+    </svg>"""
+    visible_nested = """<svg>
+      <svg x="0" y="0" width="10" height="10" overflow="visible">
+        <rect width="20" height="20" fill="#ff0000"/>
+      </svg>
+    </svg>"""
+    hidden_without_rendering = '<svg width="10" height="10" overflow="hidden"><rect width="20" height="20" opacity="0"/></svg>'
+
+    assert analyze_svg(hidden_root).unsupported_attributes == {"overflow": 1}
+    assert analyze_svg(hidden_nested).unsupported_attributes == {"overflow": 1}
+    assert analyze_svg(visible_nested).unsupported_attributes == {}
+    assert analyze_svg(hidden_without_rendering).unsupported_attributes == {}
+
+
 def test_scaled_rounded_rect_stays_as_editable_round_rect() -> None:
     dml = svg_to_drawingml(
         '<svg><g transform="translate(10 20) scale(2 3)"><rect x="5" y="4" width="20" height="10" rx="3" ry="2" fill="#f97316"/></g></svg>'
