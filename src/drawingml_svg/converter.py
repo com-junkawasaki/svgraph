@@ -2929,6 +2929,8 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
         ]
     if kind == "pie":
         return [(center_x, center_y), *_ellipse_arc_points(center_x, center_y, width / 2, height / 2, -90, 0)]
+    if kind == "chord":
+        return _ellipse_arc_points(center_x, center_y, width / 2, height / 2, -90, 90)
     if kind == "blockArc":
         outer = _ellipse_arc_points(center_x, center_y, width / 2, height / 2, -90, 0)
         inner = _ellipse_arc_points(center_x, center_y, width * 0.28, height * 0.28, 0, -90)
@@ -3062,6 +3064,17 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (x + width * 0.36, bottom),
             (x + width * 0.82, y + height * 0.4),
             (x + width * 0.54, y + height * 0.4),
+        ]
+    if kind == "teardrop":
+        return [
+            (center_x, top),
+            (x + width * 0.82, y + height * 0.08),
+            (right, y + height * 0.38),
+            (x + width * 0.88, y + height * 0.72),
+            (center_x, bottom),
+            (x + width * 0.18, y + height * 0.72),
+            (left, y + height * 0.38),
+            (x + width * 0.18, y + height * 0.12),
         ]
     if kind == "star4":
         return [

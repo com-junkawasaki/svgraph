@@ -2903,12 +2903,21 @@ def test_drawingml_arc_presets_round_trip_to_svg_polygons() -> None:
           <a:solidFill><a:srgbClr val="FEE2E2"/></a:solidFill>
         </p:spPr>
       </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="4" name="chord"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1047750" y="190500"/><a:ext cx="381000" cy="381000"/></a:xfrm>
+          <a:prstGeom prst="chord"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DCFCE7"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
     </p:spTree>"""
 
     svg = drawingml_to_svg(dml)
 
     assert '<polygon fill="#dbeafe" points="30,40 30,20 32.6105,20.1711 35.1764,20.6815 37.6537,21.5224 40,22.6795 42.1752,24.1329 44.1421,25.8579 45.8671,27.8248 47.3205,30 48.4776,32.3463 49.3185,34.8236 49.8289,37.3895 50,40"/>' in svg
     assert '<polygon fill="#fee2e2" points="80,20 82.6105,20.1711 85.1764,20.6815 87.6537,21.5224 90,22.6795 92.1752,24.1329 94.1421,25.8579 95.8671,27.8248 97.3205,30 98.4776,32.3463 99.3185,34.8236 99.8289,37.3895 100,40 91.2,40 91.1042,38.5381 90.8184,37.1012 90.3475,35.7139 89.6995,34.4 88.8856,33.1819 87.9196,32.0804 86.8181,31.1144 85.6,30.3005 84.2861,29.6525 82.8988,29.1816 81.4619,28.8958 80,28.8"/>' in svg
+    assert '<polygon fill="#dcfce7" points="130,20 135.1764,20.6815 140,22.6795 144.1421,25.8579 147.3205,30 149.3185,34.8236 150,40 149.3185,45.1764 147.3205,50 144.1421,54.1421 140,57.3205 135.1764,59.3185 130,60"/>' in svg
 
 
 def test_drawingml_step_diagram_presets_round_trip_to_svg_polygons() -> None:
@@ -3252,6 +3261,14 @@ def test_drawingml_symbol_presets_round_trip_to_svg_polygons() -> None:
           <a:solidFill><a:srgbClr val="FEF9C3"/></a:solidFill>
         </p:spPr>
       </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="6" name="teardrop"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1238250" y="190500"/><a:ext cx="190500" cy="190500"/></a:xfrm>
+          <a:prstGeom prst="teardrop"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="E0F2FE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
     </p:spTree>"""
 
     svg = drawingml_to_svg(dml)
@@ -3260,6 +3277,7 @@ def test_drawingml_symbol_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#fef3c7" points="50,20 52.4,27.6 60,27.6 53.8,31.8 56.2,40 50,34.4 43.8,40 46.2,31.8 40,27.6 47.6,27.6"/>' in svg
     assert '<polygon fill="#fce7f3" points="80,40 70,29 71.6,23.6 76.4,20 80,24 83.6,20 88.4,23.6 90,29"/>' in svg
     assert '<polygon fill="#fef9c3" points="111.6,20 103.6,31 109.2,31 107.2,40 116.4,28 110.8,28"/>' in svg
+    assert '<polygon fill="#e0f2fe" points="140,20 146.4,21.6 150,27.6 147.6,34.4 140,40 133.6,34.4 130,27.6 133.6,22.4"/>' in svg
 
 
 def test_drawingml_additional_star_presets_round_trip_to_svg_polygons() -> None:
