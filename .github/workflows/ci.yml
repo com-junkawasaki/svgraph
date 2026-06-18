@@ -107,6 +107,8 @@ jobs:
           root = next(name for name in sdist_names if name.endswith("/pyproject.toml")).rsplit("/", 1)[0]
           assert f"{root}/README.md" in sdist_names
           assert f"{root}/LICENSE" in sdist_names
+          assert f"{root}/CONTRIBUTING.md" in sdist_names
+          assert f"{root}/SECURITY.md" in sdist_names
           assert f"{root}/src/drawingml_svg/py.typed" in sdist_names
           PY
           python -m venv tmp/wheel-venv
