@@ -7544,6 +7544,40 @@ def test_svg_line_grid_with_non_cell_text_keeps_text_as_shape() -> None:
     assert "Outside" in dml
 
 
+def test_svg_cell_background_rects_and_line_grid_convert_to_one_native_table() -> None:
+    svg = """<svg>
+      <rect x="0" y="0" width="20" height="20" fill="#e0f2fe" stroke="none"/>
+      <rect x="20" y="0" width="20" height="20" fill="#f0fdf4" stroke="none"/>
+      <rect x="0" y="20" width="20" height="20" fill="#ffffff" stroke="none"/>
+      <rect x="20" y="20" width="20" height="20" fill="#ffffff" stroke="none"/>
+      <line x1="0" y1="0" x2="40" y2="0" stroke="#0284c7" stroke-width="2"/>
+      <line x1="0" y1="20" x2="40" y2="20" stroke="#0284c7" stroke-width="2"/>
+      <line x1="0" y1="40" x2="40" y2="40" stroke="#0284c7" stroke-width="2"/>
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#0284c7" stroke-width="2"/>
+      <line x1="20" y1="0" x2="20" y2="40" stroke="#0284c7" stroke-width="2"/>
+      <line x1="40" y1="0" x2="40" y2="40" stroke="#0284c7" stroke-width="2"/>
+      <text x="4" y="14" font-size="10" fill="#111111">A</text>
+      <text x="24" y="14" font-size="10" fill="#111111">B</text>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert dml.count("<p:sp>") == 0
+    assert 'w="19050"' in dml
+    assert "0284C7" in dml
+    assert "E0F2FE" in dml
+    assert "F0FDF4" in dml
+
+    round_trip = drawingml_to_svg(dml)
+    assert round_trip.count("<rect") == 4
+    assert round_trip.count("<line") == 16
+    assert 'fill="#e0f2fe"' in round_trip
+    assert 'stroke="#0284c7"' in round_trip
+    assert 'stroke-width="2"' in round_trip
+    assert "A" in round_trip
+
+
 def test_svg_rect_grid_with_non_cell_text_keeps_text_as_shape() -> None:
     svg = """<svg>
       <rect x="0" y="0" width="20" height="20" fill="#ffffff" stroke="#111111"/>

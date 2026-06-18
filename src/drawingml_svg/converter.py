@@ -1194,6 +1194,8 @@ def _extract_svg_table(shapes: list[Shape]) -> tuple[SvgTable | None, list[Shape
         text_map[key] = shape
         consumed_texts.add(index)
 
+    grid_lines = _svg_table_rect_grid_lines(shapes, x_edges, y_edges, origins)
+    border_paint = _svg_table_line_grid_paint(grid_lines) if grid_lines else None
     table_rows: list[tuple[SvgTableCell, ...]] = []
     for row in range(row_count):
         table_cells = []
@@ -1203,6 +1205,8 @@ def _extract_svg_table(shapes: list[Shape]) -> tuple[SvgTable | None, list[Shape
                 return None, shapes
             if origin == (row, column):
                 rect, column_span, row_span = origins[origin]
+                if border_paint is not None:
+                    rect = _svg_table_rect_with_border_paint(rect, border_paint)
                 table_cells.append(
                     SvgTableCell(
                         rect,
@@ -1223,7 +1227,12 @@ def _extract_svg_table(shapes: list[Shape]) -> tuple[SvgTable | None, list[Shape
     cells = tuple(table_rows)
     table = SvgTable(x_edges[0], y_edges[0], columns, rows, cells)
     consumed_rects = {id(rect) for rect, _, _ in origins.values()}
-    remaining = [shape for index, shape in enumerate(shapes) if id(shape) not in consumed_rects and index not in consumed_texts]
+    consumed_lines = {id(line) for line in grid_lines}
+    remaining = [
+        shape
+        for index, shape in enumerate(shapes)
+        if id(shape) not in consumed_rects and id(shape) not in consumed_lines and index not in consumed_texts
+    ]
     return table, remaining
 
 
@@ -1240,6 +1249,47 @@ def _svg_table_rect_candidate(shape: Shape) -> bool:
 
 def _svg_table_text_candidate(shape: Shape) -> bool:
     return shape.kind == "text" and shape.rotation is None and not shape.flip_h and not shape.flip_v
+
+
+def _svg_table_rect_grid_lines(
+    shapes: list[Shape],
+    x_edges: tuple[float, ...],
+    y_edges: tuple[float, ...],
+    origins: dict[tuple[int, int], tuple[Shape, int, int]],
+) -> tuple[Shape, ...]:
+    column_count = len(x_edges) - 1
+    row_count = len(y_edges) - 1
+    if len(origins) != column_count * row_count:
+        return ()
+    if any(column_span != 1 or row_span != 1 for _, column_span, row_span in origins.values()):
+        return ()
+    lines = [shape for shape in shapes if shape.kind == "line"]
+    if not lines or any(not _svg_table_line_candidate(line) for line in lines):
+        return ()
+    verticals = [line for line in lines if _svg_table_vertical_line(line)]
+    horizontals = [line for line in lines if _svg_table_horizontal_line(line)]
+    if len(verticals) + len(horizontals) != len(lines):
+        return ()
+    if not _svg_table_lines_cover_edges(verticals, x_edges, y_edges[0], y_edges[-1], "vertical"):
+        return ()
+    if not _svg_table_lines_cover_edges(horizontals, y_edges, x_edges[0], x_edges[-1], "horizontal"):
+        return ()
+    return tuple(lines)
+
+
+def _svg_table_rect_with_border_paint(rect: Shape, border: Paint) -> Shape:
+    paint = Paint(
+        fill=rect.paint.fill,
+        stroke=border.stroke,
+        stroke_width=border.stroke_width,
+        fill_alpha=rect.paint.fill_alpha,
+        stroke_alpha=border.stroke_alpha,
+        stroke_linecap=border.stroke_linecap,
+        stroke_linejoin=border.stroke_linejoin,
+        stroke_dasharray=border.stroke_dasharray,
+        stroke_miterlimit=border.stroke_miterlimit,
+    )
+    return replace(rect, paint=paint)
 
 
 def _extract_svg_line_table(shapes: list[Shape]) -> tuple[SvgTable | None, list[Shape]]:
