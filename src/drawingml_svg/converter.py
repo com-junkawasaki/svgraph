@@ -433,13 +433,17 @@ def _svg_foreign_object_table_shapes(
     scale_x = transformed.width / width
     scale_y = transformed.height / height
     row_height = height / len(rows)
-    column_width = width / column_count
+    column_widths = _html_table_column_widths(table, column_count, width)
+    column_edges = [0.0]
+    for column_width in column_widths:
+        column_edges.append(column_edges[-1] + column_width)
     shapes: list[Shape] = []
     for row_index, row in enumerate(rows):
         for column_index, cell, column_span, row_span in row:
-            cell_x = transformed.x + column_index * column_width * scale_x
+            end_column = min(column_count, column_index + column_span)
+            cell_x = transformed.x + column_edges[column_index] * scale_x
             cell_y = transformed.y + row_index * row_height * scale_y
-            cell_width = column_span * column_width * scale_x
+            cell_width = (column_edges[end_column] - column_edges[column_index]) * scale_x
             cell_height = row_span * row_height * scale_y
             cell_style = _html_table_cell_style(element, cell, css, style)
             fill = _html_background_color(cell_style) or "#ffffff"
@@ -703,6 +707,62 @@ def _html_table_grid(table: ET.Element) -> tuple[list[list[tuple[int, ET.Element
     ):
         return None
     return rows, column_count
+
+
+def _html_table_column_widths(table: ET.Element, column_count: int, total_width: float) -> tuple[float, ...]:
+    specs: list[float | None] = []
+    for child in table:
+        tag = _local_name(child.tag)
+        if tag == "colgroup":
+            col_elements = [col for col in child if _local_name(col.tag) == "col"]
+        elif tag == "col":
+            col_elements = [child]
+        else:
+            col_elements = []
+        for col in col_elements:
+            width = _html_table_col_width(col, total_width)
+            span = max(1, _dml_int(col.get("span"), 1) or 1)
+            specs.extend(width for _ in range(span))
+            if len(specs) >= column_count:
+                break
+        if len(specs) >= column_count:
+            break
+    specs = specs[:column_count]
+    if len(specs) < column_count:
+        specs.extend([None] * (column_count - len(specs)))
+    fixed_sum = sum(width for width in specs if width is not None)
+    missing = sum(1 for width in specs if width is None)
+    if fixed_sum <= 0:
+        return tuple(total_width / column_count for _ in range(column_count))
+    if missing:
+        fallback = (total_width - fixed_sum) / missing if fixed_sum < total_width else total_width / column_count
+        widths = tuple(width if width is not None and width > 0 else fallback for width in specs)
+        width_sum = sum(widths)
+        scale = total_width / width_sum if width_sum > 0 else 1.0
+        return tuple(width * scale for width in widths)
+    scale = total_width / fixed_sum if fixed_sum > 0 else 1.0
+    return tuple(width * scale for width in specs if width is not None)
+
+
+def _html_table_col_width(col: ET.Element, total_width: float) -> float | None:
+    style_width = _parse_style(col.get("style", "")).get("width")
+    width = _html_table_width_value(style_width, total_width)
+    if width is not None:
+        return width
+    return _html_table_width_value(col.get("width"), total_width)
+
+
+def _html_table_width_value(value: str | None, total_width: float) -> float | None:
+    if value is None:
+        return None
+    stripped = value.strip().lower()
+    if not stripped:
+        return None
+    if stripped.endswith("%"):
+        percent = _num(stripped[:-1], math.nan)
+        return max(0.0, total_width * percent / 100) if math.isfinite(percent) else None
+    width = _html_first_length(stripped)
+    return max(0.0, width) if width is not None else None
 
 
 def _html_background_color(style: dict[str, str]) -> str | None:

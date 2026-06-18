@@ -1116,6 +1116,34 @@ def test_foreign_object_html_table_single_column_converts_to_native_drawingml_ta
     assert analyze_svg(svg).unsupported_elements == {}
 
 
+def test_foreign_object_html_table_colgroup_widths_convert_to_native_grid() -> None:
+    svg = """<svg width="150" height="50">
+      <foreignObject x="10" y="8" width="120" height="24">
+        <body xmlns="http://www.w3.org/1999/xhtml">
+          <table>
+            <colgroup>
+              <col style="width:25%"/>
+              <col width="90"/>
+            </colgroup>
+            <tr>
+              <td>Label</td>
+              <td>Value</td>
+            </tr>
+          </table>
+        </body>
+      </foreignObject>
+    </svg>"""
+
+    dml = svg_to_drawingml(svg)
+
+    assert "<a:tbl>" in dml
+    assert '<a:gridCol w="285750"/>' in dml
+    assert '<a:gridCol w="857250"/>' in dml
+    assert "<a:t>Label</a:t>" in dml
+    assert "<a:t>Value</a:t>" in dml
+    assert analyze_svg(svg).unsupported_elements == {}
+
+
 def test_foreign_object_html_table_shorthand_styles_convert() -> None:
     svg = """<svg width="120" height="50">
       <foreignObject x="10" y="8" width="100" height="24">
