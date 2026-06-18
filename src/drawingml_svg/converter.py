@@ -2882,6 +2882,8 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
         ]
     if kind == "rightArrow":
         return [(left, quarter_y), (arrow_head_x, quarter_y), (arrow_head_x, top), (right, center_y), (arrow_head_x, bottom), (arrow_head_x, three_quarter_y), (left, three_quarter_y)]
+    if kind == "notchedRightArrow":
+        return [(left, quarter_y), (arrow_head_x, quarter_y), (arrow_head_x, top), (right, center_y), (arrow_head_x, bottom), (arrow_head_x, three_quarter_y), (left, three_quarter_y), (quarter_x, center_y)]
     if kind == "leftArrow":
         return [(right, quarter_y), (x + width * 0.35, quarter_y), (x + width * 0.35, top), (left, center_y), (x + width * 0.35, bottom), (x + width * 0.35, three_quarter_y), (right, three_quarter_y)]
     if kind == "upArrow":
@@ -2964,6 +2966,23 @@ def _dml_preset_points(kind: str, x: float, y: float, width: float, height: floa
             (right, quarter_y),
             (x + width * 0.8, quarter_y),
             (x + width * 0.8, bottom),
+        ]
+    if kind == "leftUpArrow":
+        return [
+            (center_x, top),
+            (three_quarter_x, quarter_y),
+            (x + width * 0.6, quarter_y),
+            (x + width * 0.6, bottom),
+            (x + width * 0.4, bottom),
+            (x + width * 0.4, arrow_shaft_bottom),
+            (quarter_x, arrow_shaft_bottom),
+            (quarter_x, three_quarter_y),
+            (left, center_y),
+            (quarter_x, quarter_y),
+            (quarter_x, arrow_shaft_top),
+            (x + width * 0.4, arrow_shaft_top),
+            (x + width * 0.4, quarter_y),
+            (quarter_x, quarter_y),
         ]
     return []
 

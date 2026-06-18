@@ -2938,6 +2938,33 @@ def test_drawingml_arrow_presets_round_trip_to_svg_polygons() -> None:
     assert '<polygon fill="#fef3c7" points="145,20 145,46 140,46 150,60 160,46 155,46 155,20"/>' in svg
 
 
+def test_drawingml_additional_arrow_presets_round_trip_to_svg_polygons() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="notched right arrow"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="95250" y="190500"/><a:ext cx="381000" cy="381000"/></a:xfrm>
+          <a:prstGeom prst="notchedRightArrow"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="DBEAFE"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="left up arrow"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="571500" y="190500"/><a:ext cx="381000" cy="381000"/></a:xfrm>
+          <a:prstGeom prst="leftUpArrow"><a:avLst/></a:prstGeom>
+          <a:solidFill><a:srgbClr val="FEE2E2"/></a:solidFill>
+        </p:spPr>
+      </p:sp>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert '<polygon fill="#dbeafe" points="10,30 36,30 36,20 50,40 36,60 36,50 10,50 20,40"/>' in svg
+    assert '<polygon fill="#fee2e2" points="80,20 90,30 84,30 84,60 76,60 76,44 70,44 70,50 60,40 70,30 70,36 76,36 76,30 70,30"/>' in svg
+
+
 def test_drawingml_bidirectional_arrow_presets_round_trip_to_svg_polygons() -> None:
     dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
