@@ -12,6 +12,8 @@ Use this checklist when publishing a new `drawingml-svg` release.
 ```bash
 PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx
 python -m zipfile --test tmp/drawingml-svg-coverage.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/drawingml-svg-complex.pptx
+python -m zipfile --test tmp/drawingml-svg-complex.pptx
 ```
 
 - Build the source distribution and wheel:

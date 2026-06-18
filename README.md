@@ -63,10 +63,12 @@ drawingml-svg --version
 
 ## PPTX smoke test
 
-The repository includes a small example that embeds converted DrawingML shapes into a one-slide `.pptx` package:
+The repository includes examples that embed converted DrawingML shapes into one-slide `.pptx` packages:
 
 ```bash
 PYTHONPATH=src python examples/make_pptx.py examples/sample.svg -o tmp/drawingml-svg-sample.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/drawingml-svg-complex.pptx
 ```
 
 ## Supported DrawingML presets

@@ -125,6 +125,8 @@ def test_release_checklist_covers_distribution_and_pptx_smoke() -> None:
     assert "pyproject.toml" in release
     assert "examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx" in release
     assert "python -m zipfile --test tmp/drawingml-svg-coverage.pptx" in release
+    assert "examples/complex.svg -o tmp/drawingml-svg-complex.pptx" in release
+    assert "python -m zipfile --test tmp/drawingml-svg-complex.pptx" in release
     assert "python -m build --sdist --wheel -o tmp/dist" in release
     assert "drawingml-svg --version" in release
     assert "drawingml-svg analyze examples/coverage.svg" in release

@@ -14,6 +14,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Strengthened CI with Python 3.11 through 3.14, analyzer fixtures, PPTX smoke generation, wheel smoke tests, and sdist metadata checks.
 - Added README documentation for supported DrawingML preset geometries.
 - Expanded rectangular SVG `clipPath` conversion and analyzer support to ellipse/circle, line, and two-point open path/polyline fixtures.
+- Added complex SVG fixture PPTX smoke coverage to CI and the release checklist.
 
 ## 0.1.0
 
