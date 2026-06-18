@@ -27,6 +27,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Refined analyzer handling for default `currentColor` text decoration colors.
 - Refined analyzer handling for SVG kerning attributes on single-character text.
 - Refined analyzer handling for run-level `tspan` `text-anchor` values that do not create a positioned text chunk.
+- Refined analyzer handling for normal-equivalent percentage SVG `font-stretch` values.
 
 ## 0.1.0
 

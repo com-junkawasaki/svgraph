@@ -669,7 +669,17 @@ def _font_size_adjust_has_no_effect(style: dict[str, str]) -> bool:
 
 def _font_stretch_has_no_effect(style: dict[str, str]) -> bool:
     value = style.get("font-stretch")
-    return value is not None and value.strip().lower() in {"", "normal", "100%"}
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if normalized in {"", "normal"}:
+        return True
+    if normalized.endswith("%"):
+        try:
+            return float(normalized[:-1].strip()) == 100.0
+        except ValueError:
+            return False
+    return False
 
 
 def _text_orientation_has_no_effect(style: dict[str, str]) -> bool:

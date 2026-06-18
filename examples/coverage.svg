@@ -65,7 +65,7 @@
     <text x="302" y="154" text-anchor=" MIDDLE " dominant-baseline=" CENTRAL " font-size="7" fill="#0f172a">anchor</text>
     <text x="236" y="144" font-size="7" fill="#0f172a">run <tspan text-anchor="end">anchor</tspan></text>
     <text x="302" y="144" font-weight=" BOLD " font-style=" oblique 10deg " font-size="7" fill="#0f172a">style</text>
-    <text x="302" y="126" font-family="'A,B Display', Arial, sans-serif" font-size="6" fill="#0f172a">family</text>
+    <text x="302" y="126" font-family="'A,B Display', Arial, sans-serif" font-stretch="100.0%" font-size="6" fill="#0f172a">family</text>
     <text x="284" y="116" kerning="4" font-kerning="none" font-size="7" fill="#0f172a">A</text>
     <text x="170" y="66" baseline-shift="super" font-size="7" fill="#0f172a">sup</text>
     <text x="12" y="116" font-size="6" fill="#111827" stroke="#ffffff" stroke-width="1" transform="SCALE(1.5)">outline</text>
