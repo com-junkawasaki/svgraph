@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PPTXSVG Editor</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #17202a;
+        --muted: #667085;
+        --line: #d7dce3;
+        --accent: #0f766e;
+        --accent-2: #b42318;
+        --soft: #e6f4f1;
+        --code: #111827;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 14px;
+        letter-spacing: 0;
+      }
+
+      button,
+      textarea,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 16px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 220px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.2;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        border-radius: 6px;
+        padding: 7px 10px;
+        cursor: pointer;
+        min-height: 34px;
+      }
+
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      .btn:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 2px solid #0ea5e9;
+        outline-offset: 2px;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: minmax(300px, 0.9fr) minmax(380px, 1.3fr) minmax(320px, 1fr);
+        gap: 12px;
+        padding: 12px;
+        min-height: 0;
+      }
+
+      .pane {
+        min-width: 0;
+        min-height: 0;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .pane h2 {
+        margin: 0;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      textarea {
+        flex: 1;
+        min-height: 360px;
+        border: 0;
+        resize: none;
+        padding: 12px;
+        color: var(--code);
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .preview {
+        flex: 1;
+        min-height: 360px;
+        padding: 12px;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(45deg, #eef1f5 25%, transparent 25%),
+          linear-gradient(-45deg, #eef1f5 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #eef1f5 75%),
+          linear-gradient(-45deg, transparent 75%, #eef1f5 75%);
+        background-size: 22px 22px;
+        background-position:
+          0 0,
+          0 11px,
+          11px -11px,
+          -11px 0;
+        overflow: auto;
+      }
+
+      .preview svg {
+        max-width: 100%;
+        max-height: 100%;
+        background: #fff;
+        border: 1px solid var(--line);
+        box-shadow: 0 8px 24px rgb(16 24 40 / 12%);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tab {
+        border: 0;
+        background: transparent;
+        border-radius: 6px;
+        padding: 7px 9px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .tab.active {
+        background: var(--soft);
+        color: #134e4a;
+      }
+
+      .panel-body {
+        min-height: 0;
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px;
+        background: #fbfcfd;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 20px;
+        line-height: 1.2;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--code);
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--accent-2);
+      }
+
+      .dot.ok {
+        background: var(--accent);
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 9px;
+        background: #fff;
+      }
+
+      .item-title {
+        font-weight: 650;
+        margin-bottom: 3px;
+      }
+
+      .item-meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .notice {
+        border: 1px solid #bae6fd;
+        background: #f0f9ff;
+        color: #075985;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        textarea,
+        .preview {
+          min-height: 300px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand">
+          <h1>PPTXSVG Editor</h1>
+          <div class="subtitle">SVG semantic IR, slide/package preview, browser-local assistant hooks</div>
+        </div>
+        <div class="toolbar">
+          <input id="fileInput" type="file" accept=".svg,image/svg+xml" hidden />
+          <button class="btn" id="openBtn" type="button">Open SVG</button>
+          <button class="btn" id="sampleBtn" type="button">Load Sample</button>
+          <button class="btn primary" id="downloadIrBtn" type="button">Download IR</button>
+          <button class="btn" id="downloadPptxsvgBtn" type="button">Download PPTXSVG</button>
+        </div>
+      </header>
+
+      <main class="app">
+        <section class="pane">
+          <h2>SVG Source</h2>
+          <textarea id="source" spellcheck="false"></textarea>
+        </section>
+
+        <section class="pane">
+          <h2>Canvas</h2>
+          <div class="preview" id="preview"></div>
+        </section>
+
+        <section class="pane">
+          <h2>IR</h2>
+          <div class="tabs" role="tablist" aria-label="IR views">
+            <button class="tab active" data-tab="summary" type="button">Summary</button>
+            <button class="tab" data-tab="slides" type="button">Slides</button>
+            <button class="tab" data-tab="json" type="button">JSON</button>
+            <button class="tab" data-tab="assistant" type="button">Assistant</button>
+          </div>
+          <div class="panel-body" id="panel"></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <metadata>{"presentation":{"slideSize":{"width":1280,"height":720}}}</metadata>
+  <g id="cover" data-kind="slide" data-title="PPTXSVG Cover">
+    <rect width="1280" height="720" fill="#f8fafc"/>
+    <rect x="90" y="96" width="500" height="210" rx="22" fill="#ccfbf1" stroke="#0f766e" stroke-width="4"/>
+    <text x="128" y="184" font-size="54" font-family="Arial" font-weight="700" fill="#134e4a">PPTXSVG</text>
+    <text x="130" y="248" font-size="28" font-family="Arial" fill="#334155">SVG as editable presentation IR</text>
+    <circle id="api" data-kind="service" cx="770" cy="230" r="70" fill="#dbeafe" stroke="#2563eb" stroke-width="4"/>
+    <rect id="deck" data-kind="presentation" x="910" y="160" width="190" height="140" rx="16" fill="#fee2e2" stroke="#b42318" stroke-width="4"/>
+    <line data-kind="relation" x1="840" y1="230" x2="910" y2="230" stroke="#475467" stroke-width="5"/>
+  </g>
+  <g id="table-slide" data-kind="slide" data-title="Native Table Candidate">
+    <rect width="1280" height="720" fill="#ffffff"/>
+    <text x="90" y="90" font-size="40" font-family="Arial" font-weight="700" fill="#17202a">Table semantics stay in IR</text>
+    <g id="table" data-kind="table" transform="translate(90 150)">
+      <rect data-kind="cell" data-row="0" data-col="0" width="260" height="80" fill="#e6f4f1" stroke="#0f766e"/>
+      <rect data-kind="cell" data-row="0" data-col="1" x="260" width="260" height="80" fill="#e6f4f1" stroke="#0f766e"/>
+      <rect data-kind="cell" data-row="1" data-col="0" y="80" width="260" height="80" fill="#ffffff" stroke="#0f766e"/>
+      <rect data-kind="cell" data-row="1" data-col="1" x="260" y="80" width="260" height="80" fill="#ffffff" stroke="#0f766e"/>
+    </g>
+  </g>
+</svg>`;
+
+      const state = {
+        tab: "summary",
+        ir: null,
+        pptxsvg: null,
+        webgpu: false,
+      };
+
+      const source = document.getElementById("source");
+      const preview = document.getElementById("preview");
+      const panel = document.getElementById("panel");
+      const fileInput = document.getElementById("fileInput");
+
+      function localName(node) {
+        return node.localName || node.nodeName.replace(/^.*:/, "");
+      }
+
+      function attrs(element) {
+        return Object.fromEntries(Array.from(element.attributes || []).map((attr) => [attr.name, attr.value]).sort());
+      }
+
+      function dataAttrs(attributes) {
+        return Object.fromEntries(
+          Object.entries(attributes)
+            .filter(([key]) => key.startsWith("data-"))
+            .map(([key, value]) => [key.slice(5), value]),
+        );
+      }
+
+      function metadata(element) {
+        const meta = Array.from(element.children).find((child) => localName(child) === "metadata");
+        if (!meta) return {};
+        const text = meta.textContent.trim();
+        const result = text ? { text } : {};
+        try {
+          result.json = JSON.parse(text);
+        } catch (_) {
+          return result;
+        }
+        return result;
+      }
+
+      function dependencies(element, attributes) {
+        const id = attributes.id || localName(element);
+        const deps = [];
+        for (const [name, value] of Object.entries(attributes)) {
+          if ((name === "href" || name.endsWith(":href")) && value) {
+            deps.push({ kind: "href", source: id, target: value, attribute: "href" });
+          }
+          for (const match of value.matchAll(/url\(\s*['"]?(#[^)'" ]+)['"]?\s*\)/g)) {
+            deps.push({ kind: "paint-server", source: id, target: match[1], attribute: name });
+          }
+        }
+        return deps;
+      }
+
+      function nodeToIr(element, nodeId) {
+        const attributes = attrs(element);
+        const children = Array.from(element.children)
+          .filter((child) => localName(child) !== "metadata")
+          .map((child, index) => nodeToIr(child, `${nodeId}.${index}`));
+        return {
+          node_id: nodeId,
+          tag: localName(element),
+          attributes,
+          data: dataAttrs(attributes),
+          metadata: metadata(element),
+          dependencies: dependencies(element, attributes),
+          children,
+          text: Array.from(element.childNodes)
+            .filter((node) => node.nodeType === Node.TEXT_NODE)
+            .map((node) => node.textContent.trim())
+            .filter(Boolean)
+            .join(" ") || null,
+        };
+      }
+
+      function flatten(node) {
+        return [node, ...node.children.flatMap(flatten)];
+      }
+
+      function viewBox(node) {
+        const raw = node.attributes.viewBox;
+        if (raw) {
+          const values = raw.replaceAll(",", " ").split(/\s+/).map(Number).filter((value) => Number.isFinite(value));
+          if (values.length === 4) return values;
+        }
+        return [0, 0, Number(node.attributes.width) || 0, Number(node.attributes.height) || 0];
+      }
+
+      function title(node) {
+        if (node.data.title) return node.data.title;
+        if (node.metadata.json && typeof node.metadata.json.title === "string") return node.metadata.json.title;
+        const titleNode = node.children.find((child) => child.tag === "title");
+        return titleNode && titleNode.text ? titleNode.text : null;
+      }
+
+      function isSlide(node) {
+        return node.data.kind === "slide" || node.data.role === "slide" || Object.hasOwn(node.data, "slide");
+      }
+
+      function buildPptxsvg(root) {
+        const nodes = flatten(root);
+        const slides = nodes.filter(isSlide);
+        const selectedSlides = slides.length ? slides : [root];
+        const rootMeta = root.metadata.json && root.metadata.json.presentation ? root.metadata.json.presentation : {};
+        const rootBox = viewBox(root);
+        const slideSize = rootMeta.slideSize
+          ? [Number(rootMeta.slideSize.width), Number(rootMeta.slideSize.height)]
+          : [rootBox[2], rootBox[3]];
+        const slideItems = selectedSlides.map((node, index) => ({
+          slide_id: node.attributes.id || node.data.slide || `slide-${index + 1}`,
+          node_id: node.node_id,
+          title: title(node),
+          view_box: viewBox(node),
+          data: node.data,
+          metadata: node.metadata,
+        }));
+        const baseParts = [
+          ["/ppt/presentation.xml", "presentation", null],
+          ["/ppt/slideMasters/slideMaster1.xml", "slide-master", null],
+          ["/ppt/slideLayouts/slideLayout1.xml", "slide-layout", null],
+          ["/ppt/theme/theme1.xml", "theme", null],
+        ];
+        return {
+          kind: "pptxsvg",
+          slide_size: slideSize,
+          slides: slideItems,
+          parts: [
+            ...baseParts.map(([part_name, kind, source_node_id]) => ({ part_name, kind, source_node_id })),
+            ...slideItems.map((slide, index) => ({
+              part_name: `/ppt/slides/slide${index + 1}.xml`,
+              kind: "slide",
+              source_node_id: slide.node_id,
+            })),
+          ],
+          metadata: rootMeta,
+        };
+      }
+
+      function buildIr(svgText) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgText, "image/svg+xml");
+        const error = doc.querySelector("parsererror");
+        if (error) throw new Error(error.textContent.trim());
+        const root = nodeToIr(doc.documentElement, "n0");
+        const dependencies = flatten(root).flatMap((node) => node.dependencies);
+        const presentation = buildPptxsvg(root);
+        return {
+          version: "0.1-web",
+          root,
+          metadata: root.metadata,
+          dependencies,
+          presentation,
+        };
+      }
+
+      function render() {
+        try {
+          const text = source.value;
+          state.ir = buildIr(text);
+          state.pptxsvg = state.ir.presentation;
+          preview.innerHTML = text;
+        } catch (error) {
+          preview.innerHTML = "";
+          state.ir = null;
+          state.pptxsvg = null;
+          panel.innerHTML = `<div class="notice">${escapeHtml(error.message)}</div>`;
+          return;
+        }
+        renderPanel();
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char]);
+      }
+
+      function renderPanel() {
+        if (!state.ir) return;
+        const nodes = flatten(state.ir.root);
+        const semantic = nodes.filter((node) => Object.keys(node.data).length > 0).length;
+        const deps = state.ir.dependencies.length;
+        if (state.tab === "summary") {
+          panel.innerHTML = `
+            <div class="metrics">
+              <div class="metric"><strong>${nodes.length}</strong><span>SVG IR nodes</span></div>
+              <div class="metric"><strong>${state.pptxsvg.slides.length}</strong><span>PPTXSVG slides</span></div>
+              <div class="metric"><strong>${semantic}</strong><span>semantic nodes</span></div>
+              <div class="metric"><strong>${deps}</strong><span>dependencies</span></div>
+            </div>
+            <div class="list">
+              ${nodes.slice(0, 12).map((node) => `
+                <div class="item">
+                  <div class="item-title">${escapeHtml(node.node_id)} · ${escapeHtml(node.tag)}</div>
+                  <div class="item-meta">${escapeHtml(JSON.stringify(node.data))}</div>
+                </div>`).join("")}
+            </div>`;
+        } else if (state.tab === "slides") {
+          panel.innerHTML = `<div class="list">${state.pptxsvg.slides.map((slide) => `
+            <div class="item">
+              <div class="item-title">${escapeHtml(slide.slide_id)}${slide.title ? ` · ${escapeHtml(slide.title)}` : ""}</div>
+              <div class="item-meta">${escapeHtml(slide.node_id)} · viewBox ${slide.view_box.join(" ")}</div>
+            </div>`).join("")}</div>`;
+        } else if (state.tab === "assistant") {
+          panel.innerHTML = `
+            <div class="notice">Web LLM integration is designed as a local WebGPU worker. This page currently checks capability and keeps conversion deterministic.</div>
+            <div class="status"><span class="dot ${state.webgpu ? "ok" : ""}"></span>${state.webgpu ? "WebGPU available" : "WebGPU unavailable or blocked"}</div>
+            <pre style="margin-top:12px">${escapeHtml(JSON.stringify({
+              backendPolicy: state.webgpu ? "webgpu" : "wasm-or-disabled",
+              allowedOps: ["mark-slide", "set-data", "set-metadata", "mark-table", "bind-relation"],
+              model: "onnx-community/gemma-4-e2b-it-ONNX"
+            }, null, 2))}</pre>`;
+        } else {
+          panel.innerHTML = `<pre>${escapeHtml(JSON.stringify(state.ir, null, 2))}</pre>`;
+        }
+      }
+
+      function download(name, value) {
+        const blob = new Blob([value], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = name;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          state.tab = tab.dataset.tab;
+          document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", item === tab));
+          renderPanel();
+        });
+      });
+
+      document.getElementById("openBtn").addEventListener("click", () => fileInput.click());
+      document.getElementById("sampleBtn").addEventListener("click", () => {
+        source.value = sampleSvg;
+        render();
+      });
+      document.getElementById("downloadIrBtn").addEventListener("click", () => {
+        if (state.ir) download("pptxsvg-ir.json", JSON.stringify(state.ir, null, 2));
+      });
+      document.getElementById("downloadPptxsvgBtn").addEventListener("click", () => {
+        if (state.pptxsvg) download("pptxsvg.json", JSON.stringify(state.pptxsvg, null, 2));
+      });
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        source.value = await file.text();
+        render();
+      });
+      source.addEventListener("input", render);
+
+      async function checkWebGpu() {
+        if (!navigator.gpu) {
+          state.webgpu = false;
+          renderPanel();
+          return;
+        }
+        try {
+          state.webgpu = Boolean(await navigator.gpu.requestAdapter());
+        } catch (_) {
+          state.webgpu = false;
+        }
+        renderPanel();
+      }
+
+      source.value = sampleSvg;
+      render();
+      checkWebGpu();
+    </script>
+  </body>
+</html>

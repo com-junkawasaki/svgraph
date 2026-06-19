@@ -33,6 +33,7 @@ The converter accepts fragments, not complete `.pptx` or `.docx` packages. It is
 - Security policy: [SECURITY.md](SECURITY.md)
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - Issue tracker: <https://github.com/com-junkawasaki/drawingml-svg/issues>
+- PPTXSVG web editor: <https://com-junkawasaki.github.io/drawingml-svg/>
 
 ## Install
 
