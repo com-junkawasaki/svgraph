@@ -58,6 +58,9 @@ drawingml-svg analyze input.svg
 # metadata-preserving SVG IR
 drawingml-svg ir input.svg
 
+# PPTX/package-oriented SVG IR
+drawingml-svg pptxsvg input.svg
+
 # installed package version
 drawingml-svg --version
 ```
@@ -108,15 +111,23 @@ from drawingml_svg import svg_to_ir
 ir = svg_to_ir(svg_text).to_dict()
 ```
 
+```python
+from drawingml_svg import svg_to_pptx_ir
+
+pptx_ir = svg_to_pptx_ir(svg_text)
+```
+
 ## SVG semantic IR
 
-The `ir` command and `svg_to_ir()` API expose an SVG-based intermediate representation for app-level pipelines that need more than visual conversion. The IR keeps the SVG element tree, normal attributes, `data-*` attributes, `<metadata>` payloads, and local reference dependencies such as `href` and `url(#id)`.
+The `ir` command and `svg_to_ir()` API expose an SVG-based intermediate representation for app-level pipelines that need more than visual conversion. The IR keeps the SVG element tree, normal attributes, `data-*` attributes, `<metadata>` payloads, local reference dependencies such as `href` and `url(#id)`, and a `presentation` view for slide/package emitters.
 
 This is intended as the stable handoff layer for expanding one SVG source into different targets:
 
 - DrawableXML / Android VectorDrawable: visual geometry is emitted natively, while semantic structure such as tables, entities, relations, and provenance should remain in the IR or a sidecar JSON because VectorDrawable has no native table or metadata graph model.
 - DrawingML: editable shapes, text, and native tables can be emitted where the target supports them.
 - PresentationML: slide-level structure, connectors, reading order, notes, tags, or custom XML can be derived from the same IR.
+
+The `pptxsvg` command and `svg_to_pptx_ir()` API expose just the presentation/package view. Slide boundaries are inferred from elements with `data-kind="slide"`, `data-role="slide"`, or `data-slide`; if none are present, the root SVG becomes a single slide. Slide size is taken from root `<metadata>` `{"presentation": {"slideSize": {"width": 1280, "height": 720}}}`, then root `viewBox`, then the first slide viewBox. The view also includes a package part blueprint for `/ppt/presentation.xml`, slide master/layout/theme parts, and generated `/ppt/slides/slideN.xml` parts.
 
 See [docs/adr/0001-svg-semantic-ir.md](docs/adr/0001-svg-semantic-ir.md) for the design contract.
 

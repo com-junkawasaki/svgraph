@@ -17,6 +17,7 @@ Introduce an SVG-based intermediate representation, exposed as `svg_to_ir()`, th
 - `data-*` attributes as application data
 - local `<metadata>` text, XML, and JSON payloads
 - dependencies such as `href`, `xlink:href`, `url(#id)` paint servers, markers, clipping, masks, symbols, and other local references
+- a presentation/package view named `pptxsvg`
 
 The IR is intentionally independent of a specific output format. Target emitters consume the IR and decide whether a node maps to a native object, a grouped shape, a raster fallback, or an application sidecar.
 
@@ -27,6 +28,12 @@ The IR is intentionally independent of a specific output format. Target emitters
   "version": "0.1",
   "metadata": {},
   "dependencies": [],
+  "presentation": {
+    "kind": "pptxsvg",
+    "slide_size": [1280, 720],
+    "slides": [],
+    "parts": []
+  },
   "root": {
     "node_id": "n0",
     "tag": "svg",
@@ -67,6 +74,47 @@ Recommended fields:
 - `data-group`: logical group independent from SVG `<g>`
 - `data-order`: application reading or animation order
 
+## PPTXSVG Presentation View
+
+`pptxsvg` is the SVG IR projection for creating a full `.pptx` package rather than a single DrawingML shape fragment. It is not a new rendering format; it is a package intent over the same SVG source.
+
+Slide boundaries are discovered in this order:
+
+- any element with `data-kind="slide"`
+- any element with `data-role="slide"`
+- any element with `data-slide="..."`
+- otherwise, the root `<svg>` is treated as one slide
+
+Slide size is discovered in this order:
+
+- root metadata: `{"presentation": {"slideSize": {"width": 1280, "height": 720}}}`
+- root `viewBox`
+- first slide `viewBox`
+
+Example:
+
+```xml
+<svg viewBox="0 0 1280 720">
+  <metadata>{"presentation": {"slideSize": {"width": 1280, "height": 720}}}</metadata>
+  <g id="cover" data-kind="slide" data-title="Cover">
+    <text data-role="title">Quarterly Review</text>
+  </g>
+  <g id="system" data-kind="slide" data-title="System">
+    <rect id="api" data-kind="service"/>
+    <rect id="db" data-kind="database"/>
+  </g>
+</svg>
+```
+
+The package emitter can then map:
+
+- each slide node to `ppt/slides/slideN.xml`
+- the `parts` list to the required package blueprint, including presentation, slide master, slide layout, theme, and slide parts
+- root presentation metadata to `ppt/presentation.xml`, theme, layout, notes, tags, or custom XML
+- semantic `data-kind="table"` / `data-kind="cell"` nodes to native PresentationML tables where possible
+- semantic relations to connectors when they have visual counterparts
+- unresolved semantics to a package sidecar or custom XML part
+
 ## Target Mapping
 
 ### Android VectorDrawable / DrawableXML
@@ -92,6 +140,7 @@ PresentationML can add slide-level structure beyond DrawingML fragments. Emitter
 - map IR groups to slide shape trees
 - map relationships to connectors when they are visually represented
 - map `data-order` and metadata to animation, reading order, notes, custom XML, or tags when the package writer supports it
+- use `pptxsvg` as the package-level contract instead of treating `svg_to_drawingml()` output as a whole deck
 
 ## Consequences
 
