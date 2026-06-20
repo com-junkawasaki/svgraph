@@ -116,6 +116,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
     <text id="rtl-text" x="560" y="95" direction="rtl" style="font-size:22;font-family:Arial;fill:#0f766e">RTL
 line</text>
+    <text id="tspan-position" style="font-size:18;font-family:Arial;fill:#334155"><tspan x="900" y="455" dx="10" dy="5">From tspan</tspan><tspan x="900" dy="28">Next line</tspan></text>
     <g class="relative-font" fill="#111827" font-family="Arial">
       <text class="em-text" x="560" y="135">Em</text>
       <text class="calc-text" x="640" y="135">Calc</text>
@@ -542,13 +543,14 @@ function elementToShape(element, matrix, style, id, viewport) {
     }
     if (tag === "text") {
         const fontSize = style.fontSize ?? 18;
-        const [x, y] = point(matrix, geom(element, "x", "x", viewport), geom(element, "y", "y", viewport));
-        const runs = textRuns(element, style);
+        const [textX, textY] = svgTextPosition(element, viewport);
+        const [x, y] = point(matrix, textX, textY);
+        const runs = textRuns(element, style, viewport);
         const text = runs.map((run) => run.text).join("").trim();
         const width = Math.max(80, style.textLength ?? text.length * fontSize * 0.62 + wordSpacingExtra(style, text));
         const height = fontSize * 1.35;
-        const anchor = style.textAnchor ?? null;
-        const baseline = style.textBaseline ?? null;
+        const anchor = style.textAnchor ?? firstPositionedTspanAnchor(element, style);
+        const baseline = style.textBaseline ?? firstPositionedTspanBaseline(element, style);
         const rotation = textRotation(element, style);
         return {
             id,
@@ -1290,16 +1292,16 @@ function trimHtmlTextRuns(runs) {
         text: index === 0 ? run.text.trimStart() : index === sliced.length - 1 ? run.text.trimEnd() : run.text,
     })).filter((run) => run.text.length > 0);
 }
-function textRuns(element, inheritedStyle) {
+function textRuns(element, inheritedStyle, viewport = defaultViewport()) {
     const runs = [];
     const rootPreserveSpace = xmlSpacePreserve(element);
-    const append = (text, style, preserveSpace) => {
+    const append = (text, style, preserveSpace, breakBefore = false) => {
         if (!text)
             return;
         const transformed = applyTextTransform(text, style.textTransform);
         runs.push({
             text: transformed,
-            breakBefore: false,
+            breakBefore,
             preserveSpace,
             fill: style.fill ?? "#111827",
             fillAlpha: style.fillAlpha ?? null,
@@ -1320,9 +1322,10 @@ function textRuns(element, inheritedStyle) {
             append(node.textContent || "", inheritedStyle, rootPreserveSpace);
         }
         else if (node.nodeType === Node.ELEMENT_NODE && localName(node) === "tspan") {
-            const style = computedStyle(node, inheritedStyle);
-            const preserveSpace = rootPreserveSpace || xmlSpacePreserve(node);
-            append((node.textContent || ""), style, preserveSpace);
+            const tspan = node;
+            const style = computedStyle(tspan, inheritedStyle);
+            const preserveSpace = rootPreserveSpace || xmlSpacePreserve(tspan);
+            append((node.textContent || ""), style, preserveSpace, runs.length > 0 && tspanStartsNewLine(tspan, viewport));
         }
     }
     if (!runs.length)
@@ -1341,6 +1344,54 @@ function textRuns(element, inheritedStyle) {
         ...run,
         text: run.preserveSpace ? run.text : index === 0 ? run.text.trimStart() : index === sliced.length - 1 ? run.text.trimEnd() : run.text,
     })).filter((run) => run.text.length > 0);
+}
+function svgTextPosition(element, viewport) {
+    let x = optionalGeom(element, "x", "x", viewport);
+    let y = optionalGeom(element, "y", "y", viewport);
+    let dx = firstOptionalGeom(element, "dx", "x", viewport);
+    let dy = firstOptionalGeom(element, "dy", "y", viewport);
+    if (x != null && y != null)
+        return [x + (dx ?? 0), y + (dy ?? 0)];
+    for (const child of Array.from(element.children)) {
+        if (localName(child) !== "tspan")
+            continue;
+        x ??= optionalGeom(child, "x", "x", viewport);
+        y ??= optionalGeom(child, "y", "y", viewport);
+        dx ??= firstOptionalGeom(child, "dx", "x", viewport);
+        dy ??= firstOptionalGeom(child, "dy", "y", viewport);
+        if (x != null && y != null)
+            break;
+    }
+    return [(x ?? 0) + (dx ?? 0), (y ?? 0) + (dy ?? 0)];
+}
+function firstPositionedTspanAnchor(element, inheritedStyle) {
+    if (element.hasAttribute("x") || element.hasAttribute("y") || (element.childNodes[0]?.nodeType === Node.TEXT_NODE && (element.childNodes[0].textContent || "").trim()))
+        return null;
+    const first = firstTextTspan(element);
+    if (!first || !first.hasAttribute("x") || !first.hasAttribute("y"))
+        return null;
+    return computedStyle(first, inheritedStyle).textAnchor ?? null;
+}
+function firstPositionedTspanBaseline(element, inheritedStyle) {
+    if (element.hasAttribute("x") || element.hasAttribute("y") || (element.childNodes[0]?.nodeType === Node.TEXT_NODE && (element.childNodes[0].textContent || "").trim()))
+        return null;
+    const first = firstTextTspan(element);
+    if (!first || !first.hasAttribute("x") || !first.hasAttribute("y"))
+        return null;
+    return computedStyle(first, inheritedStyle).textBaseline ?? null;
+}
+function firstTextTspan(element) {
+    for (const child of Array.from(element.children)) {
+        if (localName(child) === "tspan" && (child.textContent || "").trim())
+            return child;
+    }
+    return null;
+}
+function tspanStartsNewLine(tspan, viewport) {
+    if (tspan.hasAttribute("x") || tspan.hasAttribute("y"))
+        return true;
+    const dy = firstOptionalGeom(tspan, "dy", "y", viewport);
+    return dy != null && Math.abs(dy) > 0.001;
 }
 function xmlSpacePreserve(element) {
     return element.getAttribute("xml:space") === "preserve" || element.getAttributeNS("http://www.w3.org/XML/1998/namespace", "space") === "preserve";
@@ -2158,6 +2209,20 @@ function num(element, name, fallback = 0) {
 function geom(element, name, axis, viewport, fallback = 0) {
     const value = element.getAttribute(name);
     return parseCssLength(value, percentageBasis(axis, viewport), fallback);
+}
+function optionalGeom(element, name, axis, viewport) {
+    if (!element.hasAttribute(name))
+        return null;
+    const parsed = parseCssLength(element.getAttribute(name), percentageBasis(axis, viewport), Number.NaN);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+function firstOptionalGeom(element, name, axis, viewport) {
+    const value = element.getAttribute(name);
+    if (value == null)
+        return null;
+    const first = value.trim().split(/[\s,]+/, 1)[0] || "";
+    const parsed = parseCssLength(first, percentageBasis(axis, viewport), Number.NaN);
+    return Number.isFinite(parsed) ? parsed : null;
 }
 function percentageBasis(axis, viewport) {
     if (axis === "x")
