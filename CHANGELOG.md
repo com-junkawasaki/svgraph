@@ -13,6 +13,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added `svgraph` as the canonical typed Python import package and console-script entry point target, including `svgraph.model`, `svgraph.converter`, `svgraph.coverage`, and `svgraph.pptx` wrapper modules, while preserving `drawingml_svg` and `drawingml-svg` compatibility surfaces.
 - Switched direct Python CLI entry calls to use `svgraph` as the program name, while preserving legacy executable names for compatibility aliases.
 - Added `python -m svgraph` as a canonical module execution path and moved local contribution checks away from `python -m svgraph.cli`.
+- Updated README, ADR, and release checklist guidance to document `python -m svgraph` and `svgraph.model` as canonical migration targets.
 - Strengthened release and CI smoke checks so SVGraph JSON, presentation JSON, top-level wheel metadata, and sample XML generation use or verify canonical `svgraph` surfaces first.
 - Added the canonical `svgraph` console script, with `svgraph input.svg` emitting SVGraph JSON directly while keeping `drawingml-svg` as a compatibility entry point.
 - Added deprecated compatibility aliases for the pre-SVGraph `drawingml_svg.ir` APIs and hidden CLI aliases, with warnings that point to `svgraph.model`, `svgraph`, and `svgraph-presentation`.

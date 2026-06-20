@@ -168,6 +168,7 @@ def test_release_checklist_covers_distribution_and_pptx_smoke() -> None:
     assert "python -m zipfile --test tmp/svgraph-complex.pptx" in release
     assert "python -m build --sdist --wheel -o tmp/dist" in release
     assert "tmp/dist/svgraph-*.whl" in release
+    assert "python -m svgraph --version" in release
     assert "svgraph --version" in release
     assert "svgraph examples/svgraph.svg > tmp/release-svgraph.json" in release
     assert "svgraph svgraph-presentation examples/svgraph.svg > tmp/release-svgraph-presentation.json" in release
@@ -184,6 +185,17 @@ def test_ci_pptx_smoke_covers_recent_fixture_regressions() -> None:
     assert '<a:miter lim="400000"' in workflow
     assert 'u=\\"wavy\\"' in workflow or "u=\"wavy\"" in workflow
     assert 'spc="' in workflow
+
+
+def test_docs_point_legacy_ir_to_svgraph_model() -> None:
+    root = _project_root()
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    adr = (root / "docs" / "adr" / "0001-svgraph.md").read_text(encoding="utf-8")
+
+    assert "python -m svgraph --version" in readme
+    assert "compatibility aliases that point to `svgraph.model`" in readme
+    assert "svgraph.model.svg_to_svgraph()" in adr
+    assert "warns toward `svgraph.model`" in adr
 
 
 def test_dependabot_tracks_actions_and_python_dependencies() -> None:
