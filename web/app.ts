@@ -251,7 +251,12 @@ type TableCell = {
   textBold: boolean;
   textAlign: string | null;
   verticalAlign: string | null;
-  padding: number;
+  paddingLeft: number;
+  paddingRight: number;
+  paddingTop: number;
+  paddingBottom: number;
+  direction: string | null;
+  nowrap: boolean;
   borderLeft: TableBorder;
   borderRight: TableBorder;
   borderTop: TableBorder;
@@ -300,8 +305,13 @@ type SvgStyle = {
   markerEnd?: boolean;
   clipPath?: string | null;
   tableCellPadding?: number;
+  tableCellPaddingLeft?: number;
+  tableCellPaddingRight?: number;
+  tableCellPaddingTop?: number;
+  tableCellPaddingBottom?: number;
   tableCellTextAlign?: string | null;
   tableCellVerticalAlign?: string | null;
+  tableCellNowrap?: boolean;
   tableBorderLeft?: TableBorder | null;
   tableBorderRight?: TableBorder | null;
   tableBorderTop?: TableBorder | null;
@@ -359,7 +369,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
           </tr>
           <tr>
             <td rowspan="2" style="background-color:#dcfce7;color:#14532d;border:2px solid #16a34a;font-weight:700">Roadmap</td>
-            <td align="center" valign="top" style="background-color:#ffffff;color:#111827;border:1px solid #94a3b8">IR <strong>rich</strong> <em>runs</em> <span style="color:#dc2626;font-variant:small-caps;letter-spacing:2px;text-decoration-line:underline;text-decoration-style:dashed">red</span></td>
+            <td align="center" valign="top" style="background-color:#ffffff;color:#111827;border:1px solid #94a3b8;white-space:nowrap;direction:rtl;padding:2px 6px 3px 8px">IR <strong>rich</strong> <em>runs</em> <span style="color:#dc2626;font-variant:small-caps;letter-spacing:2px;text-decoration-line:underline;text-decoration-style:dashed">red</span></td>
             <td style="background-color:#f8fafc;color:#111827;border:1px solid #94a3b8;border-right:3px dotted #dc2626;border-top:4px double #2563eb;border-bottom-style:dashed;border-bottom-width:2px;border-bottom-color:#16a34a">Browser</td>
           </tr>
           <tr>
@@ -991,7 +1001,12 @@ function tableFromGroup(group: Element, matrix: Matrix, id: number, inheritedSty
     textBold: cell.textBold,
     textAlign: cell.textAlign,
     verticalAlign: cell.verticalAlign,
-    padding: cell.padding,
+    paddingLeft: cell.paddingLeft,
+    paddingRight: cell.paddingRight,
+    paddingTop: cell.paddingTop,
+    paddingBottom: cell.paddingBottom,
+    direction: cell.direction,
+    nowrap: cell.nowrap,
     borderLeft: cell.borderLeft,
     borderRight: cell.borderRight,
     borderTop: cell.borderTop,
@@ -1091,7 +1106,12 @@ function tableCellStyle(style: SvgStyle, header: boolean): Omit<TableCell, "row"
     textBold: header || ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
     textAlign: style.tableCellTextAlign ?? (header ? "center" : null),
     verticalAlign: style.tableCellVerticalAlign ?? "middle",
-    padding: style.tableCellPadding ?? 0,
+    paddingLeft: style.tableCellPaddingLeft ?? style.tableCellPadding ?? 0,
+    paddingRight: style.tableCellPaddingRight ?? style.tableCellPadding ?? 0,
+    paddingTop: style.tableCellPaddingTop ?? style.tableCellPadding ?? 0,
+    paddingBottom: style.tableCellPaddingBottom ?? style.tableCellPadding ?? 0,
+    direction: style.direction ?? null,
+    nowrap: style.tableCellNowrap ?? false,
     borderLeft: style.tableBorderLeft ?? border,
     borderRight: style.tableBorderRight ?? border,
     borderTop: style.tableBorderTop ?? border,
@@ -1268,8 +1288,13 @@ function htmlElementStyle(element: Element, inheritedStyle: SvgStyle, css: CssRu
   const borderColor = value("border-color") ?? element.getAttribute("bordercolor");
   const borderWidth = value("border-width") ?? element.getAttribute("border");
   const padding = value("padding") ?? element.getAttribute("cellpadding");
+  const paddingLeft = value("padding-left");
+  const paddingRight = value("padding-right");
+  const paddingTop = value("padding-top");
+  const paddingBottom = value("padding-bottom");
   const textAlign = value("text-align") ?? element.getAttribute("align");
   const verticalAlign = value("vertical-align") ?? element.getAttribute("valign");
+  const whiteSpace = value("white-space");
   const fontSize = value("font-size");
   const fontFamily = value("font-family") ?? element.getAttribute("face");
   const fontWeight = value("font-weight");
@@ -1295,9 +1320,26 @@ function htmlElementStyle(element: Element, inheritedStyle: SvgStyle, css: CssRu
     next.strokeAlpha = cssColorAlpha(borderColor);
   }
   if (borderWidth != null) next.strokeWidth = htmlCssLength(borderWidth, 1) ?? next.strokeWidth ?? 1;
-  if (padding != null) next.tableCellPadding = htmlCssLength(padding, 0) ?? next.tableCellPadding ?? 0;
+  if (padding != null) {
+    const sides = htmlPaddingSides(padding);
+    if (sides) {
+      next.tableCellPaddingTop = sides.top;
+      next.tableCellPaddingRight = sides.right;
+      next.tableCellPaddingBottom = sides.bottom;
+      next.tableCellPaddingLeft = sides.left;
+      next.tableCellPadding = sides.top;
+    } else {
+      next.tableCellPadding = htmlCssLength(padding, 0) ?? next.tableCellPadding ?? 0;
+    }
+  }
+  if (paddingLeft != null) next.tableCellPaddingLeft = htmlCssLength(paddingLeft, 0) ?? next.tableCellPaddingLeft ?? next.tableCellPadding ?? 0;
+  if (paddingRight != null) next.tableCellPaddingRight = htmlCssLength(paddingRight, 0) ?? next.tableCellPaddingRight ?? next.tableCellPadding ?? 0;
+  if (paddingTop != null) next.tableCellPaddingTop = htmlCssLength(paddingTop, 0) ?? next.tableCellPaddingTop ?? next.tableCellPadding ?? 0;
+  if (paddingBottom != null) next.tableCellPaddingBottom = htmlCssLength(paddingBottom, 0) ?? next.tableCellPaddingBottom ?? next.tableCellPadding ?? 0;
   if (textAlign != null) next.tableCellTextAlign = normalizeHtmlTextAlign(textAlign);
   if (verticalAlign != null) next.tableCellVerticalAlign = normalizeHtmlVerticalAlign(verticalAlign);
+  if (whiteSpace != null) next.tableCellNowrap = htmlWhiteSpaceWrap(whiteSpace) === "none";
+  if (element.hasAttribute("nowrap")) next.tableCellNowrap = true;
   const currentBorder = tableBorderFromStyle(next);
   next.tableBorderLeft = htmlSideBorder(element, "left", currentBorder, next);
   next.tableBorderRight = htmlSideBorder(element, "right", currentBorder, next);
@@ -1412,6 +1454,24 @@ function htmlCssLength(value: string | null, basis: number): number | null {
   }
   const parsed = Number.parseFloat(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function htmlPaddingSides(value: string | null): { top: number; right: number; bottom: number; left: number } | null {
+  if (!value) return null;
+  const tokens = value.trim().split(/\s+/).slice(0, 4);
+  if (!tokens.length) return null;
+  const lengths = tokens.map((token) => htmlCssLength(token, 0));
+  if (lengths.some((length) => length == null)) return null;
+  const top = lengths[0] as number;
+  const right = (lengths[1] ?? top) as number;
+  const bottom = (lengths[2] ?? top) as number;
+  const left = (lengths[3] ?? right) as number;
+  return { top, right, bottom, left };
+}
+
+function htmlWhiteSpaceWrap(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  return ["nowrap", "pre", "pre-line", "pre-wrap"].includes(normalized) ? "none" : null;
 }
 
 function htmlStyleValue(element: Element, name: string): string | null {
@@ -1964,14 +2024,21 @@ function tableCellTextXml(cell: TableCell): string {
 }
 
 function tableCellBodyPrXml(cell: TableCell | null): string {
-  const padding = emu(cell?.padding ?? 0);
+  const left = emu(cell?.paddingLeft ?? 0);
+  const right = emu(cell?.paddingRight ?? 0);
+  const top = emu(cell?.paddingTop ?? 0);
+  const bottom = emu(cell?.paddingBottom ?? 0);
   const anchor = tableVerticalAnchor(cell?.verticalAlign ?? null);
-  return `<a:bodyPr lIns="${padding}" rIns="${padding}" tIns="${padding}" bIns="${padding}"${anchor}/>`;
+  const wrap = cell?.nowrap ? ' wrap="none"' : "";
+  return `<a:bodyPr lIns="${left}" rIns="${right}" tIns="${top}" bIns="${bottom}"${wrap}${anchor}/>`;
 }
 
 function tableCellParagraphPrXml(cell: TableCell | null): string {
+  const attrs: string[] = [];
   const align = tableHorizontalAlign(cell?.textAlign ?? null);
-  return align ? `<a:pPr algn="${align}"/>` : "";
+  if (align) attrs.push(`algn="${align}"`);
+  if (cell?.direction === "rtl") attrs.push('rtl="1"');
+  return attrs.length ? `<a:pPr ${attrs.join(" ")}/>` : "";
 }
 
 function tableHorizontalAlign(value: string | null): string | null {
