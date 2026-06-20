@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for taking the time to improve `drawingml-svg`.
+Thanks for taking the time to improve `svgraph`.
 
 ## Development setup
 

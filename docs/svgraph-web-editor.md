@@ -286,4 +286,4 @@ Use a TypeScript frontend with:
 - SVG canvas as the primary editable surface
 - WASM/Python package only for tests/build tooling, not runtime parsing in the browser
 
-Keep `drawingml-svg` as the conversion core and publish the SVGraph schema as stable JSON so the web editor, CLI, and future package emitter share the same contract.
+Keep SVGraph as the conversion core and publish the schema as stable JSON so the web editor, CLI, and future package emitter share the same contract. The Python import package remains `drawingml_svg` for compatibility.

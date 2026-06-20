@@ -151,13 +151,15 @@ def test_release_checklist_covers_distribution_and_pptx_smoke() -> None:
     assert "svgraph --version" in release
     assert "svgraph examples/svgraph.svg > tmp/release-svgraph.json" in release
     assert "drawingml-svg --version" in release
-    assert "drawingml-svg analyze examples/coverage.svg" in release
+    assert "svgraph analyze examples/coverage.svg" in release
     assert "svg2dml examples/sample.svg -o tmp/release-smoke.xml" in release
 
 
 def test_ci_pptx_smoke_covers_recent_fixture_regressions() -> None:
     workflow = (_project_root() / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
+    assert "svgraph analyze examples/coverage.svg" in workflow
+    assert "svgraph svg2pptx examples/svgraph.svg -o tmp/ci-svgraph.pptx" in workflow
     assert '<a:miter lim="400000"' in workflow
     assert 'u=\\"wavy\\"' in workflow or "u=\"wavy\"" in workflow
     assert 'spc="' in workflow

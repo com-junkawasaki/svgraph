@@ -46,9 +46,9 @@ jobs:
 
       - name: Run analyzer fixtures
         run: |
-          drawingml-svg analyze examples/sample.svg
-          drawingml-svg analyze examples/complex.svg
-          drawingml-svg analyze examples/coverage.svg
+          svgraph analyze examples/sample.svg
+          svgraph analyze examples/complex.svg
+          svgraph analyze examples/coverage.svg
           python - <<'PY'
           from pathlib import Path
 
@@ -153,7 +153,7 @@ jobs:
           assert any(name.startswith("ppt/media/image") for name in names), "complex PPTX media image was not embedded"
           PY
 
-          drawingml-svg svg2pptx examples/svgraph.svg -o tmp/ci-svgraph.pptx
+          svgraph svg2pptx examples/svgraph.svg -o tmp/ci-svgraph.pptx
           python -m zipfile --test tmp/ci-svgraph.pptx
           python - <<'PY'
           import zipfile
@@ -218,7 +218,7 @@ jobs:
           tmp/wheel-venv/bin/svg2pptx --version
           tmp/wheel-venv/bin/dml2svg --version
           tmp/wheel-venv/bin/drawingml-svg-analyze --version
-          tmp/wheel-venv/bin/drawingml-svg analyze examples/coverage.svg
+          tmp/wheel-venv/bin/svgraph analyze examples/coverage.svg
           tmp/wheel-venv/bin/drawingml-svg-analyze examples/coverage.svg
           tmp/wheel-venv/bin/svgraph examples/svgraph.svg > tmp/wheel-svgraph.json
           tmp/wheel-venv/bin/drawingml-svg svgraph-presentation examples/svgraph.svg > tmp/wheel-svgraph-presentation.json

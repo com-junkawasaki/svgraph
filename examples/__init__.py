@@ -1,1 +1,1 @@
-"""Example helpers and fixtures for drawingml-svg."""
+"""Example helpers and fixtures for SVGraph."""
