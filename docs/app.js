@@ -572,7 +572,7 @@ function analyzeSvgCoverage(root) {
             addCoverageCount(stats.unsupported_elements, tag);
         }
         if (!ignored)
-            inspectCoverageAttributes(element, style, tag, stats, refs);
+            inspectCoverageAttributes(element, style, tag, stats, refs, css, currentViewport);
         if (tag === "foreignObject")
             return;
         const childViewport = tag === "svg" ? renderedSvgViewport(element, currentViewport) : currentViewport;
@@ -619,7 +619,7 @@ function coverageSupportedElementIssue(tag) {
         return "switch:unsupported-branch";
     return tag;
 }
-function inspectCoverageAttributes(element, style, tag, stats, refs) {
+function inspectCoverageAttributes(element, style, tag, stats, refs, css, viewport, refStack = new Set()) {
     const attributes = attrs(element);
     for (const [name, value] of Object.entries(attributes)) {
         if (!coverageUnsupportedAttributes.has(name))
@@ -629,7 +629,9 @@ function inspectCoverageAttributes(element, style, tag, stats, refs) {
         addCoverageCount(stats.unsupported_attributes, name);
     }
     inspectCoverageHref(element, tag, stats, refs);
-    inspectCoveragePaintServers(element, style, tag, stats, refs);
+    inspectCoveragePaintServers(element, style, tag, stats, refs, css);
+    if (tag === "use")
+        inspectCoverageUseReference(element, style, stats, refs, css, viewport, refStack);
     if (tag === "path") {
         for (const command of unsupportedPathCommands(element.getAttribute("d") || ""))
             addCoverageCount(stats.unsupported_path_commands, command);
@@ -642,8 +644,8 @@ function inspectCoverageHref(element, tag, stats, refs) {
     if (tag === "use" && (!href.startsWith("#") || !refs.has(href.slice(1))))
         addCoverageCount(stats.unsupported_attributes, "href");
 }
-function inspectCoveragePaintServers(element, style, tag, stats, refs) {
-    const declarations = resolvedCascadedDeclarations(element, [], {});
+function inspectCoveragePaintServers(element, style, tag, stats, refs, css) {
+    const declarations = resolvedCascadedDeclarations(element, css, style);
     for (const attr of ["fill", "stroke"]) {
         const value = declarations[attr] ?? element.getAttribute(attr);
         if (!value || !coveragePaintChannelIsVisible(tag, attr, style))
@@ -665,6 +667,39 @@ function inspectCoveragePaintServers(element, style, tag, stats, refs) {
             addCoverageCount(stats.unsupported_attributes, `${attr}:paint-server`);
         }
     }
+}
+function inspectCoverageUseReference(element, inheritedStyle, stats, refs, css, viewport, refStack) {
+    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    const refId = href.startsWith("#") ? href.slice(1) : "";
+    const ref = refId ? refs.get(refId) : null;
+    if (!ref || refStack.has(refId))
+        return;
+    let refViewport = viewport;
+    if (["svg", "symbol"].includes(localName(ref)))
+        refViewport = useViewport(ref, element, viewport);
+    inspectCoverageReferencedSubtree(ref, inheritedStyle, stats, refs, css, refViewport, new Set([...refStack, refId]));
+}
+function inspectCoverageReferencedSubtree(element, inheritedStyle, stats, refs, css, viewport, refStack) {
+    const tag = localName(element);
+    if (coverageIgnoredElements.has(tag))
+        return;
+    const style = computedStyle(element, inheritedStyle, css, refs, viewport);
+    if (style.display === "none")
+        return;
+    const visibilityHidden = style.visibility === "hidden" || style.visibility === "collapse";
+    if (!visibilityHidden)
+        inspectCoverageAttributes(element, style, tag, stats, refs, css, viewport, refStack);
+    if (tag === "foreignObject")
+        return;
+    const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport) : viewport;
+    if (tag === "switch") {
+        const selected = switchSelectedChild(element);
+        if (selected)
+            inspectCoverageReferencedSubtree(selected, style, stats, refs, css, childViewport, refStack);
+        return;
+    }
+    for (const child of Array.from(element.children))
+        inspectCoverageReferencedSubtree(child, style, stats, refs, css, childViewport, refStack);
 }
 function coveragePaintChannelIsVisible(tag, attr, style) {
     if (attr === "fill") {
