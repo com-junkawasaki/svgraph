@@ -339,6 +339,8 @@ type PreparedSlide = {
   media: Record<string, Uint8Array>;
 };
 
+const rootFontSize = 16;
+
 const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
   <metadata>{"presentation":{"slideSize":{"width":1280,"height":720},"masters":[{"id":"brand-master"}],"layouts":[{"id":"title-content","master":"brand-master"}],"guides":[{"id":"safe-left","orientation":"vertical","position":90}],"rulers":[{"id":"x","orientation":"horizontal","origin":0,"spacing":16}],"textStyles":{"title":{"fontFamily":"Aptos Display","fontSize":54,"bold":true},"lead":{"fontFamily":"Aptos","fontSize":28},"body":{"fontFamily":"Aptos","fontSize":18}}}}</metadata>
   <style>
@@ -425,6 +427,9 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
       .css-transform-origin { transform-origin: center; transform: rotate(12deg) skewX(8deg); }
       @media print { .media-rule { fill: #dc2626; } }
       @media screen { .media-rule { fill: #2563eb; stroke: #16a34a; stroke-width: 5; } }
+      .relative-font { font-size: 20px; }
+      .relative-font .em-text { font-size: 1.5em; }
+      .relative-font .calc-text { font-size: calc(8px + 4px); }
     </style>
     <rect width="1280" height="720" fill="#ffffff" stroke="none"/>
     <text x="90" y="90" style="font-size:40;font-family:Arial;font-weight:700;fill:#17202a">Browser SVG coverage</text>
@@ -450,6 +455,10 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
     <text id="rtl-text" x="560" y="95" direction="rtl" style="font-size:22;font-family:Arial;fill:#0f766e">RTL
 line</text>
+    <g class="relative-font" fill="#111827" font-family="Arial">
+      <text class="em-text" x="560" y="135">Em</text>
+      <text class="calc-text" x="640" y="135">Calc</text>
+    </g>
     <rect id="gradient-fill" x="900" y="615" width="120" height="50" style="fill:url(#linear-fallback);stroke:url(#radial-fallback)"/>
     <circle id="pattern-fill" cx="1080" cy="640" r="32" style="fill:url(#pattern-fallback);stroke:#334155"/>
     <use href="#reused-chip" class="accent-use" x="360" y="400"/>
@@ -1375,7 +1384,7 @@ function htmlElementStyle(element: Element, inheritedStyle: SvgStyle, css: CssRu
   if (fontTagColor != null) {
     next.color = parseCssColor(fontTagColor, next) ?? next.color ?? null;
   }
-  if (fontSize != null) next.fontSize = parseLength(fontSize, next.fontSize ?? 14);
+  if (fontSize != null) next.fontSize = parseFontSize(fontSize, next.fontSize ?? 14);
   if (fontTagSize != null) next.fontSize = fontTagSize;
   if (fontFamily != null) next.fontFamily = fontFamily.replace(/^['"]|['"]$/g, "");
   if (fontWeight != null) next.fontWeight = fontWeight;
@@ -1390,7 +1399,7 @@ function htmlElementStyle(element: Element, inheritedStyle: SvgStyle, css: CssRu
   if (tag === "sub") next.baselineShift = "sub";
   const inlineShift = inlineBaselineShift(verticalAlign);
   if (inlineShift) next.baselineShift = inlineShift;
-  if (letterSpacing != null) next.letterSpacing = normalizeSpacingLength(letterSpacing);
+  if (letterSpacing != null) next.letterSpacing = normalizeSpacingLength(letterSpacing, next.fontSize ?? 14);
   if (direction != null) next.direction = normalizeTextDirection(direction);
   return next;
 }
@@ -1436,7 +1445,7 @@ function htmlSideBorder(declarations: Record<string, string>, side: string, fall
 function parseHtmlBorder(value: string | null, style: SvgStyle): TableBorder {
   if (!value || value.trim().toLowerCase() === "none") return { stroke: null, strokeAlpha: null, strokeWidth: 0, strokeLineCap: null, strokeLineJoin: null, strokeDasharray: null, compound: null };
   const parts = value.trim().split(/\s+/);
-  const width = parts.map((part) => htmlCssLength(part, 1)).find((item): item is number => item != null) ?? null;
+  const width = parts.map((part) => htmlCssLength(part, style.fontSize ?? rootFontSize)).find((item): item is number => item != null) ?? null;
   const colorPart = parts.find((part) => parseCssColor(part, style));
   const stylePart = parts.find((part) => ["dashed", "dotted", "double"].includes(part.toLowerCase()))?.toLowerCase() || null;
   const borderWidth = width ?? 1;
@@ -1471,11 +1480,7 @@ function htmlCssLength(value: string | null, basis: number): number | null {
   if (!value) return null;
   const trimmed = value.trim().toLowerCase();
   if (!trimmed || trimmed === "auto") return null;
-  if (trimmed.endsWith("%")) {
-    const percent = Number.parseFloat(trimmed);
-    return Number.isFinite(percent) ? (basis * percent) / 100 : null;
-  }
-  const parsed = Number.parseFloat(trimmed);
+  const parsed = parseCssLength(trimmed, basis, Number.NaN);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -2528,11 +2533,11 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   } else if (opacityAlpha != null || strokeOpacity != null) {
     next.strokeAlpha = combinedAlpha(opacityAlpha, parseAlpha(strokeOpacity), next.strokeAlpha);
   }
-  if (strokeWidth != null) next.strokeWidth = parseLength(strokeWidth, next.strokeWidth ?? 1);
+  if (strokeWidth != null) next.strokeWidth = parseCssLength(strokeWidth, next.fontSize ?? rootFontSize, next.strokeWidth ?? 1);
   if (strokeLineCap != null) next.strokeLineCap = normalizeStrokeLineCap(strokeLineCap);
   if (strokeLineJoin != null) next.strokeLineJoin = normalizeStrokeLineJoin(strokeLineJoin);
-  if (strokeDasharray != null) next.strokeDasharray = normalizeStrokeDasharray(strokeDasharray);
-  if (fontSize != null) next.fontSize = parseLength(fontSize, next.fontSize ?? 18);
+  if (strokeDasharray != null) next.strokeDasharray = normalizeStrokeDasharray(strokeDasharray, next.fontSize ?? rootFontSize);
+  if (fontSize != null) next.fontSize = parseFontSize(fontSize, next.fontSize ?? 18);
   if (fontFamily != null) next.fontFamily = fontFamily.replace(/^['"]|['"]$/g, "");
   if (fontWeight != null) next.fontWeight = fontWeight;
   if (fontStyle != null) next.fontStyle = fontStyle;
@@ -2542,9 +2547,9 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   if (textAnchor != null) next.textAnchor = normalizeTextAnchor(textAnchor);
   if (textBaseline != null) next.textBaseline = normalizeTextBaseline(textBaseline);
   if (baselineShift != null) next.baselineShift = normalizeBaselineShift(baselineShift);
-  if (letterSpacing != null) next.letterSpacing = normalizeSpacingLength(letterSpacing);
-  if (wordSpacing != null) next.wordSpacing = normalizeSpacingLength(wordSpacing);
-  if (textLength != null) next.textLength = parseLength(textLength, next.textLength ?? 0);
+  if (letterSpacing != null) next.letterSpacing = normalizeSpacingLength(letterSpacing, next.fontSize ?? rootFontSize);
+  if (wordSpacing != null) next.wordSpacing = normalizeSpacingLength(wordSpacing, next.fontSize ?? rootFontSize);
+  if (textLength != null) next.textLength = parseCssLength(textLength, next.fontSize ?? rootFontSize, next.textLength ?? 0);
   if (lengthAdjust != null) next.lengthAdjust = normalizeLengthAdjust(lengthAdjust);
   if (rotate != null) next.rotate = singleTextRotation(rotate, element.textContent || null);
   if (direction != null) next.direction = normalizeTextDirection(direction);
@@ -3062,23 +3067,24 @@ function normalizeStrokeLineJoin(value: string): string | null {
   return ["miter", "round", "bevel"].includes(normalized) ? normalized : null;
 }
 
-function normalizeStrokeDasharray(value: string): string | null {
+function normalizeStrokeDasharray(value: string, basis = rootFontSize): string | null {
   const normalized = value.trim();
   if (!normalized || normalized === "none") return null;
-  return dasharrayNumbers(normalized) ? normalized : null;
+  const nums = dasharrayNumbers(normalized, basis);
+  return nums ? nums.map(formatNumber).join(" ") : null;
 }
 
-function normalizeSpacingLength(value: string): number | null {
+function normalizeSpacingLength(value: string, basis = rootFontSize): number | null {
   const normalized = value.trim().toLowerCase();
   if (!normalized || normalized === "normal") return null;
-  const parsed = parseLength(normalized, Number.NaN);
+  const parsed = parseCssLength(normalized, basis, Number.NaN);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function dasharrayNumbers(value: string): number[] | null {
+function dasharrayNumbers(value: string, basis = rootFontSize): number[] | null {
   const parts = value.replaceAll(",", " ").trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return null;
-  const nums = parts.map((part) => Number.parseFloat(part));
+  const nums = parts.map((part) => parseCssLength(part, basis, Number.NaN));
   return nums.every((item) => Number.isFinite(item) && item >= 0) ? nums : null;
 }
 
@@ -3336,6 +3342,166 @@ function parseLength(value: string | null, fallback = 0): number {
   if (!value) return fallback;
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatNumber(value: number): string {
+  return String(Math.round(value * 10000) / 10000);
+}
+
+function parseFontSize(value: string | null, inherited = rootFontSize): number {
+  if (!value) return inherited;
+  const normalized = value.trim().toLowerCase();
+  const keywords: Record<string, number> = {
+    "xx-small": 9,
+    "x-small": 10,
+    small: 13,
+    medium: 16,
+    large: 18,
+    "x-large": 24,
+    "xx-large": 32,
+  };
+  return keywords[normalized] ?? parseCssLength(value, inherited, inherited);
+}
+
+function parseCssLength(value: string | null, basis = Number.NaN, fallback = 0): number {
+  if (!value) return fallback;
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith("calc(") && trimmed.endsWith(")")) {
+    const calculated = calcLength(trimmed.slice(5, -1), basis);
+    return calculated == null ? fallback : calculated;
+  }
+  const functionValue = cssLengthFunction(lower, basis);
+  if (functionValue != null) return functionValue;
+  if (lower.endsWith("%")) {
+    const percent = Number.parseFloat(lower.slice(0, -1));
+    return Number.isFinite(percent) && Number.isFinite(basis) ? (basis * percent) / 100 : fallback;
+  }
+  if (lower.endsWith("rem")) {
+    const number = Number.parseFloat(lower.slice(0, -3));
+    return Number.isFinite(number) ? number * rootFontSize : fallback;
+  }
+  if (lower.endsWith("em")) {
+    const number = Number.parseFloat(lower.slice(0, -2));
+    return Number.isFinite(number) && Number.isFinite(basis) ? number * basis : fallback;
+  }
+  const absolute = parseAbsoluteLength(trimmed);
+  return Number.isFinite(absolute) ? absolute : fallback;
+}
+
+function calcLength(body: string, basis: number): number | null {
+  const addends = splitCalcAddends(body);
+  if (!addends.length) return null;
+  let total = 0;
+  for (const [sign, term] of addends) {
+    const value = calcProduct(term, basis);
+    if (value == null) return null;
+    total += sign * value;
+  }
+  return total;
+}
+
+function splitCalcAddends(value: string): [number, string][] {
+  const result: [number, string][] = [];
+  let current = "";
+  let sign = 1;
+  let depth = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index]!;
+    if (char === "(") depth += 1;
+    if (char === ")" && depth > 0) depth -= 1;
+    if ((char === "+" || char === "-") && depth === 0 && !calcSignIsUnary(value, index) && !/[eE]$/.test(current.trim())) {
+      if (current.trim()) result.push([sign, current.trim()]);
+      current = "";
+      sign = char === "-" ? -1 : 1;
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) result.push([sign, current.trim()]);
+  return result;
+}
+
+function calcProduct(value: string, basis: number): number | null {
+  const factors = splitCalcFactors(value);
+  if (!factors.length) return null;
+  let result = factorLength(factors[0]![1], basis);
+  if (result == null) return null;
+  for (let index = 1; index < factors.length; index += 1) {
+    const [operator, raw] = factors[index]!;
+    const number = operator === "*" ? factorNumber(raw, basis) : factorDivisor(raw, basis);
+    if (number == null) return null;
+    result = operator === "*" ? result * number : result / number;
+  }
+  return Number.isFinite(result) ? result : null;
+}
+
+function splitCalcFactors(value: string): [string, string][] {
+  const result: [string, string][] = [];
+  let current = "";
+  let operator = "*";
+  let depth = 0;
+  for (const char of value) {
+    if (char === "(") depth += 1;
+    if (char === ")" && depth > 0) depth -= 1;
+    if ((char === "*" || char === "/") && depth === 0) {
+      if (current.trim()) result.push([operator, current.trim()]);
+      operator = char;
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) result.push([operator, current.trim()]);
+  return result;
+}
+
+function factorLength(value: string, basis: number): number | null {
+  const trimmed = stripOuterParens(value.trim());
+  if (trimmed.toLowerCase().startsWith("calc(") && trimmed.endsWith(")")) return calcLength(trimmed.slice(5, -1), basis);
+  if (splitCalcAddends(trimmed).length > 1) return calcLength(trimmed, basis);
+  return parseCssLength(trimmed, basis, Number.NaN);
+}
+
+function factorNumber(value: string, basis: number): number | null {
+  const trimmed = stripOuterParens(value.trim());
+  const parsed = Number.parseFloat(trimmed);
+  if (Number.isFinite(parsed) && !/[a-z%]/i.test(trimmed)) return parsed;
+  return factorLength(trimmed, basis);
+}
+
+function factorDivisor(value: string, basis: number): number | null {
+  const parsed = factorNumber(value, basis);
+  return parsed == null || Math.abs(parsed) < 0.000001 ? null : parsed;
+}
+
+function cssLengthFunction(value: string, basis: number): number | null {
+  const nameEnd = value.indexOf("(");
+  if (nameEnd <= 0 || !value.endsWith(")")) return null;
+  const name = value.slice(0, nameEnd);
+  if (!["min", "max", "clamp"].includes(name)) return null;
+  const args = splitCssTopLevel(value.slice(nameEnd + 1, -1), ",").map((item) => parseCssLength(item, basis, Number.NaN));
+  if (args.some((item) => !Number.isFinite(item))) return null;
+  if (name === "min") return Math.min(...args);
+  if (name === "max") return Math.max(...args);
+  if (name === "clamp" && args.length >= 3) return Math.min(Math.max(args[1]!, args[0]!), args[2]!);
+  return null;
+}
+
+function stripOuterParens(value: string): string {
+  let trimmed = value;
+  while (trimmed.startsWith("(") && trimmed.endsWith(")")) {
+    const inner = trimmed.slice(1, -1);
+    if (splitCssTopLevel(inner, ",").length !== 1) break;
+    trimmed = inner.trim();
+  }
+  return trimmed;
+}
+
+function calcSignIsUnary(value: string, index: number): boolean {
+  const previous = value.slice(0, index).trimEnd();
+  return !previous || /[+\-*/(]$/.test(previous);
 }
 
 function parseAbsoluteLength(value: string | null, fallback = Number.NaN): number {
