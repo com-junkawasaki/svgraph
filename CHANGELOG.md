@@ -81,6 +81,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Aligned browser pattern paint-server fallback colors to ignore hidden and fully transparent content.
 - Aligned browser gradient paint-server fallback colors to ignore fully transparent stops.
 - Aligned browser gradient paint-server fallback colors with inherited stop color, opacity, and currentColor context.
+- Aligned browser SVG `href` resolution with namespace-aware legacy `xlink:href` handling for image, use, and gradient references.
 - Added Python PPTX custom XML `source_svg` preservation so generated packages carry the editable SVG source alongside SVGraph presentation metadata.
 - Added browser PPTX custom XML `source_svg` preservation so browser-generated packages match Python source recovery metadata.
 - Added web editor design package part schema documentation for `part_name`, `content_type`, `kind`, and `source_node_id`.

@@ -1076,6 +1076,9 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function coverageSubtreeHasVisibleRendering" in generated
         assert "function coverageUseReferenceIsSupported" in generated
         assert "function coverageReferencedSubtreeIsSupported" in generated
+        assert "function hrefValue" in generated
+        assert 'getAttributeNS("http://www.w3.org/1999/xlink", "href")' in generated
+        assert "const href = hrefValue(element)" in generated
         assert "function simpleElementStyle" in generated
         assert 'style.display === "none"' in generated
         assert 'style.fillAlpha !== 0' in generated
@@ -1326,6 +1329,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser pattern paint-server fallback colors to ignore hidden and fully transparent content",
         "browser gradient paint-server fallback colors to ignore fully transparent stops",
         "browser gradient paint-server fallback colors with inherited stop color, opacity, and currentColor context",
+        "browser SVG `href` resolution with namespace-aware legacy `xlink:href` handling",
         "web editor design package part schema documentation",
         "compatibility submodule public-surface guards",
         "installed compatibility submodules prove their canonical `__all__` and callable parity",

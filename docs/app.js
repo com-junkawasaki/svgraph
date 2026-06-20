@@ -357,6 +357,9 @@ function localName(node) {
 function attrs(element) {
     return Object.fromEntries(Array.from(element.attributes || []).map((attr) => [attr.name, attr.value]).sort());
 }
+function hrefValue(element) {
+    return element.getAttribute("href") || element.getAttributeNS("http://www.w3.org/1999/xlink", "href") || element.getAttribute("xlink:href") || "";
+}
 function dataAttrs(attributes) {
     return Object.fromEntries(Object.entries(attributes)
         .filter(([key]) => key.startsWith("data-"))
@@ -1018,9 +1021,9 @@ function coverageElementIsSupported(element, tag, refs, css = [], style = {}, vi
     if (tag === "polygon" || tag === "polyline")
         return parsePoints(element.getAttribute("points") || "").length >= 2;
     if (tag === "image")
-        return supportedDataImage(element.getAttribute("href") || element.getAttribute("xlink:href") || "");
+        return supportedDataImage(hrefValue(element));
     if (tag === "use") {
-        const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+        const href = hrefValue(element);
         if (!href.startsWith("#") || !refs.has(href.slice(1)))
             return false;
         return coverageUseReferenceIsSupported(element, style, refs, css, viewport);
@@ -1032,7 +1035,7 @@ function coverageElementIsSupported(element, tag, refs, css = [], style = {}, vi
     return true;
 }
 function coverageUseReferenceIsSupported(element, inheritedStyle, refs, css, viewport, refStack = new Set()) {
-    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    const href = hrefValue(element);
     const refId = href.startsWith("#") ? href.slice(1) : "";
     const ref = refId ? refs.get(refId) : null;
     if (!ref || refStack.has(refId))
@@ -1051,7 +1054,7 @@ function coverageReferencedSubtreeIsSupported(element, inheritedStyle, refs, css
         return false;
     if ((tag === "polygon" || tag === "polyline") && parsePoints(element.getAttribute("points") || "").length < 2)
         return false;
-    if (tag === "image" && !supportedDataImage(element.getAttribute("href") || element.getAttribute("xlink:href") || ""))
+    if (tag === "image" && !supportedDataImage(hrefValue(element)))
         return false;
     if (tag === "foreignObject" && !Array.from(element.querySelectorAll("table")).some((item) => localName(item) === "table"))
         return false;
@@ -1088,7 +1091,7 @@ function coverageHasNoVisiblePaint(element, tag, style, refs, css, viewport, ref
     if (tag === "image")
         return style.imageAlpha === 0;
     if (tag === "use") {
-        const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+        const href = hrefValue(element);
         const refId = href.startsWith("#") ? href.slice(1) : "";
         const ref = refId ? refs.get(refId) : null;
         if (!ref || refStack.has(refId))
@@ -1110,7 +1113,7 @@ function coverageSubtreeHasVisibleRendering(element, inheritedStyle, refs, css, 
     if (style.display === "none")
         return false;
     if (tag === "use") {
-        const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+        const href = hrefValue(element);
         const refId = href.startsWith("#") ? href.slice(1) : "";
         const ref = refId ? refs.get(refId) : null;
         if (!ref || refStack.has(refId))
@@ -1164,7 +1167,7 @@ function inspectCoverageAttributes(element, style, tag, stats, refs, css, viewpo
     }
 }
 function inspectCoverageHref(element, tag, stats, refs) {
-    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    const href = hrefValue(element);
     if (tag === "image" && !supportedDataImage(href))
         addCoverageCount(stats.unsupported_attributes, "href");
     if (tag === "use" && (!href.startsWith("#") || !refs.has(href.slice(1))))
@@ -1195,7 +1198,7 @@ function inspectCoveragePaintServers(element, style, tag, stats, refs, css) {
     }
 }
 function inspectCoverageUseReference(element, inheritedStyle, stats, refs, css, viewport, refStack) {
-    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    const href = hrefValue(element);
     const refId = href.startsWith("#") ? href.slice(1) : "";
     const ref = refId ? refs.get(refId) : null;
     if (!ref || refStack.has(refId))
@@ -1245,7 +1248,7 @@ function subtreeHasVisibleText(element, inheritedStyle, css, refs, viewport, ref
     if ((tag === "text" || tag === "tspan") && (element.textContent || "").trim())
         return true;
     if (tag === "use") {
-        const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+        const href = hrefValue(element);
         const refId = href.startsWith("#") ? href.slice(1) : "";
         const ref = refId ? refs.get(refId) : null;
         if (!ref || refStack.has(refId))
@@ -1451,7 +1454,7 @@ function visibleRenderingDescendantCount(element, refs, limit) {
             return;
         }
         if (tag === "use") {
-            const href = node.getAttribute("href") || node.getAttribute("xlink:href") || "";
+            const href = hrefValue(node);
             const ref = href.startsWith("#") ? refs.get(href.slice(1)) : null;
             if (ref)
                 walk(ref);
@@ -1591,7 +1594,7 @@ function extractShapes(root) {
             ownMatrix = multiply(positionedMatrix, viewBoxMatrix(element, childViewport));
         }
         if (tag === "use") {
-            const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+            const href = hrefValue(element);
             const refId = href.startsWith("#") ? href.slice(1) : "";
             const ref = refs.get(refId);
             if (ref && !refStack.has(refId)) {
@@ -1810,7 +1813,7 @@ function elementToShape(element, matrix, style, id, viewport) {
         }
     }
     if (tag === "image") {
-        const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+        const href = hrefValue(element);
         if (supportedDataImage(href)) {
             const imageFit = imagePreserveAspectRatioRect(geom(element, "x", "x", viewport), geom(element, "y", "y", viewport), geom(element, "width", "x", viewport), geom(element, "height", "y", viewport), href, element.getAttribute("preserveAspectRatio"));
             const box = transformedImageBox(matrix, imageFit.x, imageFit.y, imageFit.width, imageFit.height);
@@ -5299,7 +5302,7 @@ function paintServerColor(id, refs, style, seen = new Set()) {
     if (tag !== "linearGradient" && tag !== "radialGradient")
         return null;
     const nextSeen = new Set([...seen, id]);
-    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    const href = hrefValue(element);
     const inheritedStops = href.startsWith("#") ? gradientStops(refs.get(href.slice(1)), refs, style, nextSeen) : [];
     const stops = inheritedStops.concat(gradientStops(element, refs, style, nextSeen));
     if (!stops.length)
@@ -5397,7 +5400,7 @@ function gradientStops(element, refs, style, seen) {
     const inheritedStopOpacity = element.getAttribute("stop-opacity") ?? gradientDeclarations["stop-opacity"] ?? null;
     const gradientColor = gradientDeclarations.color ?? element.getAttribute("color") ?? null;
     const gradientStyle = gradientColor ? { ...style, color: parseCssColor(gradientColor, style) ?? style.color ?? null } : style;
-    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    const href = hrefValue(element);
     if (href.startsWith("#")) {
         const inherited = refs.get(href.slice(1));
         const inheritedId = inherited?.getAttribute("id") || "";
