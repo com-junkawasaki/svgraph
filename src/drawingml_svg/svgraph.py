@@ -113,30 +113,6 @@ class SVGraphTextStyle:
     node_id: str | None = None
 
 
-# Backward-compatible type aliases for earlier capitalization and pre-SVGraph API names.
-SvgraphDocument = SVGraphDocument
-SvgraphNode = SVGraphNode
-SvgraphDependency = SVGraphDependency
-SvgraphPresentation = SVGraphPresentation
-SvgraphSlide = SVGraphSlide
-SvgraphPackagePart = SVGraphPackagePart
-SvgraphTemplate = SVGraphTemplate
-SvgraphGuide = SVGraphGuide
-SvgraphRuler = SVGraphRuler
-SvgraphTextStyle = SVGraphTextStyle
-
-SvgIRDocument = SVGraphDocument
-SvgIRNode = SVGraphNode
-SvgIRDependency = SVGraphDependency
-SvgIRPresentation = SVGraphPresentation
-SvgIRSlide = SVGraphSlide
-SvgIRPackagePart = SVGraphPackagePart
-SvgIRTemplate = SVGraphTemplate
-SvgIRGuide = SVGraphGuide
-SvgIRRuler = SVGraphRuler
-SvgIRTextStyle = SVGraphTextStyle
-
-
 def svg_to_svgraph(svg_text: str) -> SVGraphDocument:
     """Parse SVG into SVGraph, the metadata-preserving SVG graph model."""
     root = ET.fromstring(svg_text)
@@ -151,26 +127,10 @@ def svg_to_svgraph(svg_text: str) -> SVGraphDocument:
     )
 
 
-def svg_to_ir(svg_text: str) -> SVGraphDocument:
-    """Legacy alias for :func:`svg_to_svgraph`."""
-
-    return svg_to_svgraph(svg_text)
-
-
 def svg_to_svgraph_presentation(svg_text: str) -> SVGraphPresentation:
     """Parse SVG into the presentation/package view of SVGraph."""
 
     return svg_to_svgraph(svg_text).presentation
-
-
-def svg_to_pptx_ir(svg_text: str) -> SVGraphPresentation:
-    """Legacy alias for :func:`svg_to_svgraph_presentation`."""
-
-    return svg_to_svgraph_presentation(svg_text)
-
-
-def svg_ir_to_json(svg_text: str) -> str:
-    return svg_svgraph_to_json(svg_text)
 
 
 def svg_svgraph_to_json(svg_text: str) -> str:
@@ -179,10 +139,6 @@ def svg_svgraph_to_json(svg_text: str) -> str:
 
 def svg_svgraph_presentation_to_json(svg_text: str) -> str:
     return json.dumps(asdict(svg_to_svgraph_presentation(svg_text)), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-
-
-def svg_pptx_ir_to_json(svg_text: str) -> str:
-    return svg_svgraph_presentation_to_json(svg_text)
 
 
 def _node_to_svgraph(element: ET.Element, node_id: str) -> SVGraphNode:
