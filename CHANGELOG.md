@@ -21,6 +21,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Strengthened web package release guards so private package intent and MIT license metadata stay synchronized with the packaged lockfile.
 - Updated the Pages deployment workflow to current Pages artifact and deploy actions for the SVGraph docs site.
 - Added stale distribution metadata cleanup to the migration verification checklist.
+- Strengthened generated artifact ignore coverage for Ruff cache, build distributions, and stale SVGraph egg-info metadata.
 - Strengthened compatibility submodule runtime guards so retained import paths expose canonical SVGraph callables.
 - Strengthened release and CI package file-list guards for canonical SVGraph modules and retained compatibility wrappers.
 - Added SVGraph-oriented public repository topics and release checklist verification for them.

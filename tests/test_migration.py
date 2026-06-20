@@ -177,14 +177,27 @@ def test_generated_artifact_paths_are_ignored_and_untracked() -> None:
         text=True,
     ).stdout.splitlines()
 
-    for ignored in ["__pycache__/", ".pytest_cache/", "*.egg-info/", "build/", "tmp/", "node_modules/"]:
+    for ignored in [
+        "__pycache__/",
+        "*.py[cod]",
+        ".pytest_cache/",
+        ".ruff_cache/",
+        "*.egg-info/",
+        "build/",
+        "dist/",
+        "tmp/",
+        "node_modules/",
+    ]:
         assert ignored in gitignore
 
     forbidden_tracked_patterns = [
         "tmp/",
         "build/",
+        "dist/",
         "node_modules/",
         "src/drawingml_svg.egg-info/",
+        "src/svgraph.egg-info/",
+        ".ruff_cache/",
         "drawingml-svg-",
         "drawingml_svg-0.",
         "pptxsvg-web",
@@ -1085,6 +1098,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "release and CI smoke checks",
         "public `com-junkawasaki/svgraph` repository identity and Pages URL",
         "stale local `*.egg-info` metadata",
+        "generated artifact ignore coverage for Ruff cache, build distributions",
         "browser type checking and committed Pages artifact freshness",
         "every retained compatibility console script",
         "canonical `com-junkawasaki/svgraph` private advisory URL",
