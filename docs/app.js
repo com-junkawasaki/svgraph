@@ -628,10 +628,53 @@ function inspectCoverageAttributes(element, style, tag, stats, refs) {
             continue;
         addCoverageCount(stats.unsupported_attributes, name);
     }
+    inspectCoverageHref(element, tag, stats, refs);
+    inspectCoveragePaintServers(element, style, tag, stats, refs);
     if (tag === "path") {
         for (const command of unsupportedPathCommands(element.getAttribute("d") || ""))
             addCoverageCount(stats.unsupported_path_commands, command);
     }
+}
+function inspectCoverageHref(element, tag, stats, refs) {
+    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    if (tag === "image" && !supportedDataImage(href))
+        addCoverageCount(stats.unsupported_attributes, "href");
+    if (tag === "use" && (!href.startsWith("#") || !refs.has(href.slice(1))))
+        addCoverageCount(stats.unsupported_attributes, "href");
+}
+function inspectCoveragePaintServers(element, style, tag, stats, refs) {
+    const declarations = resolvedCascadedDeclarations(element, [], {});
+    for (const attr of ["fill", "stroke"]) {
+        const value = declarations[attr] ?? element.getAttribute(attr);
+        if (!value || !coveragePaintChannelIsVisible(tag, attr, style))
+            continue;
+        const ref = paintUrlRef(value.trim());
+        if (!ref || ref.fallback)
+            continue;
+        const server = refs.get(ref.id);
+        const serverTag = server ? localName(server) : "";
+        if (serverTag === "pattern") {
+            if (!paintServerColor(ref.id, refs, style))
+                addCoverageCount(stats.unsupported_attributes, `${attr}:pattern`);
+        }
+        else if (serverTag === "linearGradient" || serverTag === "radialGradient") {
+            if (!paintServerColor(ref.id, refs, style))
+                addCoverageCount(stats.unsupported_attributes, `${attr}:paint-server`);
+        }
+        else {
+            addCoverageCount(stats.unsupported_attributes, `${attr}:paint-server`);
+        }
+    }
+}
+function coveragePaintChannelIsVisible(tag, attr, style) {
+    if (attr === "fill") {
+        if (!["circle", "ellipse", "path", "polygon", "polyline", "rect", "text", "tspan", "use"].includes(tag))
+            return false;
+        return style.fillAlpha !== 0;
+    }
+    if (!["circle", "ellipse", "line", "path", "polygon", "polyline", "rect", "text", "tspan", "use"].includes(tag))
+        return false;
+    return style.strokeAlpha !== 0 && (style.strokeWidth ?? 1) !== 0;
 }
 function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, refs) {
     const normalized = value.trim().toLowerCase();
