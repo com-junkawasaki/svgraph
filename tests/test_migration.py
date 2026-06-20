@@ -231,8 +231,15 @@ def test_manifest_and_ci_package_svgraph_migration_docs() -> None:
         "MIGRATION.md",
         "RELEASE.md",
         "SECURITY.md",
+        "package.json",
+        "package-lock.json",
+        "tsconfig.web.json",
+        "docs/.nojekyll",
         "docs/adr/0001-svgraph.md",
+        "docs/app.js",
+        "docs/index.html",
         "docs/svgraph-web-editor.md",
+        "web/app.ts",
     ]
 
     for doc in packaged_docs:

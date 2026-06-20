@@ -219,8 +219,15 @@ jobs:
           assert f"{root}/MIGRATION.md" in sdist_names
           assert f"{root}/RELEASE.md" in sdist_names
           assert f"{root}/SECURITY.md" in sdist_names
+          assert f"{root}/package.json" in sdist_names
+          assert f"{root}/package-lock.json" in sdist_names
+          assert f"{root}/tsconfig.web.json" in sdist_names
+          assert f"{root}/docs/.nojekyll" in sdist_names
           assert f"{root}/docs/adr/0001-svgraph.md" in sdist_names
+          assert f"{root}/docs/app.js" in sdist_names
+          assert f"{root}/docs/index.html" in sdist_names
           assert f"{root}/docs/svgraph-web-editor.md" in sdist_names
+          assert f"{root}/web/app.ts" in sdist_names
           assert f"{root}/src/drawingml_svg/py.typed" in sdist_names
           assert f"{root}/src/svgraph/__main__.py" in sdist_names
           assert f"{root}/src/svgraph/py.typed" in sdist_names

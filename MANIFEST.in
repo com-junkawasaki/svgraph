@@ -4,5 +4,12 @@ include CONTRIBUTING.md
 include MIGRATION.md
 include RELEASE.md
 include SECURITY.md
+include package.json
+include package-lock.json
+include tsconfig.web.json
+include docs/.nojekyll
 include docs/adr/0001-svgraph.md
+include docs/app.js
+include docs/index.html
 include docs/svgraph-web-editor.md
+include web/app.ts
