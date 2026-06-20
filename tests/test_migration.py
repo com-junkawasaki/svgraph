@@ -1080,6 +1080,8 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert 'style.display === "none"' in generated
         assert 'style.fillAlpha !== 0' in generated
         assert 'value("fill-opacity")' in generated
+        assert "const stopOpacityAlpha = parseAlpha(stopOpacity)" in generated
+        assert "combinedAlpha(stopOpacityAlpha, colorAlpha) !== 0" in generated
         assert "function zeroAngle" in generated
         assert "function textHasNoKerningPairs" in generated
         assert 'name === "font-kerning"' in generated
@@ -1318,6 +1320,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser coverage analyzer ignored-element handling for non-rendering geometry and no visible paint",
         "browser coverage analyzer `use` reference support checks against referenced SVG subtrees",
         "browser pattern paint-server fallback colors to ignore hidden and fully transparent content",
+        "browser gradient paint-server fallback colors to ignore fully transparent stops",
         "web editor design package part schema documentation",
         "compatibility submodule public-surface guards",
         "installed compatibility submodules prove their canonical `__all__` and callable parity",

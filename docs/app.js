@@ -5404,8 +5404,11 @@ function gradientStops(element, refs, style, seen) {
             continue;
         const declarations = styleDeclarations(stop.getAttribute("style"));
         const color = declarations["stop-color"] ?? stop.getAttribute("stop-color") ?? "#000000";
+        const stopOpacity = stop.getAttribute("stop-opacity") ?? declarations["stop-opacity"] ?? null;
+        const stopOpacityAlpha = parseAlpha(stopOpacity);
         const normalized = normalizeStopColor(color, style);
-        if (normalized)
+        const colorAlpha = cssColorAlpha(color);
+        if (normalized && combinedAlpha(stopOpacityAlpha, colorAlpha) !== 0)
             colors.push(normalized);
     }
     return colors;
