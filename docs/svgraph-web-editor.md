@@ -125,7 +125,7 @@ Export targets:
 - `drawingml.xml`: current fragment converter output.
 - `pptx`: full package emitter output.
 
-The `.pptx` exporter should consume the SVGraph `presentation.parts` projection and generate package relationships, content types, presentation properties, slide XML, theme, layouts, and optional custom XML sidecar.
+The `.pptx` exporter should consume the SVGraph `presentation.parts` projection and generate package relationships, content types, presentation properties, slide XML, theme, layouts, and optional custom XML sidecar. Each package part record carries `part_name`, `content_type`, `kind`, and `source_node_id` so the UI can preview the package blueprint and trace generated PresentationML parts back to SVG nodes.
 
 ## Web LLM Integration
 

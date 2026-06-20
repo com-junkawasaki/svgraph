@@ -1007,6 +1007,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "SVGraph presentation package part schema documentation",
         "release and CI generated presentation JSON package part content types",
         "Python SVGraph presentation package part content type unit coverage",
+        "web editor design package part schema documentation",
     ]:
         assert expected in changelog
 
@@ -1174,6 +1175,7 @@ def test_web_editor_design_uses_browser_only_svgraph_contract() -> None:
         "`svgraph.json`",
         "`svgraph-presentation.json`",
         "The `.pptx` exporter should consume the SVGraph `presentation.parts` projection",
+        "Each package part record carries `part_name`, `content_type`, `kind`, and `source_node_id`",
         "Web LLM should run in a dedicated worker",
         'device: "webgpu"',
         "LLM output is always a proposed patch against SVGraph-level commands",
