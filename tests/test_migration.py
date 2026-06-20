@@ -886,9 +886,14 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert lock_metadata["packages"][""]["license"] == package_metadata["license"]
     assert "<title>SVGraph Editor</title>" in html
     assert 'id="downloadSVGraphBtn"' in html
+    assert 'id="downloadDrawingMlBtn"' in html
     assert 'mustElement<HTMLButtonElement>("downloadSVGraphBtn")' in source
+    assert 'mustElement<HTMLButtonElement>("downloadDrawingMlBtn")' in source
     for generated in [source, app_js]:
         assert 'downloadText("svgraph.json"' in generated
+        assert 'downloadBlob("svgraph-drawingml.xml"' in generated
+        assert "function svgToDrawingMl" in generated
+        assert "function buildDrawingMlFragment" in generated
         assert 'downloadText("svgraph-presentation.json"' in generated
         assert 'downloadBlob("svgraph-web.pptx"' in generated
 
@@ -952,6 +957,7 @@ def test_pages_typescript_build_targets_committed_svgraph_artifact() -> None:
     assert '<script type="module" src="./app.js"></script>' in html
     assert 'version: "0.3-svgraph-web-ts"' in app_js
     assert 'downloadBlob("svgraph-web.pptx"' in app_js
+    assert 'downloadBlob("svgraph-drawingml.xml"' in app_js
 
 
 def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
@@ -1042,6 +1048,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser PPTX custom XML sidecar preservation for SVGraph presentation metadata",
         "SVGraph presentation package blueprint custom XML sidecar part",
         "browser Slides pane package blueprint preview",
+        "browser DrawingML fragment download",
         "web editor design package part schema documentation",
     ]:
         assert expected in changelog
@@ -1231,6 +1238,7 @@ def test_web_editor_design_uses_browser_only_svgraph_contract() -> None:
         "`web/app.ts` is the TypeScript browser runtime.",
         "GitHub Pages loads the compiled `docs/app.js`.",
         "without Python",
+        "DrawingML fragments and `.pptx` without Python",
         "`SVGraphDocument`",
         "`SVGraphPresentation` projection",
         "`svgraph-presentation` view",

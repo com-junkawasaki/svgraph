@@ -948,6 +948,16 @@ function svgToPptx(svgText: string): Uint8Array {
   return writePptx(slideXmls, svgraph.presentation);
 }
 
+function svgToDrawingMl(svgText: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgText, "image/svg+xml");
+  const error = doc.querySelector("parsererror");
+  if (error) throw new Error((error.textContent || "").trim());
+  const root = doc.documentElement;
+  const slides = declaredSlides(root);
+  return buildDrawingMlFragment((slides.length ? slides : [root])[0]!);
+}
+
 const coverageSupportedElements = new Set([
   "a",
   "circle",
@@ -1300,6 +1310,13 @@ function buildSlideXml(slide: Element, slideIndex: number): string {
   markRelationConnectors(shapes);
   const body = shapes.map((shape) => shapeToXml(shape)).join("");
   return xmlDecl(`<p:sld xmlns:a="${nsA}" xmlns:r="${nsR}" xmlns:p="${nsP}"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${body}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
+}
+
+function buildDrawingMlFragment(slide: Element): string {
+  const shapes = extractShapes(slide);
+  markRelationConnectors(shapes);
+  const body = shapes.map((shape) => shapeToXml(shape)).join("");
+  return xmlDecl(`<p:spTree xmlns:a="${nsA}" xmlns:r="${nsR}" xmlns:p="${nsP}"><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${body}</p:spTree>`);
 }
 
 function extractShapes(root: Element): Shape[] {
@@ -3698,6 +3715,9 @@ mustElement<HTMLButtonElement>("sampleBtn").addEventListener("click", () => {
 });
 mustElement<HTMLButtonElement>("downloadSVGraphBtn").addEventListener("click", () => {
   if (state.svgraph) downloadText("svgraph.json", JSON.stringify(state.svgraph, null, 2));
+});
+mustElement<HTMLButtonElement>("downloadDrawingMlBtn").addEventListener("click", () => {
+  downloadBlob("svgraph-drawingml.xml", new Blob([svgToDrawingMl(source.value)], { type: "application/xml;charset=utf-8" }));
 });
 mustElement<HTMLButtonElement>("downloadPresentationBtn").addEventListener("click", () => {
   if (state.presentation) downloadText("svgraph-presentation.json", JSON.stringify(state.presentation, null, 2));
