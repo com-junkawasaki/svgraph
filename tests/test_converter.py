@@ -193,6 +193,21 @@ def test_pptx_exporter_uses_only_svgraph_internal_shape_prefix() -> None:
     assert "_pptxsvg_" not in pptx_source
 
 
+def test_pages_artifacts_use_svgraph_naming() -> None:
+    public_assets = "\n".join(
+        [
+            Path("docs/index.html").read_text(encoding="utf-8"),
+            Path("docs/app.js").read_text(encoding="utf-8"),
+        ]
+    )
+
+    assert "SVGraph" in public_assets
+    assert "PPTXSVG" not in public_assets
+    assert "pptxsvg" not in public_assets
+    assert "presentation IR" not in public_assets
+    assert "downloadPptxsvg" not in public_assets
+
+
 @pytest.mark.parametrize("executable", ["svg2dml", "dml2svg", "drawingml-svg-analyze"])
 def test_cli_alias_version_writes_installed_package_version(monkeypatch, capsys, executable: str) -> None:
     monkeypatch.setattr("sys.argv", [executable, "--version"])
