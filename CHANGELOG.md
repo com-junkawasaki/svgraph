@@ -85,6 +85,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Aligned browser paint-server fallback colors with CSS cascade rules for gradient stops and pattern children.
 - Aligned browser text run export with CSS cascade rules for `tspan` styling, rotation, anchor, and baseline fallback.
 - Aligned browser text position export with CSS cascade rules for `text` and `tspan` `x`/`y`/`dx`/`dy` geometry.
+- Aligned browser basic shape geometry export with CSS cascade rules for `rect`, `circle`, `ellipse`, and `line` geometry.
 - Added Python PPTX custom XML `source_svg` preservation so generated packages carry the editable SVG source alongside SVGraph presentation metadata.
 - Added browser PPTX custom XML `source_svg` preservation so browser-generated packages match Python source recovery metadata.
 - Added web editor design package part schema documentation for `part_name`, `content_type`, `kind`, and `source_node_id`.

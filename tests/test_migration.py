@@ -1093,6 +1093,10 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "combinedAlpha(stopOpacityAlpha, colorAlpha) !== 0" in generated
         assert "textRuns(element, paintStyle, viewport, textMetricScale, css, refs)" in generated
         assert "computedStyle(tspan, inheritedStyle, css, refs, viewport)" in generated
+        assert "const declarations = resolvedCascadedDeclarations(element, css, paintStyle)" in generated
+        assert "cascadedGeom(element, declarations, \"width\", \"x\", viewport)" in generated
+        assert "cascadedGeom(element, declarations, \"cx\", \"x\", viewport)" in generated
+        assert "cascadedGeom(element, declarations, \"x1\", \"x\", viewport)" in generated
         assert "svgTextPosition(element, viewport, css, paintStyle)" in generated
         assert "optionalCascadedGeom" in generated
         assert "firstOptionalCascadedGeom" in generated
@@ -1342,6 +1346,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser paint-server fallback colors with CSS cascade rules for gradient stops and pattern children",
         "browser text run export with CSS cascade rules for `tspan` styling, rotation, anchor, and baseline fallback",
         "browser text position export with CSS cascade rules for `text` and `tspan` `x`/`y`/`dx`/`dy` geometry",
+        "browser basic shape geometry export with CSS cascade rules for `rect`, `circle`, `ellipse`, and `line` geometry",
         "web editor design package part schema documentation",
         "compatibility submodule public-surface guards",
         "installed compatibility submodules prove their canonical `__all__` and callable parity",

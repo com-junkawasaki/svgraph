@@ -602,12 +602,18 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
       .relative-font .calc-text { font-size: calc(8px + 4px); }
       .font-short-title { font: italic small-caps 700 18px/1.2 "Aptos Display", Arial, sans-serif; fill: #111827; }
       .css-positioned-text { x: 900px; y: 412px; dx: 6px; dy: 4px; }
+      .css-geom-rect { x: 735px; y: 165px; width: 75px; height: 38px; rx: 8px; fill: #fee2e2; stroke: #b91c1c; stroke-width: 2px; }
+      .css-geom-circle { cx: 845px; cy: 184px; r: 19px; fill: #dcfce7; stroke: #15803d; stroke-width: 2px; }
+      .css-geom-line { x1: 735px; y1: 220px; x2: 875px; y2: 220px; stroke: #0f172a; stroke-width: 4px; }
     </style>
     <rect width="1280" height="720" fill="#ffffff" stroke="none"/>
     <text x="90" y="90" style="font-size:40;font-family:Arial;font-weight:700;fill:#17202a">Browser SVG coverage</text>
     <polygon id="tri" points="120,170 300,170 210,315"/>
     <polyline id="zig" points="390,170 460,250 530,170 600,250" style="fill:none;stroke:#dc2626;stroke-linejoin:miter;stroke-miterlimit:6"/>
     <path id="box-path" d="M 690 170 L 900 170 L 900 315 L 690 315 Z" style="fill:#dcfce7;stroke:#15803d"/>
+    <rect class="css-geom-rect"/>
+    <circle class="css-geom-circle"/>
+    <line class="css-geom-line"/>
     <path id="curve-path" d="M 120 520 C 190 430 260 610 330 520 Q 390 445 450 520 T 570 520" style="fill:none;stroke:#ea580c;stroke-width:6"/>
     <path id="arc-path" d="M 640 520 A 90 55 0 0 1 820 520 A 90 55 0 0 1 640 520" style="fill:#fef3c7;stroke:#a16207;stroke-width:5"/>
     <rect id="geometry-lengths" x="calc(50% - 80px)" y="42%" width="10%" height="8%" style="fill:#ecfccb;stroke:#4d7c0f;stroke-width:2pt"/>
@@ -2008,8 +2014,9 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
   const data = dataAttrs(attrs(element));
   const name = element.getAttribute("id") || tag;
   const paintStyle = scaledStrokeStyle(style, strokeTransformScale(style, matrix));
+  const declarations = resolvedCascadedDeclarations(element, css, paintStyle);
   if (tag === "rect") {
-    const box = transformedBox(matrix, geom(element, "x", "x", viewport), geom(element, "y", "y", viewport), geom(element, "width", "x", viewport), geom(element, "height", "y", viewport));
+    const box = transformedBox(matrix, cascadedGeom(element, declarations, "x", "x", viewport), cascadedGeom(element, declarations, "y", "y", viewport), cascadedGeom(element, declarations, "width", "x", viewport), cascadedGeom(element, declarations, "height", "y", viewport));
     return {
       id,
       kind: "rect",
@@ -2019,7 +2026,7 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
       y: box.y,
       width: box.width,
       height: box.height,
-      rx: geom(element, "rx", "x", viewport),
+      rx: cascadedGeom(element, declarations, "rx", "x", viewport),
       fill: paintStyle.fill ?? "#000000",
       fillAlpha: paintStyle.fillAlpha ?? null,
       stroke: paintStyle.stroke ?? null,
@@ -2029,10 +2036,10 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
     };
   }
   if (tag === "circle" || tag === "ellipse") {
-    const cx = geom(element, "cx", "x", viewport);
-    const cy = geom(element, "cy", "y", viewport);
-    const rx = tag === "circle" ? geom(element, "r", "diag", viewport) : geom(element, "rx", "x", viewport);
-    const ry = tag === "circle" ? geom(element, "r", "diag", viewport) : geom(element, "ry", "y", viewport);
+    const cx = cascadedGeom(element, declarations, "cx", "x", viewport);
+    const cy = cascadedGeom(element, declarations, "cy", "y", viewport);
+    const rx = tag === "circle" ? cascadedGeom(element, declarations, "r", "diag", viewport) : cascadedGeom(element, declarations, "rx", "x", viewport);
+    const ry = tag === "circle" ? cascadedGeom(element, declarations, "r", "diag", viewport) : cascadedGeom(element, declarations, "ry", "y", viewport);
     const box = transformedBox(matrix, cx - rx, cy - ry, rx * 2, ry * 2);
     return {
       id,
@@ -2052,8 +2059,8 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
     };
   }
   if (tag === "line") {
-    const [x1, y1] = point(matrix, geom(element, "x1", "x", viewport), geom(element, "y1", "y", viewport));
-    const [x2, y2] = point(matrix, geom(element, "x2", "x", viewport), geom(element, "y2", "y", viewport));
+    const [x1, y1] = point(matrix, cascadedGeom(element, declarations, "x1", "x", viewport), cascadedGeom(element, declarations, "y1", "y", viewport));
+    const [x2, y2] = point(matrix, cascadedGeom(element, declarations, "x2", "x", viewport), cascadedGeom(element, declarations, "y2", "y", viewport));
     const pathPaintStyle = scaledPathLengthDashStyle(paintStyle, pathLengthScale(paintStyle, element, "line", viewport));
     return {
       id,
@@ -4450,6 +4457,11 @@ function firstOptionalGeom(element: Element, name: string, axis: "x" | "y" | "di
 
 function cascadedGeomValue(element: Element, declarations: Record<string, string>, name: string): string | null {
   return declarations[name] ?? element.getAttribute(name);
+}
+
+function cascadedGeom(element: Element, declarations: Record<string, string>, name: string, axis: "x" | "y" | "diag", viewport: Viewport, fallback = 0): number {
+  const value = cascadedGeomValue(element, declarations, name);
+  return parseCssLength(value, percentageBasis(axis, viewport), fallback);
 }
 
 function optionalCascadedGeom(element: Element, declarations: Record<string, string>, name: string, axis: "x" | "y" | "diag", viewport: Viewport): number | null {
