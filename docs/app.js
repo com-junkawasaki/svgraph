@@ -183,6 +183,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <g id="visibility-hidden" visibility="hidden"><rect id="visibility-visible" x="910" y="615" width="34" height="50" visibility="visible" style="fill:#ffffff;stroke:#0f766e;stroke-width:3"/></g>
     <g id="blend-isolation-dedupe" isolation="isolate"><rect x="955" y="615" width="34" height="50" mix-blend-mode="multiply" style="fill:#f8fafc;stroke:#64748b"/></g>
     <g id="hidden-blend-effect" mix-blend-mode="multiply"><rect x="995" y="615" width="34" height="50" opacity="0" style="fill:#111827"/></g>
+    <g id="ignored-fill-rule" fill-rule="evenodd"><path d="M 1035 615 H 1069 V 665 H 1035 Z" fill="none" stroke="#475569"/></g>
     <g class="var-theme"><rect class="inherit-box" x="910" y="88" width="105" height="52"/></g>
     <g id="initial-reset-group" fill="#123456" stroke="#abcdef" stroke-width="5" font-size="24" text-anchor="middle">
       <rect id="initial-reset-rect" x="1035" y="155" width="70" height="40" fill="initial" stroke="initial" stroke-width="initial"/>
@@ -1305,6 +1306,8 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
         return true;
     if (name === "clip-path")
         return clipPathHasRect(value, refs);
+    if (name === "fill-rule")
+        return !subtreeHasVisibleFill(element, style, refs, css, viewport);
     if (name === "isolation")
         return isolationIsRedundantWithBlend(element, tag, normalized, style, css, refs, viewport);
     if (name === "direction")
@@ -1474,6 +1477,34 @@ function subtreeHasBlend(element, inheritedStyle, css, refs, viewport, refStack 
     }
     const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport, css, style) : viewport;
     return Array.from(element.children).some((child) => subtreeHasBlend(child, style, css, refs, childViewport, refStack));
+}
+function subtreeHasVisibleFill(element, inheritedStyle, refs, css, viewport, refStack = new Set()) {
+    const tag = localName(element);
+    const style = computedStyle(element, inheritedStyle, css, refs, viewport);
+    if (style.display === "none")
+        return false;
+    if (tag === "use") {
+        const href = hrefValue(element);
+        const refId = href.startsWith("#") ? href.slice(1) : "";
+        const ref = refId ? refs.get(refId) : null;
+        if (!ref || refStack.has(refId))
+            return false;
+        const refViewport = ["svg", "symbol"].includes(localName(ref)) ? useViewport(ref, element, viewport, css, style) : viewport;
+        return subtreeHasVisibleFill(ref, style, refs, css, refViewport, new Set([...refStack, refId]));
+    }
+    if (style.visibility !== "hidden" && style.visibility !== "collapse" && ["circle", "ellipse", "path", "polygon", "polyline", "rect", "text", "tspan"].includes(tag) && !coverageHasNonRenderingGeometry(element, tag, style, css, viewport) && hasVisibleFill(element, tag, style))
+        return true;
+    const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport, css, style) : viewport;
+    if (tag === "switch") {
+        const selected = switchSelectedChild(element);
+        return selected ? subtreeHasVisibleFill(selected, style, refs, css, childViewport, refStack) : false;
+    }
+    return Array.from(element.children).some((child) => subtreeHasVisibleFill(child, style, refs, css, childViewport, refStack));
+}
+function hasVisibleFill(element, tag, style) {
+    if ((tag === "text" || tag === "tspan") && !(element.textContent || "").trim())
+        return false;
+    return tag !== "line" && style.fill !== "none" && style.fillAlpha !== 0;
 }
 function subtreeHasUnsupportedStrokeLineEnum(element, style, refs, css, viewport, attr, refStack = new Set()) {
     const tag = localName(element);
@@ -4462,6 +4493,7 @@ function computedStyle(element, inherited, css = [], refs = new Map(), viewport 
     const next = { ...inherited, customProperties: customPropertiesFromDeclarations(declarations, inherited) };
     const color = value("color");
     const fill = value("fill");
+    const fillRule = value("fill-rule");
     const stroke = value("stroke");
     const display = value("display");
     const visibility = value("visibility");
@@ -4531,6 +4563,8 @@ function computedStyle(element, inherited, css = [], refs = new Map(), viewport 
     else if (opacityAlpha != null || fillOpacity != null) {
         next.fillAlpha = combinedAlpha(opacityAlpha, parseAlpha(fillOpacity), next.fillAlpha);
     }
+    if (fillRule != null)
+        next.fillRule = fillRule.trim().toLowerCase();
     if (strokePaint) {
         next.stroke = strokePaint.color;
         next.strokeAlpha = combinedAlpha(opacityAlpha, parseAlpha(strokeOpacity), strokePaint.alpha);
@@ -4835,6 +4869,8 @@ function cssValueFromStyle(style, name) {
         case "background":
         case "background-color":
             return style.fill ?? null;
+        case "fill-rule":
+            return style.fillRule ?? null;
         case "stroke":
         case "border-color":
             return style.stroke ?? null;

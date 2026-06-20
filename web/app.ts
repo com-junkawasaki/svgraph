@@ -376,6 +376,7 @@ type SvgStyle = {
   customProperties?: Record<string, string>;
   fill?: string | null;
   fillAlpha?: number | null;
+  fillRule?: string | null;
   stroke?: string | null;
   strokeAlpha?: number | null;
   strokeWidth?: number;
@@ -639,6 +640,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <g id="visibility-hidden" visibility="hidden"><rect id="visibility-visible" x="910" y="615" width="34" height="50" visibility="visible" style="fill:#ffffff;stroke:#0f766e;stroke-width:3"/></g>
     <g id="blend-isolation-dedupe" isolation="isolate"><rect x="955" y="615" width="34" height="50" mix-blend-mode="multiply" style="fill:#f8fafc;stroke:#64748b"/></g>
     <g id="hidden-blend-effect" mix-blend-mode="multiply"><rect x="995" y="615" width="34" height="50" opacity="0" style="fill:#111827"/></g>
+    <g id="ignored-fill-rule" fill-rule="evenodd"><path d="M 1035 615 H 1069 V 665 H 1035 Z" fill="none" stroke="#475569"/></g>
     <g class="var-theme"><rect class="inherit-box" x="910" y="88" width="105" height="52"/></g>
     <g id="initial-reset-group" fill="#123456" stroke="#abcdef" stroke-width="5" font-size="24" text-anchor="middle">
       <rect id="initial-reset-rect" x="1035" y="155" width="70" height="40" fill="initial" stroke="initial" stroke-width="initial"/>
@@ -1730,6 +1732,7 @@ function coverageAttributeIsSupportedOrNoop(element: Element, tag: string, name:
   if (!normalized || coverageAttributeHasNoEffect(element, name, value)) return true;
   if (["clip-path", "filter", "isolation", "mask", "mix-blend-mode"].includes(name) && !coverageSubtreeHasVisibleRendering(element, style, refs, css, viewport, new Set())) return true;
   if (name === "clip-path") return clipPathHasRect(value, refs);
+  if (name === "fill-rule") return !subtreeHasVisibleFill(element, style, refs, css, viewport);
   if (name === "isolation") return isolationIsRedundantWithBlend(element, tag, normalized, style, css, refs, viewport);
   if (name === "direction") return normalized === "ltr" || (tag === "text" && normalizeTextDirection(value) != null);
   if (name === "dominant-baseline" || name === "alignment-baseline") return ["auto", "baseline", "alphabetic"].includes(normalized) || (tag === "text" && normalizeTextBaseline(value) != null);
@@ -1837,6 +1840,32 @@ function subtreeHasBlend(element: Element, inheritedStyle: SvgStyle, css: CssRul
   }
   const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport, css, style) : viewport;
   return Array.from(element.children).some((child) => subtreeHasBlend(child, style, css, refs, childViewport, refStack));
+}
+
+function subtreeHasVisibleFill(element: Element, inheritedStyle: SvgStyle, refs: Map<string, Element>, css: CssRule[], viewport: Viewport, refStack: Set<string> = new Set()): boolean {
+  const tag = localName(element);
+  const style = computedStyle(element, inheritedStyle, css, refs, viewport);
+  if (style.display === "none") return false;
+  if (tag === "use") {
+    const href = hrefValue(element);
+    const refId = href.startsWith("#") ? href.slice(1) : "";
+    const ref = refId ? refs.get(refId) : null;
+    if (!ref || refStack.has(refId)) return false;
+    const refViewport = ["svg", "symbol"].includes(localName(ref)) ? useViewport(ref, element, viewport, css, style) : viewport;
+    return subtreeHasVisibleFill(ref, style, refs, css, refViewport, new Set([...refStack, refId]));
+  }
+  if (style.visibility !== "hidden" && style.visibility !== "collapse" && ["circle", "ellipse", "path", "polygon", "polyline", "rect", "text", "tspan"].includes(tag) && !coverageHasNonRenderingGeometry(element, tag, style, css, viewport) && hasVisibleFill(element, tag, style)) return true;
+  const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport, css, style) : viewport;
+  if (tag === "switch") {
+    const selected = switchSelectedChild(element);
+    return selected ? subtreeHasVisibleFill(selected, style, refs, css, childViewport, refStack) : false;
+  }
+  return Array.from(element.children).some((child) => subtreeHasVisibleFill(child, style, refs, css, childViewport, refStack));
+}
+
+function hasVisibleFill(element: Element, tag: string, style: SvgStyle): boolean {
+  if ((tag === "text" || tag === "tspan") && !(element.textContent || "").trim()) return false;
+  return tag !== "line" && style.fill !== "none" && style.fillAlpha !== 0;
 }
 
 function subtreeHasUnsupportedStrokeLineEnum(element: Element, style: SvgStyle, refs: Map<string, Element>, css: CssRule[], viewport: Viewport, attr: string, refStack: Set<string> = new Set()): boolean {
@@ -4746,6 +4775,7 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   const next: SvgStyle = { ...inherited, customProperties: customPropertiesFromDeclarations(declarations, inherited) };
   const color = value("color");
   const fill = value("fill");
+  const fillRule = value("fill-rule");
   const stroke = value("stroke");
   const display = value("display");
   const visibility = value("visibility");
@@ -4810,6 +4840,7 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   } else if (opacityAlpha != null || fillOpacity != null) {
     next.fillAlpha = combinedAlpha(opacityAlpha, parseAlpha(fillOpacity), next.fillAlpha);
   }
+  if (fillRule != null) next.fillRule = fillRule.trim().toLowerCase();
   if (strokePaint) {
     next.stroke = strokePaint.color;
     next.strokeAlpha = combinedAlpha(opacityAlpha, parseAlpha(strokeOpacity), strokePaint.alpha);
@@ -5071,6 +5102,8 @@ function cssValueFromStyle(style: SvgStyle, name: string): string | null {
     case "background":
     case "background-color":
       return style.fill ?? null;
+    case "fill-rule":
+      return style.fillRule ?? null;
     case "stroke":
     case "border-color":
       return style.stroke ?? null;
