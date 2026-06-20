@@ -1166,18 +1166,26 @@ function subtreeHasVisibleText(element, inheritedStyle, css, refs, viewport, ref
 }
 function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, refs, viewport) {
     const normalized = value.trim().toLowerCase();
-    if (!normalized || ["auto", "normal", "none", "0", "0px"].includes(normalized))
+    if (!normalized || coverageAttributeHasNoEffect(element, name, value))
         return true;
     if (name === "clip-path")
         return clipPathHasRect(value, refs);
     if (name === "direction")
-        return tag === "text" && normalizeTextDirection(value) != null;
+        return normalized === "ltr" || (tag === "text" && normalizeTextDirection(value) != null);
     if (name === "dominant-baseline" || name === "alignment-baseline")
-        return normalizeTextBaseline(value) != null;
+        return ["auto", "baseline", "alphabetic"].includes(normalized) || (tag === "text" && normalizeTextBaseline(value) != null);
     if (name === "baseline-shift")
-        return normalizeBaselineShift(value) != null;
+        return zeroLengthOrPercentage(value) || normalizeBaselineShift(value) != null;
+    if (name === "font-stretch")
+        return parseCssLength(value, 100, Number.NaN) === 100;
     if (name === "font-variant")
         return normalizeFontVariant(value) != null;
+    if (name === "glyph-orientation-horizontal" || name === "glyph-orientation-vertical")
+        return zeroAngle(value);
+    if (name === "kerning")
+        return zeroLengthOrPercentage(value) || textHasNoKerningPairs(element);
+    if (name === "font-kerning")
+        return normalized === "none" && textHasNoKerningPairs(element);
     if (name === "letter-spacing")
         return normalizeSpacingLength(value, style.fontSize ?? rootFontSize) != null;
     if (name === "lengthAdjust")
@@ -1214,15 +1222,98 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
         return parseCssColor(value, style) != null;
     if (name === "text-decoration-thickness")
         return value.trim().toLowerCase() === "auto" || parseCssLength(value, percentageBasis("diag", defaultViewport()), Number.NaN) >= 0;
+    if (name === "text-decoration-skip-ink" || name === "text-underline-offset")
+        return !hasUnderline(style) || normalized === "auto";
+    if (name === "text-orientation")
+        return normalized === "mixed";
     if (name === "text-transform")
         return normalizeTextTransform(value) != null;
     if (name === "transform-origin")
         return transformOriginPoint(element, value, viewport) != null;
+    if (name === "unicode-bidi")
+        return normalized === "normal";
     if (name === "vector-effect")
         return normalizeVectorEffect(value) != null;
     if (name === "word-spacing")
         return normalizeSpacingLength(value, style.fontSize ?? rootFontSize) != null;
+    if (name === "writing-mode")
+        return ["horizontal-tb", "lr", "lr-tb", "rl", "rl-tb"].includes(normalized);
     return false;
+}
+function coverageAttributeHasNoEffect(element, name, value) {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized)
+        return true;
+    if (["color-rendering", "image-rendering", "shape-rendering", "text-rendering"].includes(name))
+        return ["auto", "optimizequality", "optimizespeed", "geometricprecision", "crispedges", "legibility"].includes(normalized);
+    if (["clip-path", "filter", "mask"].includes(name))
+        return normalized === "none";
+    if (["clip-rule", "fill-rule"].includes(name))
+        return normalized === "nonzero";
+    if (name === "isolation")
+        return normalized === "auto";
+    if (name === "mix-blend-mode")
+        return normalized === "normal";
+    if (name === "paint-order")
+        return normalized === "normal";
+    if (["marker", "marker-start", "marker-mid", "marker-end"].includes(name))
+        return normalized === "none";
+    if (name === "font-feature-settings" || name === "font-variation-settings")
+        return normalized === "normal" || normalized === "none";
+    if (name === "font-size-adjust")
+        return normalized === "normal" || normalized === "none";
+    if (name === "font-kerning")
+        return normalized === "auto" || normalized === "normal";
+    if (name === "font-stretch")
+        return normalized === "normal";
+    if (name === "glyph-orientation-horizontal" || name === "glyph-orientation-vertical")
+        return normalized === "auto";
+    if (name === "kerning")
+        return normalized === "auto" || normalized === "normal";
+    if (name === "baseline-shift")
+        return normalized === "baseline";
+    if (name === "direction")
+        return normalized === "ltr";
+    if (name === "unicode-bidi")
+        return normalized === "normal";
+    if (name === "writing-mode")
+        return normalized === "horizontal-tb";
+    if (name === "text-orientation")
+        return normalized === "mixed";
+    if (name === "text-decoration-thickness" || name === "text-decoration-skip-ink" || name === "text-underline-offset")
+        return normalized === "auto";
+    if (name === "text-transform")
+        return normalized === "none" || normalized === "normal";
+    if (name === "lengthAdjust")
+        return normalized === "spacing";
+    if (name === "letter-spacing" || name === "word-spacing")
+        return normalized === "normal" || zeroLengthOrPercentage(value);
+    if (name === "rotate")
+        return zeroAngle(value);
+    if (name === "stroke-dashoffset")
+        return zeroLengthOrPercentage(value);
+    if (name === "opacity")
+        return normalized === "1" || normalized === "100%";
+    if (name === "pathLength")
+        return !element.getAttribute("stroke-dasharray");
+    return false;
+}
+function zeroLengthOrPercentage(value) {
+    const parsed = parseCssLength(value, 100, Number.NaN);
+    return Number.isFinite(parsed) && Math.abs(parsed) < 0.000001;
+}
+function zeroAngle(value) {
+    const angle = parseAngle(value);
+    if (angle == null)
+        return false;
+    const remainder = ((angle % 360) + 360) % 360;
+    return Math.min(remainder, Math.abs(remainder - 360)) < 0.000001;
+}
+function textHasNoKerningPairs(element) {
+    const tag = localName(element);
+    if (tag !== "text" && tag !== "tspan")
+        return false;
+    return (element.textContent || "").length <= 1;
 }
 function inspectCoverageMarkerMid(element, style, tag, stats) {
     if (!style.markerMid || !style.markerMidSource)
