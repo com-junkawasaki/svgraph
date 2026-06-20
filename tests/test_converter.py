@@ -796,6 +796,7 @@ def test_svg_to_pptx_bytes_creates_multi_slide_package_from_svgraph() -> None:
 
     with zipfile.ZipFile(io.BytesIO(pptx_data)) as pptx:
         names = set(pptx.namelist())
+        content_types = ET.fromstring(pptx.read("[Content_Types].xml"))
         presentation = pptx.read("ppt/presentation.xml").decode("utf-8")
         rels = pptx.read("ppt/_rels/presentation.xml.rels").decode("utf-8")
         app = pptx.read("docProps/app.xml").decode("utf-8")
@@ -808,6 +809,16 @@ def test_svg_to_pptx_bytes_creates_multi_slide_package_from_svgraph() -> None:
     assert "ppt/slides/slide2.xml" in names
     assert "ppt/slides/_rels/slide1.xml.rels" in names
     assert "ppt/slides/_rels/slide2.xml.rels" in names
+    overrides = {
+        override.get("PartName"): override.get("ContentType")
+        for override in content_types.findall("{http://schemas.openxmlformats.org/package/2006/content-types}Override")
+    }
+    assert overrides["/ppt/presentation.xml"] == "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"
+    assert overrides["/ppt/slideMasters/slideMaster1.xml"] == "application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"
+    assert overrides["/ppt/slideLayouts/slideLayout1.xml"] == "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"
+    assert overrides["/ppt/theme/theme1.xml"] == "application/vnd.openxmlformats-officedocument.theme+xml"
+    assert overrides["/ppt/slides/slide1.xml"] == "application/vnd.openxmlformats-officedocument.presentationml.slide+xml"
+    assert overrides["/ppt/slides/slide2.xml"] == "application/vnd.openxmlformats-officedocument.presentationml.slide+xml"
     assert presentation.count("<p:sldId ") == 2
     assert 'cx="12192000" cy="6858000"' in presentation
     assert 'Target="slides/slide1.xml"' in rels
