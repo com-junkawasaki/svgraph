@@ -43,7 +43,7 @@ def svg_to_slide_xmls(svg_text: str) -> list[bytes]:
     slide_xmls: list[bytes] = []
     slide_svgs = _split_svg_slides(svg_text)
     for index, slide_svg in enumerate(slide_svgs, start=1):
-        shapes = _pptxsvg_shapes(slide_svg)
+        shapes = _svgraph_presentation_shapes(slide_svg)
         if not shapes:
             if len(slide_svgs) == 1:
                 raise ValueError("input did not produce any DrawingML shapes")
@@ -78,7 +78,7 @@ def build_slide_xml(shapes: list[ET.Element]) -> bytes:
     return ET.tostring(slide, encoding="utf-8", xml_declaration=True)
 
 
-def _pptxsvg_shapes(slide_svg: str) -> list[ET.Element]:
+def _svgraph_presentation_shapes(slide_svg: str) -> list[ET.Element]:
     root = ET.fromstring(slide_svg)
     semantic_tables = _semantic_elements(root, "table")
     table_shapes: list[ET.Element] = []
@@ -134,7 +134,7 @@ def _is_line_shape(shape: ET.Element) -> bool:
 
 
 def _is_relation_line_shape(shape: ET.Element) -> bool:
-    return _is_line_shape(shape) and shape.get("_pptxsvg_relation") == "1"
+    return _is_line_shape(shape) and _internal_shape_attr(shape, "relation") == "1"
 
 
 def _line_shape_to_connector(shape: ET.Element) -> ET.Element:
@@ -146,15 +146,17 @@ def _line_shape_to_connector(shape: ET.Element) -> ET.Element:
         if c_nv_pr is not None:
             nv.append(c_nv_pr)
         c_nv_cxn_sp_pr = ET.SubElement(nv, qn(NS_P, "cNvCxnSpPr"))
-        if shape.get("_pptxsvg_start_id"):
-            ET.SubElement(c_nv_cxn_sp_pr, qn(NS_A, "stCxn"), {"id": shape.get("_pptxsvg_start_id", ""), "idx": "0"})
-        if shape.get("_pptxsvg_end_id"):
-            ET.SubElement(c_nv_cxn_sp_pr, qn(NS_A, "endCxn"), {"id": shape.get("_pptxsvg_end_id", ""), "idx": "0"})
+        start_id = _internal_shape_attr(shape, "start_id")
+        end_id = _internal_shape_attr(shape, "end_id")
+        if start_id:
+            ET.SubElement(c_nv_cxn_sp_pr, qn(NS_A, "stCxn"), {"id": start_id, "idx": "0"})
+        if end_id:
+            ET.SubElement(c_nv_cxn_sp_pr, qn(NS_A, "endCxn"), {"id": end_id, "idx": "0"})
         ET.SubElement(nv, qn(NS_P, "nvPr"))
     sp_pr = shape.find(qn(NS_P, "spPr"))
     if sp_pr is not None:
         ln = sp_pr.find(qn(NS_A, "ln"))
-        if shape.get("_pptxsvg_relation") == "1" and ln is not None and ln.find(qn(NS_A, "headEnd")) is None:
+        if _internal_shape_attr(shape, "relation") == "1" and ln is not None and ln.find(qn(NS_A, "headEnd")) is None:
             ET.SubElement(ln, qn(NS_A, "headEnd"), {"type": "triangle"})
         connector.append(sp_pr)
     style = shape.find(qn(NS_P, "style"))
@@ -166,21 +168,25 @@ def _line_shape_to_connector(shape: ET.Element) -> ET.Element:
 def _mark_relation_connectors(root: ET.Element, shapes: list[ET.Element]) -> None:
     relation_elements = _semantic_elements(root, "relation")
     line_shapes = [shape for shape in shapes if _is_line_shape(shape)]
-    candidates = [_pptx_shape_reference(shape) for shape in shapes if not _is_line_shape(shape)]
+    candidates = [_presentation_shape_reference(shape) for shape in shapes if not _is_line_shape(shape)]
     candidates = [candidate for candidate in candidates if candidate is not None]
     for relation, line_shape in zip(relation_elements, line_shapes):
-        line_shape.set("_pptxsvg_relation", "1")
+        line_shape.set("_svgraph_relation", "1")
         start = (_float_attr(relation, "x1"), _float_attr(relation, "y1"))
         end = (_float_attr(relation, "x2"), _float_attr(relation, "y2"))
         start_id = _connection_shape_id(start, candidates)
         end_id = _connection_shape_id(end, candidates)
         if start_id is not None:
-            line_shape.set("_pptxsvg_start_id", start_id)
+            line_shape.set("_svgraph_start_id", start_id)
         if end_id is not None:
-            line_shape.set("_pptxsvg_end_id", end_id)
+            line_shape.set("_svgraph_end_id", end_id)
 
 
-def _pptx_shape_reference(shape: ET.Element) -> tuple[str, float, float, float, float] | None:
+def _internal_shape_attr(shape: ET.Element, name: str) -> str | None:
+    return shape.get(f"_svgraph_{name}") or shape.get(f"_pptxsvg_{name}")
+
+
+def _presentation_shape_reference(shape: ET.Element) -> tuple[str, float, float, float, float] | None:
     c_nv_pr = shape.find(f"./{qn(NS_P, 'nvSpPr')}/{qn(NS_P, 'cNvPr')}")
     if c_nv_pr is None:
         c_nv_pr = shape.find(f"./{qn(NS_P, 'nvPicPr')}/{qn(NS_P, 'cNvPr')}")
