@@ -249,6 +249,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <defs>
       <rect id="reused-chip" width="170" height="70" rx="14"/>
       <clipPath id="bar-clip"><rect x="960" y="500" width="150" height="70"/></clipPath>
+      <clipPath id="bbox-clip" clipPathUnits="objectBoundingBox"><rect x="0.15" y="0.15" width="0.7" height="0.7"/></clipPath>
     </defs>
     <style>
       .accent-use { fill: #fce7f3; stroke: #be185d; stroke-width: 5; }
@@ -265,6 +266,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <image id="pixel" x="980" y="340" width="96" height="96" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg=="/>
     <circle class="css-circle" cx="1130" cy="388" r="48"/>
     <rect id="clipped-bar" x="930" y="500" width="250" height="70" style="fill:#fecaca;stroke:#991b1b;clip-path:url(#bar-clip)"/>
+    <ellipse id="bbox-clipped-ellipse" cx="1090" cy="560" rx="80" ry="50" style="fill:#ede9fe;stroke:#6d28d9;clip-path:url(#bbox-clip)"/>
     <use href="#reused-chip" class="accent-use" x="360" y="400"/>
     <g transform="translate(90 390) scale(1.5)">
       <rect id="scaled" width="160" height="80" style="fill:#dbeafe;stroke:#2563eb"/>
@@ -609,8 +611,9 @@ function extractShapes(root: Element): Shape[] {
       }
       return;
     }
-    const clip = rectClipBounds(ownStyle, refs, ownMatrix);
-    const shape = applyClip(elementToShape(element, ownMatrix, ownStyle, nextId), clip);
+    const rawShape = elementToShape(element, ownMatrix, ownStyle, nextId);
+    const clip = rectClipBounds(rawShape, ownStyle, refs, ownMatrix);
+    const shape = applyClip(rawShape, clip);
     if (shape) {
       shapes.push(shape);
       nextId += 1;
@@ -830,22 +833,46 @@ function shapeBox(shape: RectShape | EllipseShape | TextShape | FreeformShape): 
   return { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
 }
 
-function rectClipBounds(style: SvgStyle, refs: Map<string, Element>, matrix: Matrix): Box | null {
+function rectClipBounds(shape: Shape | null, style: SvgStyle, refs: Map<string, Element>, matrix: Matrix): Box | null {
   if (!style.clipPath || style.clipPath === "none") return null;
   const refId = urlRef(style.clipPath);
   if (!refId) return null;
   const clip = refs.get(refId);
   if (!clip || localName(clip) !== "clipPath") return null;
   const units = (clip.getAttribute("clipPathUnits") || "userSpaceOnUse").toLowerCase();
-  if (units !== "userspaceonuse") return null;
   const rect = Array.from(clip.children).find((child) => localName(child) === "rect");
   if (!rect) return null;
   const width = num(rect, "width");
   const height = num(rect, "height");
   if (width <= 0 || height <= 0) return null;
+  if (units === "objectboundingbox") {
+    const box = clipTargetBox(shape);
+    if (!box || clip.getAttribute("transform") || rect.getAttribute("transform")) return null;
+    return {
+      x: box.x + num(rect, "x") * box.width,
+      y: box.y + num(rect, "y") * box.height,
+      width: width * box.width,
+      height: height * box.height,
+    };
+  }
+  if (units !== "userspaceonuse") return null;
   const clipMatrix = multiply(multiply(matrix, transformMatrix(clip.getAttribute("transform"))), transformMatrix(rect.getAttribute("transform")));
   const box = transformedBox(clipMatrix, num(rect, "x"), num(rect, "y"), width, height);
   return box.width > 0 && box.height > 0 ? box : null;
+}
+
+function clipTargetBox(shape: Shape | null): Box | null {
+  if (!shape) return null;
+  if (shape.kind === "rect" || shape.kind === "ellipse" || shape.kind === "text" || shape.kind === "image") {
+    return { x: shape.x, y: shape.y, width: shape.width, height: shape.height };
+  }
+  if (shape.kind === "line") {
+    const x = Math.min(shape.x1, shape.x2);
+    const y = Math.min(shape.y1, shape.y2);
+    return { x, y, width: Math.abs(shape.x2 - shape.x1), height: Math.abs(shape.y2 - shape.y1) };
+  }
+  if (shape.kind === "freeform") return shapeBox(shape);
+  return null;
 }
 
 function applyClip(shape: Shape | null, clip: Box | null): Shape | null {
