@@ -187,6 +187,14 @@ def test_project_urls_are_canonical_svgraph_locations() -> None:
     assert package_metadata["homepage"] == "https://com-junkawasaki.github.io/svgraph/"
     assert package_metadata["repository"]["url"] == "git+https://github.com/com-junkawasaki/svgraph.git"
     assert package_metadata["bugs"]["url"] == "https://github.com/com-junkawasaki/svgraph/issues"
+    assert pyproject["project"]["description"] == (
+        "Small, dependency-free SVG presentation graph toolkit for SVGraph, DrawingML, PresentationML/PPTX, "
+        "and browser-only web editing."
+    )
+    assert {"svg", "svgraph", "drawingml", "presentationml", "pptx", "web"} <= set(
+        pyproject["project"]["keywords"]
+    )
+    assert package_metadata["name"] == "svgraph-web"
     assert "https://github.com/com-junkawasaki/svgraph/issues" in readme
     assert "https://com-junkawasaki.github.io/svgraph/" in readme
     assert "https://com-junkawasaki.github.io/svgraph/" in migration

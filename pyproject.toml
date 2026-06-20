@@ -1,7 +1,7 @@
 [project]
 name = "svgraph"
 version = "0.1.0"
-description = "Small, dependency-free converter between SVG, SVGraph, DrawingML, and PPTX."
+description = "Small, dependency-free SVG presentation graph toolkit for SVGraph, DrawingML, PresentationML/PPTX, and browser-only web editing."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -9,7 +9,7 @@ license-files = ["LICENSE"]
 authors = [
   { name = "Jun Kawasaki", email = "jun784@gmail.com" },
 ]
-keywords = ["drawingml", "svg", "svgraph", "ooxml", "pptx", "converter"]
+keywords = ["drawingml", "svg", "svgraph", "presentationml", "ooxml", "pptx", "web", "converter"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",

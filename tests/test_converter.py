@@ -88,7 +88,12 @@ def test_project_metadata_exposes_public_repository_links() -> None:
     project = metadata["project"]
 
     assert project["name"] == "svgraph"
+    assert project["description"] == (
+        "Small, dependency-free SVG presentation graph toolkit for SVGraph, DrawingML, PresentationML/PPTX, "
+        "and browser-only web editing."
+    )
     assert project["scripts"]["svgraph"] == "svgraph.cli:main"
+    assert {"svg", "svgraph", "drawingml", "presentationml", "pptx", "web"} <= set(project["keywords"])
     assert "Typing :: Typed" in project["classifiers"]
     assert project["urls"] == {
         "Homepage": "https://github.com/com-junkawasaki/svgraph",
