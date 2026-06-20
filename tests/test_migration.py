@@ -558,6 +558,10 @@ def test_release_checklist_smokes_published_svgraph_pages_site() -> None:
     for expected in [
         'urlopen("https://com-junkawasaki.github.io/svgraph/", timeout=20)',
         '"<title>SVGraph Editor</title>"',
+        "'name=\"description\"'",
+        '\'property="og:title" content="SVGraph Editor"\'',
+        '\'property="og:url" content="https://com-junkawasaki.github.io/svgraph/"\'',
+        '\'name="twitter:title" content="SVGraph Editor"\'',
         '"https://com-junkawasaki.github.io/svgraph/"',
         '"Download SVGraph"',
         '"PPTX" + "SVG"',
@@ -966,6 +970,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "`slideSize` and `textStyles`",
         "GitHub Actions, Python, and npm/web dependency update pull requests",
         "public repository description, MIT license metadata, and SVGraph topics",
+        "published Pages title, description, Open Graph, and Twitter metadata",
     ]:
         assert expected in changelog
 

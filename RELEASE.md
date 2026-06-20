@@ -36,6 +36,10 @@ from urllib.request import urlopen
 html = urlopen("https://com-junkawasaki.github.io/svgraph/", timeout=20).read().decode("utf-8")
 for expected in [
     "<title>SVGraph Editor</title>",
+    'name="description"',
+    'property="og:title" content="SVGraph Editor"',
+    'property="og:url" content="https://com-junkawasaki.github.io/svgraph/"',
+    'name="twitter:title" content="SVGraph Editor"',
     "https://com-junkawasaki.github.io/svgraph/",
     "Download SVGraph",
 ]:
