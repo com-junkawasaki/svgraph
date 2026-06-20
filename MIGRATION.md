@@ -25,6 +25,8 @@ Legacy names remain only as compatibility surfaces. New code should use the SVGr
 | `dml2svg` executable | `svgraph dml2svg` command |
 | `svg2pptx` executable | `svgraph svg2pptx` command |
 
+Retained legacy executable aliases emit deprecation warnings that point to their canonical SVGraph commands when used for conversions. They remain available for compatibility smoke tests and existing automation.
+
 ## Python Imports
 
 Use the canonical package for new code:

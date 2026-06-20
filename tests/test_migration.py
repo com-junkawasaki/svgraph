@@ -425,6 +425,27 @@ def test_readme_lists_all_legacy_console_compatibility_aliases() -> None:
         assert executable in readme
 
 
+def test_docs_describe_legacy_executable_alias_deprecation_warnings() -> None:
+    root = Path(__file__).resolve().parents[1]
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    migration = (root / "MIGRATION.md").read_text(encoding="utf-8")
+    cli_source = (root / "src" / "svgraph" / "cli.py").read_text(encoding="utf-8")
+
+    assert "emit deprecation warnings that point to the equivalent `svgraph ...` commands" in readme
+    assert (
+        "Retained legacy executable aliases emit deprecation warnings that point to their canonical SVGraph commands"
+        in migration
+    )
+    for executable, replacement in {
+        "drawingml-svg": "svgraph",
+        "svg2dml": "svgraph svg2dml",
+        "dml2svg": "svgraph dml2svg",
+        "svg2pptx": "svgraph svg2pptx",
+        "drawingml-svg-analyze": "svgraph analyze",
+    }.items():
+        assert f'"{executable}": "{replacement}"' in cli_source
+
+
 def test_readme_cli_block_covers_every_visible_svgraph_command() -> None:
     root = Path(__file__).resolve().parents[1]
     cli_source = (root / "src" / "svgraph" / "cli.py").read_text(encoding="utf-8")
