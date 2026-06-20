@@ -274,6 +274,8 @@ assert any(
 )
 PY
 tmp/release-venv/bin/svgraph svg2dml examples/sample.svg -o tmp/release-smoke.xml
+tmp/release-venv/bin/dml2svg tmp/release-smoke.xml -o tmp/release-smoke.svg 2> tmp/release-dml2svg.err
+grep "executable 'dml2svg' is deprecated; use 'svgraph dml2svg'" tmp/release-dml2svg.err
 tmp/release-venv/bin/svgraph svg2pptx examples/sample.svg -o tmp/release-smoke.pptx
 python -m zipfile --test tmp/release-smoke.pptx
 tmp/release-venv/bin/python - <<'PY'

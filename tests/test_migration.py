@@ -571,8 +571,10 @@ def test_release_checklist_keeps_legacy_console_alias_smoke() -> None:
     for expected in [
         "tmp/release-legacy-analyze.err",
         "tmp/release-legacy-svgraph.err",
+        "tmp/release-dml2svg.err",
         "executable 'drawingml-svg-analyze' is deprecated; use 'svgraph analyze'",
         "executable 'drawingml-svg' is deprecated; use 'svgraph'",
+        "executable 'dml2svg' is deprecated; use 'svgraph dml2svg'",
     ]:
         assert expected in release
 
@@ -709,10 +711,12 @@ def test_release_and_ci_distribution_smoke_use_svgraph_artifact_names() -> None:
     for expected in [
         "tmp/wheel-legacy-analyze.err",
         "tmp/wheel-legacy-svgraph.err",
+        "tmp/wheel-dml2svg.err",
         "tmp/wheel-svg2dml.err",
         "tmp/wheel-svg2pptx.err",
         "executable 'drawingml-svg-analyze' is deprecated; use 'svgraph analyze'",
         "executable 'drawingml-svg' is deprecated; use 'svgraph'",
+        "executable 'dml2svg' is deprecated; use 'svgraph dml2svg'",
         "executable 'svg2dml' is deprecated; use 'svgraph svg2dml'",
         "executable 'svg2pptx' is deprecated; use 'svgraph svg2pptx'",
     ]:
@@ -788,6 +792,7 @@ def test_release_checklist_smokes_canonical_svgraph_pptx_export() -> None:
     workflow = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
     assert "tmp/release-venv/bin/svgraph svg2dml examples/sample.svg -o tmp/release-smoke.xml" in release
+    assert "tmp/release-venv/bin/dml2svg tmp/release-smoke.xml -o tmp/release-smoke.svg" in release
     assert "tmp/release-venv/bin/svgraph svg2pptx examples/sample.svg -o tmp/release-smoke.pptx" in release
     assert "python -m zipfile --test tmp/release-smoke.pptx" in release
     assert "tmp/release-venv/bin/svg2pptx examples/" not in release

@@ -368,6 +368,9 @@ jobs:
           tmp/wheel-venv/bin/svg2dml examples/sample.svg -o tmp/wheel-smoke.xml 2> tmp/wheel-svg2dml.err
           grep "executable 'svg2dml' is deprecated; use 'svgraph svg2dml'" tmp/wheel-svg2dml.err
           test -s tmp/wheel-smoke.xml
+          tmp/wheel-venv/bin/dml2svg tmp/wheel-smoke.xml -o tmp/wheel-smoke.svg 2> tmp/wheel-dml2svg.err
+          grep "executable 'dml2svg' is deprecated; use 'svgraph dml2svg'" tmp/wheel-dml2svg.err
+          test -s tmp/wheel-smoke.svg
           tmp/wheel-venv/bin/svg2pptx examples/sample.svg -o tmp/wheel-smoke.pptx 2> tmp/wheel-svg2pptx.err
           grep "executable 'svg2pptx' is deprecated; use 'svgraph svg2pptx'" tmp/wheel-svg2pptx.err
           python -m zipfile --test tmp/wheel-smoke.pptx
