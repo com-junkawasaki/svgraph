@@ -1,5 +1,6 @@
 "use strict";
 const emuPerPx = 9525;
+const assistantAllowedOps = ["mark-slide", "set-data", "set-metadata", "mark-table", "mark-cell", "bind-relation", "set-reading-order"];
 const rootFontSize = 16;
 const namedColors = {
     black: "#000000",
@@ -509,6 +510,46 @@ function buildSVGraphSidecar(svgraph) {
         coverage: svgraph.coverage,
         presentation: svgraph.presentation,
     };
+}
+function assistantPatchProposal(svgraph, presentation) {
+    const semanticNodeIds = new Set(flatten(svgraph.root).filter((node) => Object.keys(node.data).length > 0).map((node) => node.node_id));
+    const ops = presentation.slides
+        .filter((slide) => !semanticNodeIds.has(slide.node_id))
+        .slice(0, 3)
+        .map((slide) => ({
+        op: "mark-slide",
+        node_id: slide.node_id,
+        title: slide.title || slide.slide_id,
+    }));
+    return {
+        summary: ops.length ? "Detected slide candidates that can be reviewed before applying." : "No assistant patch is needed for the current SVGraph.",
+        ops,
+        confidence: ops.length ? 0.72 : 1,
+    };
+}
+function validateAssistantPatch(proposal, svgraph) {
+    const errors = [];
+    const nodeIds = new Set(flatten(svgraph.root).map((node) => node.node_id));
+    if (!proposal.summary || typeof proposal.summary !== "string")
+        errors.push("summary must be a non-empty string");
+    if (!Number.isFinite(proposal.confidence) || proposal.confidence < 0 || proposal.confidence > 1)
+        errors.push("confidence must be between 0 and 1");
+    if (!Array.isArray(proposal.ops)) {
+        errors.push("ops must be an array");
+    }
+    else {
+        proposal.ops.forEach((op, index) => {
+            if (!assistantAllowedOps.includes(op.op))
+                errors.push(`ops[${index}].op is not allowed`);
+            if (!op.node_id || !nodeIds.has(op.node_id))
+                errors.push(`ops[${index}].node_id does not reference an SVGraph node`);
+            if ((op.op === "set-data" || op.op === "set-metadata") && typeof op.name !== "string")
+                errors.push(`ops[${index}].name must be a string`);
+            if (op.op === "bind-relation" && (typeof op.from !== "string" || typeof op.to !== "string"))
+                errors.push(`ops[${index}].from and ops[${index}].to must be strings`);
+        });
+    }
+    return { status: errors.length ? "rejected" : "accepted", errors };
 }
 function svgToPptx(svgText) {
     const parser = new DOMParser();
@@ -3348,13 +3389,17 @@ function renderPanel() {
       </div>`;
     }
     else if (state.tab === "assistant") {
+        const proposal = assistantPatchProposal(state.svgraph, state.presentation);
+        const validation = validateAssistantPatch(proposal, state.svgraph);
         panel.innerHTML = `
       <div class="notice">Web LLM integration is designed as a local WebGPU worker. Conversion is deterministic and runs fully in this page.</div>
       <div class="status"><span class="dot ${state.webgpu ? "ok" : ""}"></span>${state.webgpu ? "WebGPU available" : "WebGPU unavailable or blocked"}</div>
       <pre style="margin-top:12px">${escapeHtml(JSON.stringify({
             backendPolicy: state.webgpu ? "webgpu" : "wasm-or-disabled",
-            allowedOps: ["mark-slide", "set-data", "set-metadata", "mark-table", "bind-relation"],
+            allowedOps: assistantAllowedOps,
             model: "onnx-community/gemma-4-e2b-it-ONNX",
+            patchValidation: validation,
+            patchProposal: proposal,
             coverage: state.svgraph.coverage
         }, null, 2))}</pre>`;
     }
