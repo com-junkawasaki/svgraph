@@ -52,7 +52,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect id="css-colors" x="740" y="615" width="120" height="50" style="color:orange;fill:currentColor;stroke:hsl(210 100% 50%)"/>
     <rect id="alpha-shape" x="580" y="615" width="120" height="50" style="fill:rgba(239,68,68,0.5);stroke:#2563ebcc;stroke-width:6;fill-opacity:0.8;stroke-opacity:0.5"/>
     <line id="dash-line" x1="120" y1="650" x2="300" y2="650" style="stroke:#0f766e;stroke-width:8;stroke-dasharray:18 10;stroke-linecap:round;stroke-linejoin:bevel"/>
-    <text id="rich-text" x="330" y="660" style="font-size:24;font-family:Arial;fill:#111827">Rich <tspan style="fill:#dc2626;font-weight:700;baseline-shift:super">red</tspan><tspan style="fill:#2563eb;font-style:italic;text-decoration:underline;letter-spacing:2px"> blue</tspan></text>
+    <text id="rich-text" x="330" y="660" rotate="6" style="font-size:24;font-family:Arial;fill:#111827;font-variant:small-caps">Rich <tspan style="fill:#dc2626;font-weight:700;baseline-shift:super">red</tspan><tspan style="fill:#2563eb;font-style:italic;text-decoration:underline line-through;letter-spacing:2px"> blue</tspan></text>
     <text id="anchored-text" x="680" y="660" style="font-size:24;font-family:Arial;fill:#0f172a;text-anchor:middle;dominant-baseline:middle">Centered</text>
     <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
     <rect id="gradient-fill" x="900" y="615" width="120" height="50" style="fill:url(#linear-fallback);stroke:url(#radial-fallback)"/>
@@ -473,6 +473,7 @@ function elementToShape(element, matrix, style, id) {
         const height = fontSize * 1.35;
         const anchor = style.textAnchor ?? null;
         const baseline = style.textBaseline ?? null;
+        const rotation = textRotation(element, style);
         return {
             id,
             kind: "text",
@@ -488,9 +489,12 @@ function elementToShape(element, matrix, style, id) {
             fontFamily: style.fontFamily || "Aptos",
             bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
             italic: isItalic(style),
+            fontVariant: style.fontVariant ?? null,
             underline: hasUnderline(style),
+            strike: hasStrike(style),
             baselineShift: style.baselineShift ?? null,
             letterSpacing: effectiveLetterSpacing(style, text, fontSize),
+            rotation,
             anchor,
             baseline,
             runs,
@@ -611,7 +615,9 @@ function textRuns(element, inheritedStyle) {
             fontFamily: style.fontFamily || inheritedStyle.fontFamily || "Aptos",
             bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
             italic: isItalic(style),
+            fontVariant: style.fontVariant ?? null,
             underline: hasUnderline(style),
+            strike: hasStrike(style),
             baselineShift: style.baselineShift ?? null,
             letterSpacing: effectiveLetterSpacing(style, text, style.fontSize ?? inheritedStyle.fontSize ?? 18),
         });
@@ -648,6 +654,13 @@ function isItalic(style) {
 }
 function hasUnderline(style) {
     return (style.textDecoration || "").toLowerCase().split(/\s+/).includes("underline");
+}
+function hasStrike(style) {
+    return (style.textDecoration || "").toLowerCase().split(/\s+/).includes("line-through");
+}
+function normalizeFontVariant(value) {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "small-caps" || normalized === "all-small-caps" ? normalized : null;
 }
 function normalizeTextAnchor(value) {
     const normalized = value.trim().toLowerCase();
@@ -691,6 +704,42 @@ function wordSpacingExtra(style, text) {
 }
 function wordGapCount(text) {
     return (text.trim().match(/[ \t\f\v]+/g) || []).length;
+}
+function singleTextRotation(value, text = null) {
+    if (!value)
+        return null;
+    const values = value.replaceAll(",", " ").trim().split(/\s+/).filter(Boolean).map(parseAngle);
+    if (!values.length || values.some((item) => item == null))
+        return null;
+    const first = values[0];
+    if (values.some((item) => Math.abs((item ?? 0) - first) > 0.0001) && (!text || text.length > 1))
+        return null;
+    return first;
+}
+function textRotation(element, style) {
+    if (style.rotate != null)
+        return style.rotate;
+    for (const child of Array.from(element.children)) {
+        if (localName(child) !== "tspan")
+            continue;
+        const childStyle = computedStyle(child, style);
+        if (childStyle.rotate != null)
+            return childStyle.rotate;
+    }
+    return null;
+}
+function parseAngle(value) {
+    const normalized = value.trim().toLowerCase();
+    const parsed = Number.parseFloat(normalized);
+    if (!Number.isFinite(parsed))
+        return null;
+    if (normalized.endsWith("turn"))
+        return parsed * 360;
+    if (normalized.endsWith("rad"))
+        return (parsed * 180) / Math.PI;
+    if (normalized.endsWith("grad"))
+        return parsed * 0.9;
+    return parsed;
 }
 function markRelationConnectors(shapes) {
     const boxes = shapes.filter((shape) => ["rect", "ellipse", "text", "freeform"].includes(shape.kind));
@@ -887,16 +936,25 @@ function textXml(shape) {
             fontFamily: shape.fontFamily,
             bold: shape.bold,
             italic: shape.italic,
+            fontVariant: shape.fontVariant,
             underline: shape.underline,
+            strike: shape.strike,
             baselineShift: shape.baselineShift,
             letterSpacing: shape.letterSpacing,
         }]).map(textRunXml).join("");
     const body = `<p:txBody><a:bodyPr wrap="none"${textBaselineAnchorXml(shape.baseline)}/><a:lstStyle/><a:p>${paragraphAlignXml(shape.anchor)}${runs}</a:p></p:txBody>`;
-    return spXml(shape.id, shape.name, shape.x, shape.y, shape.width, shape.height, "rect", "<a:noFill/><a:ln><a:noFill/></a:ln>", body);
+    return spXml(shape.id, shape.name, shape.x, shape.y, shape.width, shape.height, "rect", "<a:noFill/><a:ln><a:noFill/></a:ln>", body, shape.rotation);
 }
 function textRunXml(run) {
-    const attrs = ` lang="en-US" sz="${Math.round(run.fontSize * 100)}"${run.bold ? ' b="1"' : ""}${run.italic ? ' i="1"' : ""}${run.underline ? ' u="sng"' : ""}${baselineShiftXml(run.baselineShift)}${letterSpacingXml(run.letterSpacing)}`;
+    const attrs = ` lang="en-US" sz="${Math.round(run.fontSize * 100)}"${run.bold ? ' b="1"' : ""}${run.italic ? ' i="1"' : ""}${fontVariantXml(run.fontVariant)}${run.underline ? ' u="sng"' : ""}${run.strike ? ' strike="sngStrike"' : ""}${baselineShiftXml(run.baselineShift)}${letterSpacingXml(run.letterSpacing)}`;
     return `<a:r><a:rPr${attrs}>${solidColorXml(run.fill, run.fillAlpha)}<a:latin typeface="${xml(run.fontFamily)}"/></a:rPr><a:t>${xml(run.text)}</a:t></a:r>`;
+}
+function fontVariantXml(value) {
+    if (value === "small-caps")
+        return ' cap="small"';
+    if (value === "all-small-caps")
+        return ' cap="all"';
+    return "";
 }
 function baselineShiftXml(value) {
     if (value === "super")
@@ -959,8 +1017,9 @@ function freeformXml(shape) {
 function imageXml(shape) {
     return `<p:pic><p:nvPicPr><p:cNvPr id="${shape.id}" name="${xml(shape.name)}"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${xml(shape.href)}"/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${emu(shape.x)}" y="${emu(shape.y)}"/><a:ext cx="${emu(shape.width)}" cy="${emu(shape.height)}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`;
 }
-function spXml(id, name, x, y, width, height, prst, style, body) {
-    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${xml(name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(width)}" cy="${emu(height)}"/></a:xfrm><a:prstGeom prst="${prst}"><a:avLst/></a:prstGeom>${style}</p:spPr>${body}</p:sp>`;
+function spXml(id, name, x, y, width, height, prst, style, body, rotation = null) {
+    const rot = rotation == null ? "" : ` rot="${Math.round(rotation * 60000)}"`;
+    return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${xml(name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm${rot}><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(width)}" cy="${emu(height)}"/></a:xfrm><a:prstGeom prst="${prst}"><a:avLst/></a:prstGeom>${style}</p:spPr>${body}</p:sp>`;
 }
 function fillXml(color, alpha = null) {
     return color ? `<a:solidFill><a:srgbClr val="${hex(color)}">${alphaXml(alpha)}</a:srgbClr></a:solidFill>` : "<a:noFill/>";
@@ -1297,6 +1356,7 @@ function computedStyle(element, inherited, css = [], refs = new Map()) {
     const fontFamily = value("font-family");
     const fontWeight = value("font-weight");
     const fontStyle = value("font-style");
+    const fontVariant = value("font-variant");
     const textDecoration = value("text-decoration-line") ?? value("text-decoration");
     const textAnchor = value("text-anchor");
     const textBaseline = value("dominant-baseline") ?? value("alignment-baseline");
@@ -1305,6 +1365,7 @@ function computedStyle(element, inherited, css = [], refs = new Map()) {
     const wordSpacing = value("word-spacing");
     const textLength = inlineDeclarations.textLength ?? element.getAttribute("textLength") ?? cssDeclarations.textLength ?? null;
     const lengthAdjust = inlineDeclarations.lengthAdjust ?? element.getAttribute("lengthAdjust") ?? cssDeclarations.lengthAdjust ?? null;
+    const rotate = value("rotate");
     const clipPath = value("clip-path");
     const marker = value("marker");
     const markerStart = value("marker-start");
@@ -1352,6 +1413,8 @@ function computedStyle(element, inherited, css = [], refs = new Map()) {
         next.fontWeight = fontWeight;
     if (fontStyle != null)
         next.fontStyle = fontStyle;
+    if (fontVariant != null)
+        next.fontVariant = normalizeFontVariant(fontVariant);
     if (textDecoration != null)
         next.textDecoration = textDecoration;
     if (textAnchor != null)
@@ -1368,6 +1431,8 @@ function computedStyle(element, inherited, css = [], refs = new Map()) {
         next.textLength = parseLength(textLength, next.textLength ?? 0);
     if (lengthAdjust != null)
         next.lengthAdjust = normalizeLengthAdjust(lengthAdjust);
+    if (rotate != null)
+        next.rotate = singleTextRotation(rotate, element.textContent || null);
     if (clipPath != null)
         next.clipPath = clipPath.trim();
     if (marker != null) {
