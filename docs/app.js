@@ -1,6 +1,22 @@
 "use strict";
 const emuPerPx = 9525;
 const rootFontSize = 16;
+const namedColors = {
+    black: "#000000",
+    blue: "#0000ff",
+    cyan: "#00ffff",
+    gray: "#808080",
+    green: "#008000",
+    grey: "#808080",
+    lime: "#00ff00",
+    magenta: "#ff00ff",
+    orange: "#ffa500",
+    purple: "#800080",
+    red: "#ff0000",
+    transparent: null,
+    white: "#ffffff",
+    yellow: "#ffff00",
+};
 const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
   <metadata>{"presentation":{"slideSize":{"width":1280,"height":720},"masters":[{"id":"brand-master"}],"layouts":[{"id":"title-content","master":"brand-master"}],"guides":[{"id":"safe-left","orientation":"vertical","position":90}],"rulers":[{"id":"x","orientation":"horizontal","origin":0,"spacing":16}],"textStyles":{"title":{"fontFamily":"Aptos Display","fontSize":54,"bold":true},"lead":{"fontFamily":"Aptos","fontSize":28},"body":{"fontFamily":"Aptos","fontSize":18}}}}</metadata>
   <style>
@@ -435,12 +451,14 @@ function buildSvgraph(svgText) {
     const root = nodeToSvgraph(doc.documentElement, "n0");
     const dependencies = flatten(root).flatMap((node) => node.dependencies);
     const presentation = buildPptxsvg(root);
+    const coverage = analyzeSvgCoverage(doc.documentElement);
     return {
         kind: "svgraph",
         version: "0.3-svgraph-web-ts",
         root,
         metadata: root.metadata,
         dependencies,
+        coverage,
         presentation,
     };
 }
@@ -456,6 +474,280 @@ function svgToPptx(svgText) {
     const selectedSlides = slides.length ? slides : [root];
     const slideXmls = selectedSlides.map((slide, index) => buildSlideXml(slide, index + 1));
     return writePptx(slideXmls, ir.presentation.slide_size);
+}
+const coverageSupportedElements = new Set([
+    "a",
+    "circle",
+    "ellipse",
+    "foreignObject",
+    "g",
+    "image",
+    "line",
+    "path",
+    "polygon",
+    "polyline",
+    "rect",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "tspan",
+    "use",
+]);
+const coverageIgnoredElements = new Set(["defs", "desc", "linearGradient", "metadata", "pattern", "radialGradient", "stop", "title"]);
+const coverageUnsupportedAttributes = new Set([
+    "alignment-baseline",
+    "baseline-shift",
+    "clip-path",
+    "clip-rule",
+    "color-rendering",
+    "direction",
+    "dominant-baseline",
+    "fill-rule",
+    "filter",
+    "font-feature-settings",
+    "font-kerning",
+    "font-size-adjust",
+    "font-stretch",
+    "font-variant",
+    "font-variation-settings",
+    "glyph-orientation-horizontal",
+    "glyph-orientation-vertical",
+    "gradientTransform",
+    "gradientUnits",
+    "image-rendering",
+    "isolation",
+    "kerning",
+    "lengthAdjust",
+    "marker",
+    "marker-end",
+    "marker-mid",
+    "marker-start",
+    "mask",
+    "mix-blend-mode",
+    "paint-order",
+    "preserveAspectRatio",
+    "shape-rendering",
+    "spreadMethod",
+    "text-decoration",
+    "text-decoration-skip-ink",
+    "text-decoration-style",
+    "text-orientation",
+    "text-rendering",
+    "text-underline-offset",
+    "unicode-bidi",
+    "writing-mode",
+]);
+const coverageSupportedPathCommands = new Set(["M", "L", "H", "V", "C", "S", "Q", "T", "A", "Z"]);
+function analyzeSvgCoverage(root) {
+    const stats = {
+        total_elements: 0,
+        convertible_elements: 0,
+        ignored_elements: 0,
+        unsupported_elements: {},
+        unsupported_attributes: {},
+        unsupported_path_commands: {},
+        estimated_element_coverage: 1,
+    };
+    const css = collectCss(root);
+    const refs = collectRefs(root);
+    const viewport = svgViewport(root);
+    const walk = (element, inheritedStyle, currentViewport, inDefs = false) => {
+        const tag = localName(element);
+        stats.total_elements += 1;
+        const style = computedStyle(element, inheritedStyle, css, refs, currentViewport);
+        const ignored = inDefs || coverageIgnoredElements.has(tag) || style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse";
+        const supportedElement = coverageElementIsSupported(element, tag, refs);
+        if (ignored) {
+            stats.ignored_elements += 1;
+        }
+        else if (coverageSupportedElements.has(tag) && supportedElement) {
+            stats.convertible_elements += 1;
+        }
+        else if (coverageSupportedElements.has(tag)) {
+            addCoverageCount(stats.unsupported_elements, coverageSupportedElementIssue(tag));
+        }
+        else {
+            addCoverageCount(stats.unsupported_elements, tag);
+        }
+        if (!ignored)
+            inspectCoverageAttributes(element, style, tag, stats, refs);
+        if (tag === "foreignObject")
+            return;
+        const childViewport = tag === "svg" ? renderedSvgViewport(element, currentViewport) : currentViewport;
+        for (const child of Array.from(element.children))
+            walk(child, style, childViewport, inDefs || tag === "defs");
+    };
+    walk(root, {}, viewport);
+    const measurable = Math.max(stats.total_elements - stats.ignored_elements, 0);
+    stats.estimated_element_coverage = measurable ? Math.round((stats.convertible_elements / measurable) * 10000) / 10000 : 1;
+    stats.unsupported_elements = sortedCoverageCounts(stats.unsupported_elements);
+    stats.unsupported_attributes = sortedCoverageCounts(stats.unsupported_attributes);
+    stats.unsupported_path_commands = sortedCoverageCounts(stats.unsupported_path_commands);
+    return stats;
+}
+function coverageElementIsSupported(element, tag, refs) {
+    if (tag === "path")
+        return parseBasicPath(element.getAttribute("d") || "", [1, 0, 0, 1, 0, 0]) != null;
+    if (tag === "polygon" || tag === "polyline")
+        return parsePoints(element.getAttribute("points") || "").length >= 2;
+    if (tag === "image")
+        return supportedDataImage(element.getAttribute("href") || element.getAttribute("xlink:href") || "");
+    if (tag === "use") {
+        const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+        return href.startsWith("#") && refs.has(href.slice(1));
+    }
+    if (tag === "foreignObject")
+        return Array.from(element.querySelectorAll("table")).some((item) => localName(item) === "table");
+    if (tag === "switch")
+        return switchSelectedChild(element) != null || element.children.length === 0;
+    return true;
+}
+function coverageSupportedElementIssue(tag) {
+    if (tag === "path")
+        return "path:unsupported-command";
+    if (tag === "polygon" || tag === "polyline")
+        return `${tag}:invalid-points`;
+    if (tag === "image")
+        return "image:unsupported-reference";
+    if (tag === "use")
+        return "use:unsupported-reference";
+    if (tag === "foreignObject")
+        return "foreignObject:unsupported-content";
+    if (tag === "switch")
+        return "switch:unsupported-branch";
+    return tag;
+}
+function inspectCoverageAttributes(element, style, tag, stats, refs) {
+    const attributes = attrs(element);
+    for (const [name, value] of Object.entries(attributes)) {
+        if (!coverageUnsupportedAttributes.has(name))
+            continue;
+        if (coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, refs))
+            continue;
+        addCoverageCount(stats.unsupported_attributes, name);
+    }
+    if (tag === "path") {
+        for (const command of unsupportedPathCommands(element.getAttribute("d") || ""))
+            addCoverageCount(stats.unsupported_path_commands, command);
+    }
+}
+function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, refs) {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized || ["auto", "normal", "none", "0", "0px"].includes(normalized))
+        return true;
+    if (name === "clip-path")
+        return clipPathHasRect(value, refs);
+    if (name === "direction")
+        return tag === "text" && normalizeTextDirection(value) != null;
+    if (name === "dominant-baseline" || name === "alignment-baseline")
+        return normalizeTextBaseline(value) != null;
+    if (name === "baseline-shift")
+        return normalizeBaselineShift(value) != null;
+    if (name === "font-variant")
+        return normalizeFontVariant(value) != null;
+    if (name === "letter-spacing")
+        return normalizeSpacingLength(value, style.fontSize ?? rootFontSize) != null;
+    if (name === "lengthAdjust")
+        return normalizeLengthAdjust(value) != null;
+    if (name === "marker" || name === "marker-start" || name === "marker-end")
+        return markerRefIsArrowLike(value, refs);
+    if (name === "marker-mid")
+        return true;
+    if (name === "overflow")
+        return tag === "svg" && normalizeOverflow(value) === "hidden";
+    if (name === "opacity")
+        return parseAlpha(value) != null && visibleRenderingDescendantCount(element, refs, 2) < 2;
+    if (name === "pathLength")
+        return normalizePathLength(value) != null;
+    if (name === "preserveAspectRatio")
+        return tag === "svg" || tag === "symbol" || tag === "image" || tag === "use";
+    if (name === "rotate")
+        return singleTextRotation(value, element.textContent || null) != null;
+    if (name === "stroke-dashoffset")
+        return Number.isFinite(parseCssLength(value, percentageBasis("diag", defaultViewport()), Number.NaN));
+    if (name === "stroke-linecap")
+        return normalizeStrokeLineCap(value) != null;
+    if (name === "stroke-linejoin")
+        return normalizeStrokeLineJoin(value) != null;
+    if (name === "text-decoration" || name === "text-decoration-line")
+        return hasSupportedTextDecorationLine(value);
+    if (name === "text-decoration-color")
+        return parseCssColor(value, style) != null;
+    if (name === "text-decoration-thickness")
+        return value.trim().toLowerCase() === "auto" || parseCssLength(value, percentageBasis("diag", defaultViewport()), Number.NaN) >= 0;
+    if (name === "text-transform")
+        return normalizeTextTransform(value) != null;
+    if (name === "transform-origin")
+        return true;
+    if (name === "vector-effect")
+        return normalizeVectorEffect(value) != null;
+    if (name === "word-spacing")
+        return normalizeSpacingLength(value, style.fontSize ?? rootFontSize) != null;
+    return false;
+}
+function unsupportedPathCommands(value) {
+    const unsupported = new Set();
+    for (const match of value.matchAll(/[A-Za-z]/g)) {
+        const command = match[0].toUpperCase();
+        if (!coverageSupportedPathCommands.has(command))
+            unsupported.add(command);
+    }
+    return [...unsupported].sort();
+}
+function visibleRenderingDescendantCount(element, refs, limit) {
+    let total = 0;
+    const walk = (node) => {
+        if (total >= limit)
+            return;
+        const tag = localName(node);
+        if (["circle", "ellipse", "image", "line", "path", "polygon", "polyline", "rect", "text", "tspan"].includes(tag)) {
+            total += 1;
+            return;
+        }
+        if (tag === "use") {
+            const href = node.getAttribute("href") || node.getAttribute("xlink:href") || "";
+            const ref = href.startsWith("#") ? refs.get(href.slice(1)) : null;
+            if (ref)
+                walk(ref);
+            else
+                total += 1;
+            return;
+        }
+        for (const child of Array.from(node.children))
+            walk(child);
+    };
+    for (const child of Array.from(element.children))
+        walk(child);
+    return total;
+}
+function markerRefIsArrowLike(value, refs) {
+    if (value.trim().toLowerCase() === "none")
+        return true;
+    const ref = urlRef(value);
+    if (!ref)
+        return false;
+    const marker = refs.get(ref);
+    if (!marker || localName(marker) !== "marker")
+        return false;
+    const child = Array.from(marker.children).find((item) => ["path", "polygon", "polyline"].includes(localName(item)));
+    return child != null;
+}
+function clipPathHasRect(value, refs) {
+    const ref = urlRef(value);
+    const clip = ref ? refs.get(ref) : null;
+    return !!clip && localName(clip) === "clipPath" && Array.from(clip.children).some((child) => localName(child) === "rect");
+}
+function hasSupportedTextDecorationLine(value) {
+    const tokens = value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return tokens.length > 0 && tokens.every((token) => ["none", "underline", "line-through"].includes(token));
+}
+function addCoverageCount(counts, key) {
+    counts[key] = (counts[key] ?? 0) + 1;
+}
+function sortedCoverageCounts(counts) {
+    return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
 }
 function declaredSlides(root) {
     const result = [];
@@ -2857,16 +3149,21 @@ function renderPanel() {
     const semantic = nodes.filter((node) => Object.keys(node.data).length > 0).length;
     const deps = state.svgraph.dependencies.length;
     const templatesCount = state.pptxsvg.masters.length + state.pptxsvg.layouts.length + state.pptxsvg.text_styles.length;
+    const coverage = state.svgraph.coverage;
+    const warningCount = coverageCount(coverage.unsupported_elements) + coverageCount(coverage.unsupported_attributes) + coverageCount(coverage.unsupported_path_commands);
     if (state.tab === "summary") {
         panel.innerHTML = `
       <div class="metrics">
         <div class="metric"><strong>${nodes.length}</strong><span>SVGraph nodes</span></div>
         <div class="metric"><strong>${state.pptxsvg.slides.length}</strong><span>PPTXSVG slides</span></div>
+        <div class="metric"><strong>${Math.round(coverage.estimated_element_coverage * 100)}%</strong><span>coverage</span></div>
+        <div class="metric"><strong>${warningCount}</strong><span>warnings</span></div>
         <div class="metric"><strong>${semantic}</strong><span>semantic nodes</span></div>
         <div class="metric"><strong>${templatesCount}</strong><span>templates</span></div>
         <div class="metric"><strong>${deps}</strong><span>dependencies</span></div>
         <div class="metric"><strong>${state.pptxsvg.guides.length + state.pptxsvg.rulers.length}</strong><span>guides/rulers</span></div>
       </div>
+      ${warningCount ? `<div class="notice">${escapeHtml(coverageSummary(coverage))}</div>` : ""}
       <div class="list">
         ${nodes.slice(0, 12).map((node) => `<div class="item"><div class="item-title">${escapeHtml(node.node_id)} · ${escapeHtml(node.tag)}</div><div class="item-meta">${escapeHtml(JSON.stringify(node.data))}</div></div>`).join("")}
       </div>`;
@@ -2881,12 +3178,30 @@ function renderPanel() {
       <pre style="margin-top:12px">${escapeHtml(JSON.stringify({
             backendPolicy: state.webgpu ? "webgpu" : "wasm-or-disabled",
             allowedOps: ["mark-slide", "set-data", "set-metadata", "mark-table", "bind-relation"],
-            model: "onnx-community/gemma-4-e2b-it-ONNX"
+            model: "onnx-community/gemma-4-e2b-it-ONNX",
+            coverage: state.svgraph.coverage
         }, null, 2))}</pre>`;
     }
     else {
         panel.innerHTML = `<pre>${escapeHtml(JSON.stringify(state.svgraph, null, 2))}</pre>`;
     }
+}
+function coverageCount(counts) {
+    return Object.values(counts).reduce((total, value) => total + value, 0);
+}
+function coverageSummary(coverage) {
+    const parts = [
+        coverageList("elements", coverage.unsupported_elements),
+        coverageList("attributes", coverage.unsupported_attributes),
+        coverageList("path", coverage.unsupported_path_commands),
+    ].filter(Boolean);
+    return parts.join(" · ");
+}
+function coverageList(label, counts) {
+    const entries = Object.entries(counts);
+    if (!entries.length)
+        return "";
+    return `${label}: ${entries.map(([key, value]) => `${key} ${value}`).join(", ")}`;
 }
 function downloadText(name, value) {
     downloadBlob(name, new Blob([value], { type: "application/json;charset=utf-8" }));
@@ -4273,22 +4588,6 @@ function combinedAlpha(...values) {
     }
     return seen ? alpha : null;
 }
-const namedColors = {
-    black: "#000000",
-    blue: "#0000ff",
-    cyan: "#00ffff",
-    gray: "#808080",
-    green: "#008000",
-    grey: "#808080",
-    lime: "#00ff00",
-    magenta: "#ff00ff",
-    orange: "#ffa500",
-    purple: "#800080",
-    red: "#ff0000",
-    transparent: null,
-    white: "#ffffff",
-    yellow: "#ffff00",
-};
 function parseRgbFunction(value) {
     const match = value.match(/^rgba?\(([^)]+)\)$/i);
     if (!match)
