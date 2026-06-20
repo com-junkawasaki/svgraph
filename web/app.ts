@@ -324,6 +324,8 @@ type SvgStyle = {
   strokeDasharray?: string | null;
   strokeDashoffset?: number | null;
   imageAlpha?: number | null;
+  display?: string | null;
+  visibility?: string | null;
   fontSize?: number;
   fontFamily?: string;
   fontWeight?: string;
@@ -490,6 +492,8 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect id="clipped-bar" x="930" y="500" width="250" height="70" style="fill:#fecaca;stroke:#991b1b;clip-path:url(#bar-clip)"/>
     <ellipse id="bbox-clipped-ellipse" cx="1090" cy="560" rx="80" ry="50" style="fill:#ede9fe;stroke:#6d28d9;clip-path:url(#bbox-clip)"/>
     <rect id="css-colors" x="740" y="615" width="120" height="50" style="color:orange;fill:currentColor;stroke:hsl(210 100% 50%)"/>
+    <rect id="display-hidden" x="875" y="615" width="34" height="50" style="display:none;fill:#111827"/>
+    <g id="visibility-hidden" visibility="hidden"><rect id="visibility-visible" x="910" y="615" width="34" height="50" visibility="visible" style="fill:#ffffff;stroke:#0f766e;stroke-width:3"/></g>
     <g class="var-theme"><rect class="inherit-box" x="910" y="88" width="105" height="52"/></g>
     <rect id="css-transform-origin" class="css-transform-origin" x="1035" y="88" width="105" height="52" style="fill:#f0fdf4;stroke:#16a34a"/>
     <rect id="media-rule" class="media-rule" x="1160" y="88" width="70" height="52"/>
@@ -841,6 +845,8 @@ function extractShapes(root: Element): Shape[] {
     const tag = localName(element);
     if (tag === "metadata" || tag === "defs" || tag === "style") return;
     const ownStyle = computedStyle(element, inheritedStyle, css, refs, currentViewport);
+    if (ownStyle.display === "none") return;
+    const visibilityHidden = ownStyle.visibility === "hidden" || ownStyle.visibility === "collapse";
     let ownMatrix = multiply(matrix, styleTransformMatrix(element, ownStyle, currentViewport));
     let childViewport = currentViewport;
     if (tag === "svg") {
@@ -862,7 +868,7 @@ function extractShapes(root: Element): Shape[] {
       }
       return;
     }
-    if (tag === "g" && (element.getAttribute("data-kind") === "table" || element.getAttribute("data-role") === "table")) {
+    if (!visibilityHidden && tag === "g" && (element.getAttribute("data-kind") === "table" || element.getAttribute("data-role") === "table")) {
       const table = tableFromGroup(element, ownMatrix, nextId, ownStyle, css, childViewport);
       if (table) {
         shapes.push(table);
@@ -870,7 +876,7 @@ function extractShapes(root: Element): Shape[] {
       }
       return;
     }
-    if (tag === "foreignObject") {
+    if (!visibilityHidden && tag === "foreignObject") {
       const tableShapes = shapesFromForeignObject(element, ownMatrix, nextId, ownStyle, css, childViewport);
       if (tableShapes.length) {
         shapes.push(...tableShapes);
@@ -878,7 +884,7 @@ function extractShapes(root: Element): Shape[] {
       }
       return;
     }
-    const rawShape = tag === "svg" ? null : elementToShape(element, ownMatrix, ownStyle, nextId, childViewport);
+    const rawShape = tag === "svg" || visibilityHidden ? null : elementToShape(element, ownMatrix, ownStyle, nextId, childViewport);
     const clip = rectClipBounds(rawShape, ownStyle, refs, ownMatrix, childViewport);
     const shape = applyClip(rawShape, clip);
     if (shape) {
@@ -2822,6 +2828,8 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   const color = value("color");
   const fill = value("fill");
   const stroke = value("stroke");
+  const display = value("display");
+  const visibility = value("visibility");
   const opacity = value("opacity");
   const fillOpacity = value("fill-opacity");
   const strokeOpacity = value("stroke-opacity");
@@ -2855,8 +2863,11 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   const marker = value("marker");
   const markerStart = value("marker-start");
   const markerEnd = value("marker-end");
+  delete next.display;
   delete next.transform;
   delete next.transformOrigin;
+  if (display != null) next.display = normalizeDisplay(display);
+  if (visibility != null) next.visibility = normalizeVisibility(visibility);
   if (color != null) next.color = parseCssColor(color, next);
   const opacityAlpha = parseAlpha(opacity);
   if (opacityAlpha != null) next.imageAlpha = combinedAlpha(opacityAlpha, next.imageAlpha);
@@ -3079,6 +3090,10 @@ function cssValueFromStyle(style: SvgStyle, name: string): string | null {
       return style.stroke ?? null;
     case "color":
       return style.color ?? null;
+    case "display":
+      return style.display ?? null;
+    case "visibility":
+      return style.visibility ?? null;
     case "stroke-width":
     case "border-width":
       return style.strokeWidth == null ? null : String(style.strokeWidth);
@@ -3531,6 +3546,18 @@ function normalizeStrokeLineJoin(value: string): string | null {
 function normalizeStrokeMiterlimit(value: string): number | null {
   const parsed = Number.parseFloat(value.trim());
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : null;
+}
+
+function normalizeDisplay(value: string): string | null {
+  const normalized = value.trim().toLowerCase().split(/\s+/).join(" ");
+  return normalized === "none" ? "none" : null;
+}
+
+function normalizeVisibility(value: string): string | null {
+  const normalized = value.trim().toLowerCase().split(/\s+/).join(" ");
+  if (normalized === "hidden" || normalized === "collapse") return normalized;
+  if (normalized === "visible") return "visible";
+  return null;
 }
 
 function normalizeStrokeDasharray(value: string, basis = rootFontSize): string | null {
