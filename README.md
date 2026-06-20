@@ -89,10 +89,10 @@ svgraph --version
 The repository includes examples that embed converted DrawingML shapes into `.pptx` packages. SVGs with `data-kind="slide"`, `data-role="slide"`, or `data-slide` produce multiple slides:
 
 ```bash
-PYTHONPATH=src python examples/make_pptx.py examples/sample.svg -o tmp/drawingml-svg-sample.pptx
-PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx
-PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/drawingml-svg-complex.pptx
-PYTHONPATH=src python examples/make_pptx.py examples/svgraph.svg -o tmp/drawingml-svg-svgraph.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/sample.svg -o tmp/svgraph-sample.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/svgraph-coverage.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/svgraph-complex.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/svgraph.svg -o tmp/svgraph-presentation.pptx
 ```
 
 ## Supported DrawingML presets

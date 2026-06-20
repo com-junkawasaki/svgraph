@@ -13,7 +13,7 @@ __all__ = ["build_slide_xml", "main", "prepare_slide_media", "write_pptx"]
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="make_pptx.py")
     parser.add_argument("input", type=Path)
-    parser.add_argument("-o", "--output", type=Path, default=Path("drawingml-svg-sample.pptx"))
+    parser.add_argument("-o", "--output", type=Path, default=Path("svgraph-sample.pptx"))
     args = parser.parse_args(argv)
 
     try:

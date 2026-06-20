@@ -10,10 +10,10 @@ Use this checklist when publishing a new `drawingml-svg` release.
 - Regenerate and inspect the PPTX smoke fixture:
 
 ```bash
-PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx
-python -m zipfile --test tmp/drawingml-svg-coverage.pptx
-PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/drawingml-svg-complex.pptx
-python -m zipfile --test tmp/drawingml-svg-complex.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/svgraph-coverage.pptx
+python -m zipfile --test tmp/svgraph-coverage.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/svgraph-complex.pptx
+python -m zipfile --test tmp/svgraph-complex.pptx
 ```
 
 - Build the source distribution and wheel:

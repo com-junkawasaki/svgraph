@@ -20,8 +20,8 @@ PYTHONPATH=src python -m pytest -q
 PYTHONPATH=src python -m drawingml_svg.cli analyze examples/coverage.svg
 PYTHONPATH=src python -m drawingml_svg.cli svgraph examples/svgraph.svg > tmp/svgraph.json
 PYTHONPATH=src python -m drawingml_svg.cli svgraph-presentation examples/svgraph.svg > tmp/svgraph-presentation.json
-PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx
-python -m zipfile --test tmp/drawingml-svg-coverage.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/svgraph-coverage.pptx
+python -m zipfile --test tmp/svgraph-coverage.pptx
 ```
 
 ## Converter changes
