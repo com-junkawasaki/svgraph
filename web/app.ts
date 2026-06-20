@@ -1452,7 +1452,7 @@ function analyzeSvgCoverage(root: Element): SvgCoverage {
     stats.total_elements += 1;
     const style = computedStyle(element, inheritedStyle, css, refs, currentViewport);
     const ignored = coverageElementIsIgnored(element, tag, style, refs, css, currentViewport, inDefs);
-    const supportedElement = coverageElementIsSupported(element, tag, refs);
+    const supportedElement = coverageElementIsSupported(element, tag, refs, css, style, currentViewport);
     if (ignored) {
       stats.ignored_elements += 1;
     } else if (coverageSupportedElements.has(tag) && supportedElement) {
@@ -1476,17 +1476,46 @@ function analyzeSvgCoverage(root: Element): SvgCoverage {
   return stats;
 }
 
-function coverageElementIsSupported(element: Element, tag: string, refs: Map<string, Element>): boolean {
+function coverageElementIsSupported(element: Element, tag: string, refs: Map<string, Element>, css: CssRule[] = [], style: SvgStyle = {}, viewport: Viewport = defaultViewport()): boolean {
   if (tag === "path") return parseBasicPath(element.getAttribute("d") || "", [1, 0, 0, 1, 0, 0]) != null;
   if (tag === "polygon" || tag === "polyline") return parsePoints(element.getAttribute("points") || "").length >= 2;
   if (tag === "image") return supportedDataImage(element.getAttribute("href") || element.getAttribute("xlink:href") || "");
   if (tag === "use") {
     const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
-    return href.startsWith("#") && refs.has(href.slice(1));
+    if (!href.startsWith("#") || !refs.has(href.slice(1))) return false;
+    return coverageUseReferenceIsSupported(element, style, refs, css, viewport);
   }
   if (tag === "foreignObject") return Array.from(element.querySelectorAll("table")).some((item) => localName(item) === "table");
   if (tag === "switch") return switchSelectedChild(element) != null || element.children.length === 0;
   return true;
+}
+
+function coverageUseReferenceIsSupported(element: Element, inheritedStyle: SvgStyle, refs: Map<string, Element>, css: CssRule[], viewport: Viewport, refStack: Set<string> = new Set()): boolean {
+  const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+  const refId = href.startsWith("#") ? href.slice(1) : "";
+  const ref = refId ? refs.get(refId) : null;
+  if (!ref || refStack.has(refId)) return false;
+  const refViewport = ["svg", "symbol"].includes(localName(ref)) ? useViewport(ref, element, viewport) : viewport;
+  return coverageReferencedSubtreeIsSupported(ref, inheritedStyle, refs, css, refViewport, new Set([...refStack, refId]));
+}
+
+function coverageReferencedSubtreeIsSupported(element: Element, inheritedStyle: SvgStyle, refs: Map<string, Element>, css: CssRule[], viewport: Viewport, refStack: Set<string>): boolean {
+  const tag = localName(element);
+  const style = computedStyle(element, inheritedStyle, css, refs, viewport);
+  if (coverageElementIsIgnored(element, tag, style, refs, css, viewport, coverageIgnoredElements.has(tag))) return true;
+  if (tag === "use") return coverageUseReferenceIsSupported(element, style, refs, css, viewport, refStack);
+  if (tag === "path" && parseBasicPath(element.getAttribute("d") || "", [1, 0, 0, 1, 0, 0]) == null) return false;
+  if ((tag === "polygon" || tag === "polyline") && parsePoints(element.getAttribute("points") || "").length < 2) return false;
+  if (tag === "image" && !supportedDataImage(element.getAttribute("href") || element.getAttribute("xlink:href") || "")) return false;
+  if (tag === "foreignObject" && !Array.from(element.querySelectorAll("table")).some((item) => localName(item) === "table")) return false;
+  if (tag === "switch") {
+    const selected = switchSelectedChild(element);
+    if (!selected) return element.children.length === 0;
+    return coverageReferencedSubtreeIsSupported(selected, style, refs, css, viewport, refStack);
+  }
+  if (!coverageSupportedElements.has(tag) && !coverageIgnoredElements.has(tag)) return false;
+  const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport) : viewport;
+  return Array.from(element.children).every((child) => coverageReferencedSubtreeIsSupported(child, style, refs, css, childViewport, refStack));
 }
 
 function coverageElementIsIgnored(element: Element, tag: string, style: SvgStyle, refs: Map<string, Element>, css: CssRule[], viewport: Viewport, inDefs: boolean): boolean {

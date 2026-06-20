@@ -77,6 +77,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added migration guards that directly compare browser coverage element and attribute sets against the Python analyzer contract.
 - Aligned browser coverage analyzer attribute-specific no-op handling for SVG font, glyph, bidi, writing-mode, and text-decoration controls.
 - Aligned browser coverage analyzer ignored-element handling for non-rendering geometry and no visible paint.
+- Aligned browser coverage analyzer `use` reference support checks against referenced SVG subtrees.
 - Added Python PPTX custom XML `source_svg` preservation so generated packages carry the editable SVG source alongside SVGraph presentation metadata.
 - Added browser PPTX custom XML `source_svg` preservation so browser-generated packages match Python source recovery metadata.
 - Added web editor design package part schema documentation for `part_name`, `content_type`, `kind`, and `source_node_id`.
