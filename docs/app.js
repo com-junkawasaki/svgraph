@@ -28,6 +28,10 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
       <clipPath id="bbox-clip" clipPathUnits="objectBoundingBox"><rect x="0.15" y="0.15" width="0.7" height="0.7"/></clipPath>
       <linearGradient id="linear-fallback"><stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
       <radialGradient id="radial-fallback"><stop offset="0" stop-color="#fef08a"/><stop offset="1" stop-color="#16a34a"/></radialGradient>
+      <pattern id="pattern-fallback" width="12" height="12" patternUnits="userSpaceOnUse">
+        <rect width="12" height="12" fill="#f97316"/>
+        <circle cx="6" cy="6" r="4" fill="#22c55e"/>
+      </pattern>
     </defs>
     <style>
       .accent-use { fill: #fce7f3; stroke: #be185d; stroke-width: 5; }
@@ -46,6 +50,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect id="clipped-bar" x="930" y="500" width="250" height="70" style="fill:#fecaca;stroke:#991b1b;clip-path:url(#bar-clip)"/>
     <ellipse id="bbox-clipped-ellipse" cx="1090" cy="560" rx="80" ry="50" style="fill:#ede9fe;stroke:#6d28d9;clip-path:url(#bbox-clip)"/>
     <rect id="gradient-fill" x="900" y="615" width="120" height="50" style="fill:url(#linear-fallback);stroke:url(#radial-fallback)"/>
+    <circle id="pattern-fill" cx="1080" cy="640" r="32" style="fill:url(#pattern-fallback);stroke:#334155"/>
     <use href="#reused-chip" class="accent-use" x="360" y="400"/>
     <g transform="translate(90 390) scale(1.5)">
       <rect id="scaled" width="160" height="80" style="fill:#dbeafe;stroke:#2563eb"/>
@@ -1172,6 +1177,8 @@ function paintServerColor(id, refs, style, seen = new Set()) {
     if (!element)
         return null;
     const tag = localName(element);
+    if (tag === "pattern")
+        return averageColor(patternColors(element, refs, {}, new Set([...seen, id])));
     if (tag !== "linearGradient" && tag !== "radialGradient")
         return null;
     const nextSeen = new Set([...seen, id]);
@@ -1183,6 +1190,59 @@ function paintServerColor(id, refs, style, seen = new Set()) {
     if (tag === "radialGradient")
         return stops[stops.length - 1] ?? null;
     const rgb = stops.map(hexToRgb).filter((item) => Boolean(item));
+    if (!rgb.length)
+        return null;
+    const count = rgb.length;
+    return rgbToHex([
+        Math.round(rgb.reduce((sum, item) => sum + item[0], 0) / count),
+        Math.round(rgb.reduce((sum, item) => sum + item[1], 0) / count),
+        Math.round(rgb.reduce((sum, item) => sum + item[2], 0) / count),
+    ]);
+}
+function patternColors(element, refs, inheritedStyle, seen) {
+    const colors = [];
+    for (const child of Array.from(element.children)) {
+        const tag = localName(child);
+        if (tag === "g" || tag === "svg" || tag === "a") {
+            colors.push(...patternColors(child, refs, inheritedStyle, seen));
+            continue;
+        }
+        if (!["rect", "circle", "ellipse", "path", "polygon", "polyline", "text", "tspan", "line"].includes(tag))
+            continue;
+        const style = simpleElementStyle(child, inheritedStyle, refs, seen);
+        if (tag !== "line" && style.fill)
+            colors.push(style.fill);
+        if (style.stroke)
+            colors.push(style.stroke);
+        colors.push(...patternColors(child, refs, style, seen));
+    }
+    return colors;
+}
+function simpleElementStyle(element, inheritedStyle, refs, seen) {
+    const declarations = styleDeclarations(element.getAttribute("style"));
+    const value = (name) => declarations[name] ?? element.getAttribute(name) ?? null;
+    const fill = value("fill");
+    const stroke = value("stroke");
+    const next = { ...inheritedStyle };
+    if (fill != null)
+        next.fill = normalizePatternPaint(fill, refs, next, seen);
+    if (stroke != null)
+        next.stroke = normalizePatternPaint(stroke, refs, next, seen);
+    return next;
+}
+function normalizePatternPaint(value, refs, style, seen) {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "none" || trimmed === "transparent")
+        return null;
+    const ref = paintUrlRef(trimmed);
+    if (ref) {
+        const targetId = ref.id;
+        return seen.has(targetId) ? normalizePaint(ref.fallback, refs, style) : paintServerColor(targetId, refs, style, seen) ?? normalizePaint(ref.fallback, refs, style);
+    }
+    return normalizeStopColor(trimmed, style);
+}
+function averageColor(colors) {
+    const rgb = colors.map(hexToRgb).filter((item) => Boolean(item));
     if (!rgb.length)
         return null;
     const count = rgb.length;
