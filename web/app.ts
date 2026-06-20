@@ -3645,7 +3645,7 @@ mustElement<HTMLButtonElement>("sampleBtn").addEventListener("click", () => {
 mustElement<HTMLButtonElement>("downloadIrBtn").addEventListener("click", () => {
   if (state.svgraph) downloadText("svgraph.json", JSON.stringify(state.svgraph, null, 2));
 });
-mustElement<HTMLButtonElement>("downloadPptxsvgBtn").addEventListener("click", () => {
+mustElement<HTMLButtonElement>("downloadPresentationBtn").addEventListener("click", () => {
   if (state.presentation) downloadText("svgraph-presentation.json", JSON.stringify(state.presentation, null, 2));
 });
 mustElement<HTMLButtonElement>("downloadPptxBtn").addEventListener("click", () => {
