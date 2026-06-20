@@ -66,9 +66,12 @@ def test_legacy_ir_aliases_are_not_top_level_exports() -> None:
 
 def test_legacy_ir_module_keeps_only_explicit_pre_svgraph_aliases() -> None:
     assert hasattr(drawingml_svg.ir, "SvgIRDocument")
+    assert not hasattr(drawingml_svg.ir, "SVGraphDocument")
     assert not hasattr(drawingml_svg.ir, "SvgraphDocument")
     assert "SvgIRDocument" in drawingml_svg.ir.__all__
+    assert "SVGraphDocument" not in drawingml_svg.ir.__all__
     assert "SvgraphDocument" not in drawingml_svg.ir.__all__
+    assert "svg_to_svgraph" not in drawingml_svg.ir.__all__
 
 
 def test_legacy_svg_ir_alias_matches_svgraph_payload() -> None:
