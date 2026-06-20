@@ -162,6 +162,24 @@ def test_top_level_packages_expose_only_canonical_svgraph_api() -> None:
         assert "SvgIRDocument" not in source
 
 
+def test_module_execution_is_canonical_svgraph_entry_point() -> None:
+    root = Path(__file__).resolve().parents[1]
+    main_source = (root / "src" / "svgraph" / "__main__.py").read_text(encoding="utf-8")
+    workflow = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    migration = (root / "MIGRATION.md").read_text(encoding="utf-8")
+
+    assert 'sys.argv[0] = "svgraph"' in main_source
+    assert "from .cli import main" in main_source
+    assert "raise SystemExit(main())" in main_source
+    assert "tmp/wheel-venv/bin/python -m svgraph --version" in workflow
+    assert "tmp/wheel-venv/bin/python -m svgraph analyze examples/coverage.svg" in workflow
+    assert "python -m svgraph --version" in readme
+    assert "python -m svgraph --version" in migration
+    assert "python -m drawingml_svg" not in readme
+    assert "python -m drawingml_svg" not in migration
+
+
 def test_readme_lists_all_legacy_console_compatibility_aliases() -> None:
     root = Path(__file__).resolve().parents[1]
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
