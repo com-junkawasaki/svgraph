@@ -875,6 +875,27 @@ def test_svg_to_pptx_bytes_writes_declared_master_and_layout_parts() -> None:
     assert 'Target="../slideLayouts/slideLayout2.xml"' in slide2_rels
 
 
+def test_svg_to_pptx_bytes_writes_presentation_text_styles_to_slide_master() -> None:
+    pptx_data = svg_to_pptx_bytes(
+        """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+          <metadata>{"presentation": {"textStyles": {
+            "title": {"fontFamily": "Aptos Display", "fontSize": 48, "bold": true},
+            "body": {"fontFamily": "Aptos", "fontSize": 18},
+            "lead": {"fontFamily": "Aptos", "fontSize": 24}
+          }}}</metadata>
+          <g data-kind="slide"><rect width="200" height="120" fill="#ccfbf1"/></g>
+        </svg>"""
+    )
+
+    with zipfile.ZipFile(io.BytesIO(pptx_data)) as pptx:
+        master = pptx.read("ppt/slideMasters/slideMaster1.xml").decode("utf-8")
+
+    assert '<p:titleStyle><a:lvl1pPr><a:defRPr sz="4800" b="1">' in master
+    assert '<a:latin typeface="Aptos Display"/>' in master
+    assert '<p:bodyStyle><a:lvl1pPr><a:defRPr sz="1800">' in master
+    assert '<p:otherStyle><a:lvl1pPr><a:defRPr sz="2400">' in master
+
+
 def test_svgraph_semantic_relation_and_table_export_as_native_pptx_objects() -> None:
     pptx_data = svg_to_pptx_bytes((_project_root() / "examples" / "svgraph.svg").read_text(encoding="utf-8"))
 

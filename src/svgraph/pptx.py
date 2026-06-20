@@ -9,7 +9,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from .converter import EMU_PER_PX, NS_A, NS_P, svg_to_drawingml, qn
-from .model import svg_to_svgraph_presentation
+from .model import SVGraphTextStyle, svg_to_svgraph_presentation
 
 PRESENTATION_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -39,6 +39,7 @@ def svg_to_pptx_bytes(svg_text: str) -> bytes:
             slide_size=presentation.slide_size,
             master_count=max(1, len(presentation.masters)),
             layout_count=max(1, len(presentation.layouts)),
+            text_styles=presentation.text_styles,
         )
         return buffer.getvalue()
 
@@ -265,6 +266,7 @@ def write_pptx(
     slide_size: tuple[float, float] = (960.0, 540.0),
     master_count: int = 1,
     layout_count: int = 1,
+    text_styles: tuple[SVGraphTextStyle, ...] = (),
 ) -> None:
     slide_xmls = [slide_xml] if isinstance(slide_xml, bytes) else slide_xml
     master_count = max(1, master_count)
@@ -290,9 +292,10 @@ def write_pptx(
         pptx.writestr("docProps/core.xml", CORE_PROPS)
         pptx.writestr("ppt/presentation.xml", _presentation(len(slide_xmls), slide_size, master_count))
         pptx.writestr("ppt/_rels/presentation.xml.rels", _presentation_rels(len(slide_xmls), master_count))
+        slide_master = _slide_master(text_styles)
         for index in range(1, master_count + 1):
             layout_index = min(index, layout_count)
-            pptx.writestr(f"ppt/slideMasters/slideMaster{index}.xml", SLIDE_MASTER)
+            pptx.writestr(f"ppt/slideMasters/slideMaster{index}.xml", slide_master)
             pptx.writestr(f"ppt/slideMasters/_rels/slideMaster{index}.xml.rels", _slide_master_rels(layout_index))
         for index in range(1, layout_count + 1):
             master_index = min(index, master_count)
@@ -538,15 +541,76 @@ def _slide_layout_rels(master_index: int = 1) -> str:
 SLIDE_MASTER_RELS = _slide_master_rels()
 SLIDE_LAYOUT_RELS = _slide_layout_rels()
 
-SLIDE_MASTER = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+def _slide_master(text_styles: tuple[SVGraphTextStyle, ...] = ()) -> str:
+    title_style = _text_style_xml("titleStyle", _text_style_for_role(text_styles, "title"))
+    body_style = _text_style_xml("bodyStyle", _text_style_for_role(text_styles, "body"))
+    other_style = _text_style_xml(
+        "otherStyle",
+        _text_style_for_role(text_styles, "other")
+        or _text_style_for_role(text_styles, "lead")
+        or _text_style_for_role(text_styles, "caption"),
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
   xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
   <p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree></p:cSld>
   <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
   <p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst>
-  <p:txStyles><p:titleStyle/><p:bodyStyle/><p:otherStyle/></p:txStyles>
+  <p:txStyles>{title_style}{body_style}{other_style}</p:txStyles>
 </p:sldMaster>"""
+
+
+def _text_style_for_role(text_styles: tuple[SVGraphTextStyle, ...], role: str) -> SVGraphTextStyle | None:
+    normalized = role.lower()
+    return next((style for style in text_styles if style.role.lower() == normalized), None)
+
+
+def _text_style_xml(tag: str, style: SVGraphTextStyle | None) -> str:
+    if style is None:
+        return f"<p:{tag}/>"
+    properties = style.properties
+    attrs = []
+    font_size = _style_number(properties.get("fontSize") or properties.get("font-size"))
+    if font_size is not None:
+        attrs.append(f'sz="{round(font_size * 100)}"')
+    if _style_bool(properties.get("bold") or properties.get("fontWeight") or properties.get("font-weight")):
+        attrs.append('b="1"')
+    if _style_bool(properties.get("italic") or properties.get("fontStyle") or properties.get("font-style")):
+        attrs.append('i="1"')
+    font_family = properties.get("fontFamily") or properties.get("font-family")
+    latin = f'<a:latin typeface="{_xml_attr(str(font_family))}"/>' if font_family else ""
+    attrs_text = (" " + " ".join(attrs)) if attrs else ""
+    return f"<p:{tag}><a:lvl1pPr><a:defRPr{attrs_text}>{latin}</a:defRPr></a:lvl1pPr></p:{tag}>"
+
+
+def _style_number(value: object) -> float | None:
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        match = re.match(r"\s*([0-9]+(?:\.[0-9]+)?)", value)
+        if match:
+            return float(match.group(1))
+    return None
+
+
+def _style_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int | float):
+        return value >= 600
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        return normalized in {"1", "true", "bold", "bolder"} or normalized.isdigit() and int(normalized) >= 600
+    return False
+
+
+def _xml_attr(value: str) -> str:
+    return value.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+SLIDE_MASTER = _slide_master()
 
 SLIDE_LAYOUT = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"

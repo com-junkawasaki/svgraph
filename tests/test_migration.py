@@ -1025,9 +1025,22 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "generated PPTX slide relationship routing to declared SVGraph slide layout parts",
         "browser PPTX export parity for SVGraph presentation slide master and layout package parts",
         "release and CI wheel smoke coverage for multi-master SVGraph PPTX packages",
+        "Python PPTX slide master default text style emission from SVGraph presentation text styles",
         "web editor design package part schema documentation",
     ]:
         assert expected in changelog
+
+
+def test_python_pptx_exporter_covers_svgraph_text_style_defaults() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "src" / "svgraph" / "pptx.py").read_text(encoding="utf-8")
+    tests = (root / "tests" / "test_converter.py").read_text(encoding="utf-8")
+
+    assert "text_styles=presentation.text_styles" in source
+    assert "def _slide_master(text_styles" in source
+    assert "def _text_style_xml" in source
+    assert "test_svg_to_pptx_bytes_writes_presentation_text_styles_to_slide_master" in tests
+    assert '<p:titleStyle><a:lvl1pPr><a:defRPr sz="4800" b="1">' in tests
 
 
 def test_drawingml_svg_modules_are_compatibility_wrappers() -> None:
