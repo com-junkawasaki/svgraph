@@ -81,6 +81,17 @@ def test_compatibility_submodules_export_canonical_svgraph_callables() -> None:
     assert drawingml_svg.pptx.svg_to_pptx_bytes is svgraph.pptx.svg_to_pptx_bytes
     assert drawingml_svg.svgraph.svg_to_svgraph is svgraph.model.svg_to_svgraph
     assert drawingml_svg.svgraph.svg_to_svgraph_presentation is svgraph.model.svg_to_svgraph_presentation
+    assert drawingml_svg.converter.__all__ == svgraph.converter.__all__ == ["drawingml_to_svg", "svg_to_drawingml"]
+    assert drawingml_svg.coverage.__all__ == svgraph.coverage.__all__ == ["SvgCoverage", "analyze_svg"]
+    assert drawingml_svg.pptx.__all__ == svgraph.pptx.__all__ == [
+        "build_slide_xml",
+        "prepare_slide_media",
+        "svg_to_pptx",
+        "svg_to_pptx_bytes",
+        "svg_to_slide_xmls",
+        "write_pptx",
+    ]
+    assert drawingml_svg.svgraph.__all__ == svgraph.model.__all__
 
 
 @pytest.mark.parametrize("executable", ["drawingml-svg", "svg2dml", "dml2svg", "svg2pptx", "drawingml-svg-analyze"])

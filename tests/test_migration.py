@@ -1253,12 +1253,18 @@ def test_drawingml_svg_modules_are_compatibility_wrappers() -> None:
         text = (root / relative).read_text(encoding="utf-8")
         if expected_import not in text:
             unexpected.append(f"{relative}: missing {expected_import}")
+        if expected_import.endswith(" import *") and (
+            f"from {expected_import.removeprefix('from ').removesuffix(' import *')} import __all__ as __all__"
+            not in text
+        ):
+            unexpected.append(f"{relative}: missing canonical __all__ re-export")
         if "def " in text or "class " in text:
             unexpected.append(f"{relative}: contains implementation definitions")
 
     assert "compatibility import path whose main modules are wrappers over `svgraph`" in readme
     assert "new code should import `svgraph`" in readme
     assert "main modules are compatibility wrappers over `svgraph`" in migration
+    assert "main modules re-export the canonical module `__all__` values" in migration
     assert unexpected == []
 
 

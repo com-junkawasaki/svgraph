@@ -26,6 +26,8 @@ COMMAND_HELP = {
     "svgraph-presentation": "emit the SVGraph presentation/package JSON projection",
 }
 
+__all__ = ["main"]
+
 
 def main(argv: list[str] | None = None) -> int:
     argv_was_provided = argv is not None

@@ -26,6 +26,8 @@ NUMBER_RE = r"[-+]?(?:(?:\d*\.\d+)|(?:\d+\.?))(?:[eE][-+]?\d+)?"
 TEXT_DECORATION_LINE_TOKENS = {"none", "underline", "line-through", "overline", "blink"}
 TEXT_DECORATION_STYLE_TOKENS = {"solid", "dashed", "dotted", "double", "wavy"}
 
+__all__ = ["drawingml_to_svg", "svg_to_drawingml"]
+
 
 def qn(namespace: str, tag: str) -> str:
     return f"{{{namespace}}}{tag}"

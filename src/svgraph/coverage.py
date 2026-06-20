@@ -186,6 +186,9 @@ class SvgCoverage:
         return asdict(self)
 
 
+__all__ = ["SvgCoverage", "analyze_svg"]
+
+
 def analyze_svg(svg_text: str) -> SvgCoverage:
     root = ET.fromstring(svg_text)
     css = _collect_css(root)

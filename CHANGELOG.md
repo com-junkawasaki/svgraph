@@ -23,6 +23,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added stale distribution metadata cleanup to the migration verification checklist.
 - Strengthened generated artifact ignore coverage for Ruff cache, build distributions, and stale SVGraph egg-info metadata.
 - Strengthened compatibility submodule runtime guards so retained import paths expose canonical SVGraph callables.
+- Strengthened compatibility submodule public-surface guards so retained import paths re-export canonical `__all__` values.
 - Strengthened release and CI package file-list guards for canonical SVGraph modules and retained compatibility wrappers.
 - Strengthened release and CI wheel smoke checks so every pyproject console script and top-level package is verified from built wheel metadata.
 - Strengthened release and CI wheel smoke checks so retained legacy executable aliases, including `dml2svg`, verify their deprecation warnings from built wheel commands.

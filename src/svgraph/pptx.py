@@ -18,6 +18,15 @@ REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 SHAPE_TAGS = {qn(NS_P, "sp"), qn(NS_P, "cxnSp"), qn(NS_P, "pic"), qn(NS_P, "graphicFrame")}
 
+__all__ = [
+    "build_slide_xml",
+    "prepare_slide_media",
+    "svg_to_pptx",
+    "svg_to_pptx_bytes",
+    "svg_to_slide_xmls",
+    "write_pptx",
+]
+
 
 def svg_to_pptx(svg_text: str, output: str | Path) -> None:
     """Convert an SVG or SVGraph presentation document to a complete .pptx package."""
