@@ -20,6 +20,12 @@ def test_svgraph_package_is_canonical_api_surface() -> None:
     assert "svg_to_ir" not in svgraph_package.__all__
 
 
+def test_compatibility_package_declares_inline_types() -> None:
+    from importlib import resources
+
+    assert resources.files(drawingml_svg).joinpath("py.typed").is_file()
+
+
 def test_svgraph_preserves_metadata_data_attributes_and_dependencies() -> None:
     svg = """\
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50">

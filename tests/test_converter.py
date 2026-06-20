@@ -13,7 +13,6 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
-import drawingml_svg
 import svgraph as svgraph_package
 from svgraph import analyze_svg, drawingml_to_svg, svg_to_drawingml, svg_to_pptx_bytes
 from svgraph.cli import main as cli_main
@@ -72,7 +71,6 @@ def _webp_data_uri(width: int, height: int) -> str:
 
 
 def test_package_declares_inline_types() -> None:
-    assert resources.files(drawingml_svg).joinpath("py.typed").is_file()
     assert resources.files(svgraph_package).joinpath("__main__.py").is_file()
     assert resources.files(svgraph_package).joinpath("py.typed").is_file()
 

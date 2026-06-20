@@ -78,7 +78,6 @@ LEGACY_IMPORT_PATTERNS = (
 )
 
 ALLOWED_LEGACY_IMPORT_SURFACES = {
-    "tests/test_converter.py",
     "tests/test_migration.py",
     "tests/test_svgraph.py",
 }
