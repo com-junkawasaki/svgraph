@@ -238,6 +238,10 @@ def test_project_urls_are_canonical_svgraph_locations() -> None:
         pyproject["project"]["keywords"]
     )
     assert package_metadata["name"] == "svgraph-web"
+    project_links = readme.split("## Project links", maxsplit=1)[1].split("## Install", maxsplit=1)[0]
+    assert "- Repository: <https://github.com/com-junkawasaki/svgraph>" in project_links
+    assert "- Issue tracker: <https://github.com/com-junkawasaki/svgraph/issues>" in project_links
+    assert "- SVGraph web editor: <https://com-junkawasaki.github.io/svgraph/>" in project_links
     assert "https://github.com/com-junkawasaki/svgraph/issues" in readme
     assert "https://com-junkawasaki.github.io/svgraph/" in readme
     assert "https://com-junkawasaki.github.io/svgraph/" in migration

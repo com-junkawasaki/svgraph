@@ -47,6 +47,7 @@ npm run build:web
 - Release checklist: [RELEASE.md](RELEASE.md)
 - Security policy: [SECURITY.md](SECURITY.md)
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Repository: <https://github.com/com-junkawasaki/svgraph>
 - Issue tracker: <https://github.com/com-junkawasaki/svgraph/issues>
 - SVGraph web editor: <https://com-junkawasaki.github.io/svgraph/>
 
