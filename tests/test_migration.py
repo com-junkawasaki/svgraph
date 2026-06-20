@@ -1048,6 +1048,9 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "text-decoration-color:inherit" in generated
         assert "text-decoration-thickness:inherit" in generated
         assert "resolvedCascadedDeclarations(element, css, style)" in generated
+        assert "const coverageTextLayoutAttributes" in generated
+        assert "function subtreeHasVisibleText" in generated
+        assert "coverageTextLayoutAttributes.has(name)" in generated
         assert "function textDecorationShorthandIsSupported" in generated
         assert "function textLengthIsSupported" in generated
         assert 'decoration.includes("wavy")' in generated
@@ -1275,6 +1278,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser coverage analyzer with supported SVG `text-decoration-style` values",
         "browser coverage analyzer with SVG `text-decoration-color` and `text-decoration-thickness` diagnostics",
         "browser coverage analyzer with CSS declaration diagnostics for supported SVG text, stroke, transform, and opacity attributes",
+        "browser coverage analyzer text-layout no-op handling for non-text SVG subtrees",
         "web editor design package part schema documentation",
         "compatibility submodule public-surface guards",
         "installed compatibility submodules prove their canonical `__all__` and callable parity",

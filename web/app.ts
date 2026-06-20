@@ -1401,6 +1401,37 @@ const coverageUnsupportedAttributes = new Set([
   "writing-mode",
 ]);
 
+const coverageTextLayoutAttributes = new Set([
+  "alignment-baseline",
+  "baseline-shift",
+  "direction",
+  "font-feature-settings",
+  "font-kerning",
+  "font-size-adjust",
+  "font-stretch",
+  "font-variant",
+  "font-variation-settings",
+  "glyph-orientation-horizontal",
+  "glyph-orientation-vertical",
+  "kerning",
+  "lengthAdjust",
+  "letter-spacing",
+  "rotate",
+  "text-decoration",
+  "text-decoration-color",
+  "text-decoration-line",
+  "text-decoration-skip-ink",
+  "text-decoration-style",
+  "text-decoration-thickness",
+  "text-orientation",
+  "text-transform",
+  "text-underline-offset",
+  "textLength",
+  "unicode-bidi",
+  "word-spacing",
+  "writing-mode",
+]);
+
 const coverageSupportedPathCommands = new Set(["M", "L", "H", "V", "C", "S", "Q", "T", "A", "Z"]);
 
 function analyzeSvgCoverage(root: Element): SvgCoverage {
@@ -1472,6 +1503,7 @@ function inspectCoverageAttributes(element: Element, style: SvgStyle, tag: strin
   const attributes = { ...attrs(element), ...resolvedCascadedDeclarations(element, css, style) };
   for (const [name, value] of Object.entries(attributes)) {
     if (!coverageUnsupportedAttributes.has(name)) continue;
+    if (coverageTextLayoutAttributes.has(name) && !subtreeHasVisibleText(element, style, css, refs, viewport)) continue;
     if (coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, refs, viewport)) continue;
     addCoverageCount(stats.unsupported_attributes, name);
   }
@@ -1543,6 +1575,28 @@ function coveragePaintChannelIsVisible(tag: string, attr: "fill" | "stroke", sty
   }
   if (!["circle", "ellipse", "line", "path", "polygon", "polyline", "rect", "text", "tspan", "use"].includes(tag)) return false;
   return style.strokeAlpha !== 0 && (style.strokeWidth ?? 1) !== 0;
+}
+
+function subtreeHasVisibleText(element: Element, inheritedStyle: SvgStyle, css: CssRule[], refs: Map<string, Element>, viewport: Viewport, refStack: Set<string> = new Set()): boolean {
+  const tag = localName(element);
+  const style = computedStyle(element, inheritedStyle, css, refs, viewport);
+  if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") return false;
+  if ((tag === "text" || tag === "tspan") && (element.textContent || "").trim()) return true;
+  if (tag === "use") {
+    const href = element.getAttribute("href") || element.getAttribute("xlink:href") || "";
+    const refId = href.startsWith("#") ? href.slice(1) : "";
+    const ref = refId ? refs.get(refId) : null;
+    if (!ref || refStack.has(refId)) return false;
+    const refViewport = ["svg", "symbol"].includes(localName(ref)) ? useViewport(ref, element, viewport) : viewport;
+    return subtreeHasVisibleText(ref, style, css, refs, refViewport, new Set([...refStack, refId]));
+  }
+  if (tag === "foreignObject") return !!element.textContent?.trim();
+  const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport) : viewport;
+  if (tag === "switch") {
+    const selected = switchSelectedChild(element);
+    return selected ? subtreeHasVisibleText(selected, style, css, refs, childViewport, refStack) : false;
+  }
+  return Array.from(element.children).some((child) => subtreeHasVisibleText(child, style, css, refs, childViewport, refStack));
 }
 
 function coverageAttributeIsSupportedOrNoop(element: Element, tag: string, name: string, value: string, style: SvgStyle, refs: Map<string, Element>, viewport: Viewport): boolean {
