@@ -5,6 +5,7 @@ from email.parser import Parser
 import json
 from pathlib import Path
 import re
+import subprocess
 import tomllib
 
 
@@ -134,6 +135,39 @@ def test_distribution_metadata_uses_svgraph_name() -> None:
         for term in FORBIDDEN_DISTRIBUTION_LEGACY_STRINGS:
             if term in text:
                 unexpected.append(f"{relative}: {term}")
+
+    assert unexpected == []
+
+
+def test_generated_artifact_paths_are_ignored_and_untracked() -> None:
+    root = Path(__file__).resolve().parents[1]
+    gitignore = (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    tracked = subprocess.run(
+        ["git", "ls-files"],
+        check=True,
+        cwd=root,
+        stdout=subprocess.PIPE,
+        text=True,
+    ).stdout.splitlines()
+
+    for ignored in ["__pycache__/", ".pytest_cache/", "*.egg-info/", "build/", "tmp/", "node_modules/"]:
+        assert ignored in gitignore
+
+    forbidden_tracked_patterns = [
+        "tmp/",
+        "build/",
+        "node_modules/",
+        "src/drawingml_svg.egg-info/",
+        "drawingml-svg-",
+        "drawingml_svg-0.",
+        "pptxsvg-web",
+    ]
+    unexpected = [
+        path
+        for path in tracked
+        for pattern in forbidden_tracked_patterns
+        if path.startswith(pattern) or pattern in path
+    ]
 
     assert unexpected == []
 
