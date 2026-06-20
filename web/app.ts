@@ -130,6 +130,7 @@ type RectShape = BaseShape & {
   strokeWidth: number;
   strokeLineCap: string | null;
   strokeLineJoin: string | null;
+  strokeMiterlimit: number | null;
   strokeDasharray: string | null;
   strokeDashoffset: number | null;
 };
@@ -147,6 +148,7 @@ type EllipseShape = BaseShape & {
   strokeWidth: number;
   strokeLineCap: string | null;
   strokeLineJoin: string | null;
+  strokeMiterlimit: number | null;
   strokeDasharray: string | null;
 };
 
@@ -161,6 +163,7 @@ type LineShape = BaseShape & {
   strokeWidth: number;
   strokeLineCap: string | null;
   strokeLineJoin: string | null;
+  strokeMiterlimit: number | null;
   strokeDasharray: string | null;
   strokeDashoffset: number | null;
   relation: boolean;
@@ -229,6 +232,7 @@ type FreeformShape = BaseShape & {
   strokeWidth: number;
   strokeLineCap: string | null;
   strokeLineJoin: string | null;
+  strokeMiterlimit: number | null;
   strokeDasharray: string | null;
   strokeDashoffset: number | null;
   markerStart: boolean;
@@ -284,6 +288,7 @@ type TableBorder = {
   strokeWidth: number;
   strokeLineCap: string | null;
   strokeLineJoin: string | null;
+  strokeMiterlimit: number | null;
   strokeDasharray: string | null;
   compound: string | null;
 };
@@ -300,6 +305,7 @@ type SvgStyle = {
   color?: string | null;
   strokeLineCap?: string | null;
   strokeLineJoin?: string | null;
+  strokeMiterlimit?: number | null;
   strokeDasharray?: string | null;
   strokeDashoffset?: number | null;
   fontSize?: number;
@@ -457,7 +463,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect width="1280" height="720" fill="#ffffff" stroke="none"/>
     <text x="90" y="90" style="font-size:40;font-family:Arial;font-weight:700;fill:#17202a">Browser SVG coverage</text>
     <polygon id="tri" points="120,170 300,170 210,315"/>
-    <polyline id="zig" points="390,170 460,250 530,170 600,250" style="fill:none;stroke:#dc2626"/>
+    <polyline id="zig" points="390,170 460,250 530,170 600,250" style="fill:none;stroke:#dc2626;stroke-linejoin:miter;stroke-miterlimit:6"/>
     <path id="box-path" d="M 690 170 L 900 170 L 900 315 L 690 315 Z" style="fill:#dcfce7;stroke:#15803d"/>
     <path id="curve-path" d="M 120 520 C 190 430 260 610 330 520 Q 390 445 450 520 T 570 520" style="fill:none;stroke:#ea580c;stroke-width:6"/>
     <path id="arc-path" d="M 640 520 A 90 55 0 0 1 820 520 A 90 55 0 0 1 640 520" style="fill:#fef3c7;stroke:#a16207;stroke-width:5"/>
@@ -1504,7 +1510,7 @@ function htmlSideBorder(declarations: Record<string, string>, side: string, fall
 }
 
 function parseHtmlBorder(value: string | null, style: SvgStyle): TableBorder {
-  if (!value || value.trim().toLowerCase() === "none") return { stroke: null, strokeAlpha: null, strokeWidth: 0, strokeLineCap: null, strokeLineJoin: null, strokeDasharray: null, compound: null };
+  if (!value || value.trim().toLowerCase() === "none") return { stroke: null, strokeAlpha: null, strokeWidth: 0, strokeLineCap: null, strokeLineJoin: null, strokeMiterlimit: null, strokeDasharray: null, compound: null };
   const parts = value.trim().split(/\s+/);
   const width = parts.map((part) => htmlCssLength(part, style.fontSize ?? rootFontSize)).find((item): item is number => item != null) ?? null;
   const colorPart = parts.find((part) => parseCssColor(part, style));
@@ -2282,7 +2288,7 @@ function tableBorderLineXml(tag: string, border: TableBorder): string {
   const capAttr = cap ? ` cap="${xml(cap)}"` : "";
   const compoundAttr = border.compound ? ` cmpd="${xml(border.compound)}"` : "";
   if (!stroke || border.strokeWidth <= 0) return `<a:${tag} w="0"${capAttr}${compoundAttr}><a:noFill/></a:${tag}>`;
-  return `<a:${tag} w="${emu(border.strokeWidth)}"${capAttr}${compoundAttr}><a:solidFill><a:srgbClr val="${hex(stroke)}">${alphaXml(border.strokeAlpha)}</a:srgbClr></a:solidFill>${dashXml(border.strokeDasharray, border.strokeWidth)}${joinXml(border.strokeLineJoin)}</a:${tag}>`;
+  return `<a:${tag} w="${emu(border.strokeWidth)}"${capAttr}${compoundAttr}><a:solidFill><a:srgbClr val="${hex(stroke)}">${alphaXml(border.strokeAlpha)}</a:srgbClr></a:solidFill>${dashXml(border.strokeDasharray, border.strokeWidth)}${joinXml(border.strokeLineJoin, border.strokeMiterlimit)}</a:${tag}>`;
 }
 
 function freeformXml(shape: FreeformShape): string {
@@ -2332,7 +2338,7 @@ function solidColorXml(color: string | null, alpha: number | null = null): strin
 function lineStyleXml(color: string | null, width: number, options: LineOptions = {}): string {
   if (!color || width <= 0) return "<a:ln><a:noFill/></a:ln>";
   const cap = options.cap ? ` cap="${xml(options.cap)}"` : "";
-  return `<a:ln w="${emu(width)}"${cap}><a:solidFill><a:srgbClr val="${hex(color)}">${alphaXml(options.alpha)}</a:srgbClr></a:solidFill>${dashXml(options.dasharray, width)}${joinXml(options.join)}${options.tail ? '<a:tailEnd type="triangle"/>' : ""}${options.head ? '<a:headEnd type="triangle"/>' : ""}</a:ln>`;
+  return `<a:ln w="${emu(width)}"${cap}><a:solidFill><a:srgbClr val="${hex(color)}">${alphaXml(options.alpha)}</a:srgbClr></a:solidFill>${dashXml(options.dasharray, width)}${joinXml(options.join, options.miterlimit)}${options.tail ? '<a:tailEnd type="triangle"/>' : ""}${options.head ? '<a:headEnd type="triangle"/>' : ""}</a:ln>`;
 }
 
 type LineOptions = {
@@ -2340,12 +2346,13 @@ type LineOptions = {
   tail?: boolean;
   cap?: string | null;
   join?: string | null;
+  miterlimit?: number | null;
   dasharray?: string | null;
   alpha?: number | null;
 };
 
-function lineOptions(shape: { strokeLineCap: string | null; strokeLineJoin: string | null; strokeDasharray: string | null; strokeAlpha?: number | null }, arrows: { head?: boolean; tail?: boolean } = {}): LineOptions {
-  return { ...arrows, cap: svgLineCapToDml(shape.strokeLineCap), join: shape.strokeLineJoin, dasharray: shape.strokeDasharray, alpha: shape.strokeAlpha ?? null };
+function lineOptions(shape: { strokeLineCap: string | null; strokeLineJoin: string | null; strokeMiterlimit: number | null; strokeDasharray: string | null; strokeAlpha?: number | null }, arrows: { head?: boolean; tail?: boolean } = {}): LineOptions {
+  return { ...arrows, cap: svgLineCapToDml(shape.strokeLineCap), join: shape.strokeLineJoin, miterlimit: shape.strokeMiterlimit, dasharray: shape.strokeDasharray, alpha: shape.strokeAlpha ?? null };
 }
 
 function dashXml(value: string | null | undefined, strokeWidth: number): string {
@@ -2363,10 +2370,13 @@ function dashXml(value: string | null | undefined, strokeWidth: number): string 
   return "";
 }
 
-function joinXml(value: string | null | undefined): string {
+function joinXml(value: string | null | undefined, miterlimit?: number | null): string {
   if (value === "round") return "<a:round/>";
   if (value === "bevel") return "<a:bevel/>";
-  if (value === "miter") return "<a:miter/>";
+  if (value === "miter") {
+    const limit = miterlimit == null ? "" : ` lim="${Math.round(Math.max(1, miterlimit) * 100000)}"`;
+    return `<a:miter${limit}/>`;
+  }
   return "";
 }
 
@@ -2768,6 +2778,7 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   const strokeWidth = value("stroke-width");
   const strokeLineCap = value("stroke-linecap");
   const strokeLineJoin = value("stroke-linejoin");
+  const strokeMiterlimit = value("stroke-miterlimit");
   const strokeDasharray = value("stroke-dasharray");
   const strokeDashoffset = value("stroke-dashoffset");
   const fontSize = value("font-size");
@@ -2821,6 +2832,8 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   if (strokeWidth != null) next.strokeWidth = parseCssLength(strokeWidth, next.fontSize ?? rootFontSize, next.strokeWidth ?? 1);
   if (strokeLineCap != null) next.strokeLineCap = normalizeStrokeLineCap(strokeLineCap);
   if (strokeLineJoin != null) next.strokeLineJoin = normalizeStrokeLineJoin(strokeLineJoin);
+  if (strokeMiterlimit != null) next.strokeMiterlimit = normalizeStrokeMiterlimit(strokeMiterlimit);
+  if (next.strokeLineJoin === "miter" && next.strokeMiterlimit == null) next.strokeMiterlimit = 4;
   const dashBasis = percentageBasis("diag", viewport);
   if (strokeDashoffset != null) next.strokeDashoffset = parseCssLength(strokeDashoffset, dashBasis, next.strokeDashoffset ?? 0);
   if (strokeDasharray != null) next.strokeDasharray = normalizeStrokeDasharray(strokeDasharray, dashBasis);
@@ -3022,6 +3035,8 @@ function cssValueFromStyle(style: SvgStyle, name: string): string | null {
       return style.strokeLineCap ?? null;
     case "stroke-linejoin":
       return style.strokeLineJoin ?? null;
+    case "stroke-miterlimit":
+      return style.strokeMiterlimit == null ? null : String(style.strokeMiterlimit);
     case "stroke-dasharray":
       return style.strokeDasharray ?? null;
     case "stroke-dashoffset":
@@ -3441,10 +3456,11 @@ function fontWeightTokenIsSupported(value: string): boolean {
   return /^\d+$/.test(value) && weight >= 1 && weight <= 1000;
 }
 
-function strokeStyle(style: SvgStyle): { strokeLineCap: string | null; strokeLineJoin: string | null; strokeDasharray: string | null; strokeDashoffset: number | null } {
+function strokeStyle(style: SvgStyle): { strokeLineCap: string | null; strokeLineJoin: string | null; strokeMiterlimit: number | null; strokeDasharray: string | null; strokeDashoffset: number | null } {
   return {
     strokeLineCap: style.strokeLineCap ?? null,
     strokeLineJoin: style.strokeLineJoin ?? null,
+    strokeMiterlimit: style.strokeMiterlimit ?? null,
     strokeDasharray: style.strokeDasharray ?? null,
     strokeDashoffset: style.strokeDashoffset ?? null,
   };
@@ -3459,6 +3475,11 @@ function normalizeStrokeLineJoin(value: string): string | null {
   const normalized = value.trim().toLowerCase();
   if (normalized === "miter-clip") return "miter";
   return ["miter", "round", "bevel"].includes(normalized) ? normalized : null;
+}
+
+function normalizeStrokeMiterlimit(value: string): number | null {
+  const parsed = Number.parseFloat(value.trim());
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : null;
 }
 
 function normalizeStrokeDasharray(value: string, basis = rootFontSize): string | null {
