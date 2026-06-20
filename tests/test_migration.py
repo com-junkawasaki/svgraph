@@ -1049,6 +1049,12 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "text-decoration-thickness:inherit" in generated
         assert 'name === "text-decoration-style"' in generated
         assert "textDecorationStyleTokens.has(normalized)" in generated
+        unsupported_attributes = generated.split("const coverageUnsupportedAttributes", 1)[1].split(
+            "const coverageSupportedPathCommands",
+            1,
+        )[0]
+        assert '"text-decoration-color"' in unsupported_attributes
+        assert '"text-decoration-thickness"' in unsupported_attributes
         assert 'return \' u="wavy"\'' in generated
         assert 'case "text-decoration-style":' in generated
         assert 'case "text-decoration-color":' in generated
