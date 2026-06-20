@@ -31,9 +31,15 @@ def svg_to_pptx_bytes(svg_text: str) -> bytes:
     slides = svg_to_slide_xmls(svg_text)
     if not slides:
         raise ValueError("input did not produce any DrawingML shapes")
-    size = svg_to_svgraph_presentation(svg_text).slide_size
+    presentation = svg_to_svgraph_presentation(svg_text)
     with io.BytesIO() as buffer:
-        write_pptx(buffer, slides, slide_size=size)
+        write_pptx(
+            buffer,
+            slides,
+            slide_size=presentation.slide_size,
+            master_count=max(1, len(presentation.masters)),
+            layout_count=max(1, len(presentation.layouts)),
+        )
         return buffer.getvalue()
 
 
@@ -257,8 +263,12 @@ def write_pptx(
     slide_xml: bytes | list[bytes],
     *,
     slide_size: tuple[float, float] = (960.0, 540.0),
+    master_count: int = 1,
+    layout_count: int = 1,
 ) -> None:
     slide_xmls = [slide_xml] if isinstance(slide_xml, bytes) else slide_xml
+    master_count = max(1, master_count)
+    layout_count = max(1, layout_count)
     prepared_slides: list[tuple[bytes, str]] = []
     media: list[tuple[str, bytes]] = []
     next_media_index = 1
@@ -273,16 +283,20 @@ def write_pptx(
     target = output if isinstance(output, io.BytesIO) else output_path
     assert target is not None
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as pptx:
-        pptx.writestr("[Content_Types].xml", _content_types(len(slide_xmls)))
+        pptx.writestr("[Content_Types].xml", _content_types(len(slide_xmls), master_count, layout_count))
         pptx.writestr("_rels/.rels", ROOT_RELS)
         pptx.writestr("docProps/app.xml", _app_props(len(slide_xmls)))
         pptx.writestr("docProps/core.xml", CORE_PROPS)
-        pptx.writestr("ppt/presentation.xml", _presentation(len(slide_xmls), slide_size))
-        pptx.writestr("ppt/_rels/presentation.xml.rels", _presentation_rels(len(slide_xmls)))
-        pptx.writestr("ppt/slideMasters/slideMaster1.xml", SLIDE_MASTER)
-        pptx.writestr("ppt/slideMasters/_rels/slideMaster1.xml.rels", SLIDE_MASTER_RELS)
-        pptx.writestr("ppt/slideLayouts/slideLayout1.xml", SLIDE_LAYOUT)
-        pptx.writestr("ppt/slideLayouts/_rels/slideLayout1.xml.rels", SLIDE_LAYOUT_RELS)
+        pptx.writestr("ppt/presentation.xml", _presentation(len(slide_xmls), slide_size, master_count))
+        pptx.writestr("ppt/_rels/presentation.xml.rels", _presentation_rels(len(slide_xmls), master_count))
+        for index in range(1, master_count + 1):
+            layout_index = min(index, layout_count)
+            pptx.writestr(f"ppt/slideMasters/slideMaster{index}.xml", SLIDE_MASTER)
+            pptx.writestr(f"ppt/slideMasters/_rels/slideMaster{index}.xml.rels", _slide_master_rels(layout_index))
+        for index in range(1, layout_count + 1):
+            master_index = min(index, master_count)
+            pptx.writestr(f"ppt/slideLayouts/slideLayout{index}.xml", SLIDE_LAYOUT)
+            pptx.writestr(f"ppt/slideLayouts/_rels/slideLayout{index}.xml.rels", _slide_layout_rels(master_index))
         pptx.writestr("ppt/theme/theme1.xml", THEME)
         for index, (xml, rels) in enumerate(prepared_slides, start=1):
             pptx.writestr(f"ppt/slides/slide{index}.xml", xml)
@@ -393,7 +407,15 @@ def _parse_data_image(value: str) -> tuple[str, bytes] | None:
     return extension, data
 
 
-def _content_types(slide_count: int) -> str:
+def _content_types(slide_count: int, master_count: int = 1, layout_count: int = 1) -> str:
+    master_overrides = "\n".join(
+        f'  <Override PartName="/ppt/slideMasters/slideMaster{index}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>'
+        for index in range(1, master_count + 1)
+    )
+    layout_overrides = "\n".join(
+        f'  <Override PartName="/ppt/slideLayouts/slideLayout{index}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>'
+        for index in range(1, layout_count + 1)
+    )
     slide_overrides = "\n".join(
         f'  <Override PartName="/ppt/slides/slide{index}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>'
         for index in range(1, slide_count + 1)
@@ -409,8 +431,8 @@ def _content_types(slide_count: int) -> str:
   <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
-  <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
-  <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
+{master_overrides}
+{layout_overrides}
   <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
 {slide_overrides}
 </Types>"""
@@ -426,16 +448,23 @@ def _app_props(slide_count: int) -> str:
 </Properties>"""
 
 
-def _presentation(slide_count: int, slide_size: tuple[float, float]) -> str:
+def _presentation(slide_count: int, slide_size: tuple[float, float], master_count: int = 1) -> str:
+    master_ids = "\n".join(
+        f'    <p:sldMasterId id="{2147483647 + index}" r:id="rId{index}"/>'
+        for index in range(1, master_count + 1)
+    )
     slide_ids = "\n".join(
-        f'    <p:sldId id="{255 + index}" r:id="rId{index + 1}"/>' for index in range(1, slide_count + 1)
+        f'    <p:sldId id="{255 + index}" r:id="rId{master_count + index}"/>'
+        for index in range(1, slide_count + 1)
     )
     width, height = slide_size
     return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
   xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-  <p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>
+  <p:sldMasterIdLst>
+{master_ids}
+  </p:sldMasterIdLst>
   <p:sldIdLst>
 {slide_ids}
   </p:sldIdLst>
@@ -444,15 +473,19 @@ def _presentation(slide_count: int, slide_size: tuple[float, float]) -> str:
 </p:presentation>"""
 
 
-def _presentation_rels(slide_count: int) -> str:
+def _presentation_rels(slide_count: int, master_count: int = 1) -> str:
+    master_rels = "\n".join(
+        f'  <Relationship Id="rId{index}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster{index}.xml"/>'
+        for index in range(1, master_count + 1)
+    )
     slide_rels = "\n".join(
-        f'  <Relationship Id="rId{index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide{index}.xml"/>'
+        f'  <Relationship Id="rId{master_count + index}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide{index}.xml"/>'
         for index in range(1, slide_count + 1)
     )
-    theme_rel_id = slide_count + 2
+    theme_rel_id = master_count + slide_count + 1
     return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
+{master_rels}
 {slide_rels}
   <Relationship Id="rId{theme_rel_id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
 </Relationships>"""
@@ -478,16 +511,23 @@ CORE_PROPS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 SLIDE_LAYOUT_REL = '  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>'
 
-SLIDE_MASTER_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+def _slide_master_rels(layout_index: int = 1) -> str:
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout{layout_index}.xml"/>
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
 </Relationships>"""
 
-SLIDE_LAYOUT_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+def _slide_layout_rels(master_index: int = 1) -> str:
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/>
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster{master_index}.xml"/>
 </Relationships>"""
+
+
+SLIDE_MASTER_RELS = _slide_master_rels()
+SLIDE_LAYOUT_RELS = _slide_layout_rels()
 
 SLIDE_MASTER = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"

@@ -832,6 +832,43 @@ def test_svg_to_pptx_bytes_creates_multi_slide_package_from_svgraph() -> None:
     assert "<a:t>Detail</a:t>" in slide2
 
 
+def test_svg_to_pptx_bytes_writes_declared_master_and_layout_parts() -> None:
+    pptx_data = svg_to_pptx_bytes(
+        """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+          <metadata>{"presentation": {
+            "masters": [{"id": "brand-master"}],
+            "layouts": [{"id": "title-layout", "master": "brand-master"}]
+          }}</metadata>
+          <g id="master-node" data-kind="slide-master"/>
+          <g id="layout-node" data-kind="slide-layout"/>
+          <g id="cover" data-kind="slide">
+            <rect width="200" height="120" fill="#ccfbf1"/>
+          </g>
+        </svg>"""
+    )
+
+    with zipfile.ZipFile(io.BytesIO(pptx_data)) as pptx:
+        names = set(pptx.namelist())
+        content_types = ET.fromstring(pptx.read("[Content_Types].xml"))
+        presentation = pptx.read("ppt/presentation.xml").decode("utf-8")
+        rels = pptx.read("ppt/_rels/presentation.xml.rels").decode("utf-8")
+        master2_rels = pptx.read("ppt/slideMasters/_rels/slideMaster2.xml.rels").decode("utf-8")
+        layout2_rels = pptx.read("ppt/slideLayouts/_rels/slideLayout2.xml.rels").decode("utf-8")
+
+    overrides = {
+        override.get("PartName"): override.get("ContentType")
+        for override in content_types.findall("{http://schemas.openxmlformats.org/package/2006/content-types}Override")
+    }
+    assert "ppt/slideMasters/slideMaster2.xml" in names
+    assert "ppt/slideLayouts/slideLayout2.xml" in names
+    assert overrides["/ppt/slideMasters/slideMaster2.xml"] == "application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"
+    assert overrides["/ppt/slideLayouts/slideLayout2.xml"] == "application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"
+    assert presentation.count("<p:sldMasterId ") == 2
+    assert 'Target="slideMasters/slideMaster2.xml"' in rels
+    assert 'Target="../slideLayouts/slideLayout2.xml"' in master2_rels
+    assert 'Target="../slideMasters/slideMaster2.xml"' in layout2_rels
+
+
 def test_svgraph_semantic_relation_and_table_export_as_native_pptx_objects() -> None:
     pptx_data = svg_to_pptx_bytes((_project_root() / "examples" / "svgraph.svg").read_text(encoding="utf-8"))
 
