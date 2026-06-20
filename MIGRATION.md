@@ -30,7 +30,14 @@ Legacy names remain only as compatibility surfaces. New code should use the SVGr
 Use the canonical package for new code:
 
 ```python
-from svgraph import analyze_svg, svg_to_drawingml, svg_to_pptx, svg_to_svgraph
+from svgraph import (
+    analyze_svg,
+    drawingml_to_svg,
+    svg_to_drawingml,
+    svg_to_pptx,
+    svg_to_pptx_bytes,
+    svg_to_svgraph,
+)
 from svgraph.model import svg_to_svgraph_presentation
 ```
 

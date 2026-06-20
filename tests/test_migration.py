@@ -272,6 +272,23 @@ def test_documented_python_api_examples_use_canonical_svgraph_imports() -> None:
             assert "svg_to_pptx_ir" not in block
 
 
+def test_migration_guide_python_import_example_covers_top_level_svgraph_api() -> None:
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "MIGRATION.md").read_text(encoding="utf-8")
+    python_blocks = re.findall(r"```python\n(.*?)```", migration, flags=re.DOTALL)
+    import_block = python_blocks[0]
+    module = ast.parse(import_block)
+    imported_from_svgraph = {
+        alias.name
+        for node in module.body
+        if isinstance(node, ast.ImportFrom) and node.module == "svgraph"
+        for alias in node.names
+    }
+
+    assert imported_from_svgraph == set(CANONICAL_TOP_LEVEL_API) - {"svg_to_svgraph_presentation"}
+    assert "from svgraph.model import svg_to_svgraph_presentation" in import_block
+
+
 def test_pyproject_keeps_legacy_console_scripts_as_svgraph_compatibility_aliases() -> None:
     project = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"

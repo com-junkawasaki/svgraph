@@ -21,6 +21,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added release checklist cleanup for stale local `*.egg-info` metadata before building `svgraph` wheel and sdist artifacts.
 - Added migration guide verification commands for browser type checking and committed Pages artifact freshness.
 - Expanded the migration guide to cover every retained compatibility console script and its canonical `svgraph` command.
+- Aligned the migration guide Python import example with the canonical top-level `svgraph.__all__` API.
 - Strengthened release and CI smoke checks so SVGraph JSON, presentation JSON, top-level wheel metadata, and sample XML generation use or verify canonical `svgraph` surfaces first.
 - Added the canonical `svgraph` console script, with `svgraph input.svg` emitting SVGraph JSON directly while keeping `drawingml-svg` as a compatibility entry point.
 - Added deprecated compatibility aliases for the pre-SVGraph `drawingml_svg.ir` APIs and hidden CLI aliases, with warnings that point to `svgraph.model`, `svgraph`, and `svgraph-presentation`.
