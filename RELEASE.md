@@ -85,9 +85,21 @@ assert web_lock["version"] == web_package["version"]
 assert web_lock["packages"][""]["name"] == web_package["name"]
 assert web_lock["packages"][""]["version"] == web_package["version"]
 for expected in [
+    "README.md",
+    "LICENSE",
+    "CODE_OF_CONDUCT.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "MIGRATION.md",
+    "RELEASE.md",
+    "SECURITY.md",
+    "package.json",
+    "package-lock.json",
+    "tsconfig.web.json",
+    "docs/.nojekyll",
+    "docs/adr/0001-svgraph.md",
     "docs/index.html",
     "docs/app.js",
-    "docs/.nojekyll",
     "docs/svgraph-web-editor.md",
     "examples/__init__.py",
     "examples/complex.svg",
@@ -96,9 +108,6 @@ for expected in [
     "examples/sample.svg",
     "examples/svgraph.svg",
     "web/app.ts",
-    "package.json",
-    "package-lock.json",
-    "tsconfig.web.json",
 ]:
     assert f"{root}/{expected}" in names
 PY
