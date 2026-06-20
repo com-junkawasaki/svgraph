@@ -249,6 +249,23 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert "downloadPptxsvg" not in combined
 
 
+def test_pages_typescript_build_targets_committed_svgraph_artifact() -> None:
+    root = Path(__file__).resolve().parents[1]
+    package_metadata = json.loads((root / "package.json").read_text(encoding="utf-8"))
+    tsconfig = json.loads((root / "tsconfig.web.json").read_text(encoding="utf-8"))
+    html = (root / "docs" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "docs" / "app.js").read_text(encoding="utf-8")
+
+    assert package_metadata["scripts"]["build:web"] == "tsc -p tsconfig.web.json"
+    assert package_metadata["scripts"]["check:web"] == "tsc -p tsconfig.web.json --noEmit"
+    assert tsconfig["compilerOptions"]["rootDir"] == "web"
+    assert tsconfig["compilerOptions"]["outDir"] == "docs"
+    assert tsconfig["include"] == ["web/**/*.ts"]
+    assert '<script type="module" src="./app.js"></script>' in html
+    assert 'version: "0.3-svgraph-web-ts"' in app_js
+    assert 'downloadBlob("svgraph-web.pptx"' in app_js
+
+
 def test_drawingml_svg_modules_are_compatibility_wrappers() -> None:
     root = Path(__file__).resolve().parents[1]
     unexpected: list[str] = []
