@@ -1,6 +1,7 @@
 import base64
 import ast
 import io
+import json
 import re
 import subprocess
 import sys
@@ -336,6 +337,32 @@ def test_svgraph_cli_module_keeps_canonical_program_name() -> None:
     )
 
     assert result.stdout == "svgraph 0.1.0\n"
+
+
+def test_svgraph_module_cli_emits_canonical_svgraph_json_reports() -> None:
+    root = _project_root()
+
+    svgraph_result = subprocess.run(
+        [sys.executable, "-m", "svgraph", str(root / "examples" / "svgraph.svg")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    presentation_result = subprocess.run(
+        [sys.executable, "-m", "svgraph", "svgraph-presentation", str(root / "examples" / "svgraph.svg")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    svgraph = json.loads(svgraph_result.stdout)
+    presentation = json.loads(presentation_result.stdout)
+
+    assert svgraph["kind"] == "svgraph"
+    assert svgraph["presentation"]["kind"] == "svgraph-presentation"
+    assert presentation["kind"] == "svgraph-presentation"
+    assert len(presentation["slides"]) == 2
+    assert presentation["slide_size"] == [1280.0, 720.0]
 
 
 def test_pyproject_installs_svgraph_console_script() -> None:
