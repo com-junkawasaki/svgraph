@@ -70,6 +70,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Aligned browser rendering quality hint diagnostics with Python for `crisp-edges`, `optimizeLegibility`, and `pixelated` no-op values.
 - Aligned browser `paint-order` diagnostics with Python for default-order values, single-paint shapes, and marker-only order changes without markers.
 - Aligned browser `stroke-linecap` and `stroke-linejoin` diagnostics with Python for invisible strokes, inherited values, descendant overrides, and `use` references.
+- Aligned browser group effect diagnostics with Python for invisible `clip-path`/`filter`/`mask`/`isolation`/`mix-blend-mode` subtrees and isolation/blend deduplication.
 - Added browser assistant patch proposal validation for SVGraph-level edit operations before applying LLM suggestions.
 - Added browser assistant patch diff preview rows for SVGraph data and metadata edits before applying LLM suggestions.
 - Added browser assistant patch apply support for validated SVGraph data and metadata edits back into the canonical SVG source.

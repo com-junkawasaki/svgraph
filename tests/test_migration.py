@@ -1177,6 +1177,10 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function strokeLineEnumIsUnsupported" in generated
         assert 'id="ignored-stroke-enum"' in generated
         assert 'stroke-linejoin="arcs"' in generated
+        assert "function isolationIsRedundantWithBlend" in generated
+        assert "function subtreeHasBlend" in generated
+        assert 'id="blend-isolation-dedupe"' in generated
+        assert 'id="hidden-blend-effect"' in generated
         assert 'id="length-glyphs-text"' in generated
         assert 'lengthAdjust=" SPACINGANDGLYPHS "' in generated
         assert 'id="word-spacing-text"' in generated

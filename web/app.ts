@@ -421,6 +421,8 @@ type SvgStyle = {
   transform?: string | null;
   transformOrigin?: string | null;
   vectorEffect?: string | null;
+  isolation?: string | null;
+  mixBlendMode?: string | null;
   tableCellPadding?: number;
   tableCellPaddingLeft?: number;
   tableCellPaddingRight?: number;
@@ -635,6 +637,8 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect id="css-colors" x="740" y="615" width="120" height="50" color-rendering="optimizeQuality" style="color:orange;fill:currentColor;stroke:hsl(210 100% 50%)"/>
     <rect id="display-hidden" x="875" y="615" width="34" height="50" style="display:none;fill:#111827"/>
     <g id="visibility-hidden" visibility="hidden"><rect id="visibility-visible" x="910" y="615" width="34" height="50" visibility="visible" style="fill:#ffffff;stroke:#0f766e;stroke-width:3"/></g>
+    <g id="blend-isolation-dedupe" isolation="isolate"><rect x="955" y="615" width="34" height="50" mix-blend-mode="multiply" style="fill:#f8fafc;stroke:#64748b"/></g>
+    <g id="hidden-blend-effect" mix-blend-mode="multiply"><rect x="995" y="615" width="34" height="50" opacity="0" style="fill:#111827"/></g>
     <g class="var-theme"><rect class="inherit-box" x="910" y="88" width="105" height="52"/></g>
     <g id="initial-reset-group" fill="#123456" stroke="#abcdef" stroke-width="5" font-size="24" text-anchor="middle">
       <rect id="initial-reset-rect" x="1035" y="155" width="70" height="40" fill="initial" stroke="initial" stroke-width="initial"/>
@@ -1724,7 +1728,9 @@ function subtreeHasVisibleText(element: Element, inheritedStyle: SvgStyle, css: 
 function coverageAttributeIsSupportedOrNoop(element: Element, tag: string, name: string, value: string, style: SvgStyle, refs: Map<string, Element>, css: CssRule[], viewport: Viewport): boolean {
   const normalized = value.trim().toLowerCase();
   if (!normalized || coverageAttributeHasNoEffect(element, name, value)) return true;
+  if (["clip-path", "filter", "isolation", "mask", "mix-blend-mode"].includes(name) && !coverageSubtreeHasVisibleRendering(element, style, refs, css, viewport, new Set())) return true;
   if (name === "clip-path") return clipPathHasRect(value, refs);
+  if (name === "isolation") return isolationIsRedundantWithBlend(element, tag, normalized, style, css, refs, viewport);
   if (name === "direction") return normalized === "ltr" || (tag === "text" && normalizeTextDirection(value) != null);
   if (name === "dominant-baseline" || name === "alignment-baseline") return ["auto", "baseline", "alphabetic"].includes(normalized) || (tag === "text" && normalizeTextBaseline(value) != null);
   if (name === "baseline-shift") return zeroLengthOrPercentage(value) || normalizeBaselineShift(value) != null;
@@ -1811,6 +1817,26 @@ function paintOrderHasNoEffect(tag: string, value: string, style: SvgStyle): boo
 
 function hasVisibleMarker(style: SvgStyle): boolean {
   return !!(style.markerStart || style.markerMid || style.markerEnd);
+}
+
+function isolationIsRedundantWithBlend(element: Element, tag: string, value: string, style: SvgStyle, css: CssRule[], refs: Map<string, Element>, viewport: Viewport): boolean {
+  return ["g", "svg", "a"].includes(tag) && ["isolate", "auto"].includes(value) && Array.from(element.children).some((child) => subtreeHasBlend(child, style, css, refs, viewport));
+}
+
+function subtreeHasBlend(element: Element, inheritedStyle: SvgStyle, css: CssRule[], refs: Map<string, Element>, viewport: Viewport, refStack: Set<string> = new Set()): boolean {
+  const tag = localName(element);
+  const style = computedStyle(element, inheritedStyle, css, refs, viewport);
+  if (style.mixBlendMode && style.mixBlendMode.trim().toLowerCase() !== "normal") return true;
+  if (tag === "use") {
+    const href = hrefValue(element);
+    const refId = href.startsWith("#") ? href.slice(1) : "";
+    const ref = refId ? refs.get(refId) : null;
+    if (!ref || refStack.has(refId)) return false;
+    const refViewport = ["svg", "symbol"].includes(localName(ref)) ? useViewport(ref, element, viewport, css, style) : viewport;
+    return subtreeHasBlend(ref, style, css, refs, refViewport, new Set([...refStack, refId]));
+  }
+  const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport, css, style) : viewport;
+  return Array.from(element.children).some((child) => subtreeHasBlend(child, style, css, refs, childViewport, refStack));
 }
 
 function subtreeHasUnsupportedStrokeLineEnum(element: Element, style: SvgStyle, refs: Map<string, Element>, css: CssRule[], viewport: Viewport, attr: string, refStack: Set<string> = new Set()): boolean {
@@ -4756,6 +4782,8 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   const transform = value("transform");
   const transformOrigin = value("transform-origin");
   const vectorEffect = value("vector-effect");
+  const isolation = value("isolation");
+  const mixBlendMode = value("mix-blend-mode");
   const marker = value("marker");
   const markerStart = value("marker-start");
   const markerMid = value("marker-mid");
@@ -4831,6 +4859,8 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   if (transform != null) next.transform = transform.trim();
   if (transformOrigin != null) next.transformOrigin = transformOrigin.trim();
   if (vectorEffect != null) next.vectorEffect = normalizeVectorEffect(vectorEffect);
+  if (isolation != null) next.isolation = isolation.trim().toLowerCase();
+  if (mixBlendMode != null) next.mixBlendMode = mixBlendMode.trim().toLowerCase();
   if (marker != null) {
     const enabled = normalizeMarkerReference(marker, refs);
     next.markerStart = enabled;
@@ -5102,6 +5132,10 @@ function cssValueFromStyle(style: SvgStyle, name: string): string | null {
       return style.pathLength == null ? null : String(style.pathLength);
     case "overflow":
       return style.overflow ?? null;
+    case "isolation":
+      return style.isolation ?? null;
+    case "mix-blend-mode":
+      return style.mixBlendMode ?? null;
     case "transform":
       return style.transform ?? null;
     case "transform-origin":
