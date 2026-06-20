@@ -24,7 +24,7 @@
   </g>
   <g id="table-slide" data-kind="slide" data-title="Native Table Candidate">
     <rect width="1280" height="720" fill="#ffffff"/>
-    <text x="96" y="96" font-size="42" font-family="Aptos Display" font-weight="700" fill="#17202a">Table semantics stay in IR</text>
+    <text x="96" y="96" font-size="42" font-family="Aptos Display" font-weight="700" fill="#17202a">Table semantics stay in SVGraph</text>
     <g id="table" data-kind="table" transform="translate(96 164)">
       <rect data-kind="cell" data-row="0" data-col="0" width="280" height="84" fill="#e6f4f1" stroke="#0f766e"/>
       <rect data-kind="cell" data-row="0" data-col="1" x="280" width="280" height="84" fill="#e6f4f1" stroke="#0f766e"/>

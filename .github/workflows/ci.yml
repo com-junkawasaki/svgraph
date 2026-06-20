@@ -153,12 +153,12 @@ jobs:
           assert any(name.startswith("ppt/media/image") for name in names), "complex PPTX media image was not embedded"
           PY
 
-          drawingml-svg svg2pptx examples/pptxsvg.svg -o tmp/ci-pptxsvg.pptx
-          python -m zipfile --test tmp/ci-pptxsvg.pptx
+          drawingml-svg svg2pptx examples/svgraph.svg -o tmp/ci-svgraph.pptx
+          python -m zipfile --test tmp/ci-svgraph.pptx
           python - <<'PY'
           import zipfile
 
-          with zipfile.ZipFile("tmp/ci-pptxsvg.pptx") as pptx:
+          with zipfile.ZipFile("tmp/ci-svgraph.pptx") as pptx:
               names = set(pptx.namelist())
               presentation = pptx.read("ppt/presentation.xml").decode("utf-8")
               app = pptx.read("docProps/app.xml").decode("utf-8")
@@ -169,8 +169,8 @@ jobs:
           assert presentation.count("<p:sldId ") == 2
           assert 'cx="12192000" cy="6858000"' in presentation
           assert "<Slides>2</Slides>" in app
-          assert "<a:t>PPTXSVG</a:t>" in slide1
-          assert "<a:t>Table semantics stay in IR</a:t>" in slide2
+          assert "<a:t>SVGraph</a:t>" in slide1
+          assert "<a:t>Table semantics stay in SVGraph</a:t>" in slide2
           PY
 
       - name: Build distribution smoke
