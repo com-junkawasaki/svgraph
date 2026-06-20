@@ -81,6 +81,8 @@ https://com-junkawasaki.github.io/svgraph/
 Run the migration guard tests before publishing:
 
 ```bash
+find src -maxdepth 1 -name "*.egg-info" -exec rm -rf {} +
+rm -rf build tmp/dist
 ruff check .
 npm ci
 npm run check:web

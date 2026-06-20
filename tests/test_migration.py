@@ -1122,6 +1122,8 @@ def test_migration_guide_verification_matches_svgraph_web_and_python_guards() ->
     verification = migration.split("## Verification", maxsplit=1)[1]
 
     for command in [
+        'find src -maxdepth 1 -name "*.egg-info" -exec rm -rf {} +',
+        "rm -rf build tmp/dist",
         "ruff check .",
         "npm ci",
         "npm run check:web",
