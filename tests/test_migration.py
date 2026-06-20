@@ -137,6 +137,29 @@ def test_distribution_metadata_uses_svgraph_name() -> None:
     assert unexpected == []
 
 
+def test_project_urls_are_canonical_svgraph_locations() -> None:
+    root = Path(__file__).resolve().parents[1]
+    pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    package_metadata = json.loads((root / "package.json").read_text(encoding="utf-8"))
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    migration = (root / "MIGRATION.md").read_text(encoding="utf-8")
+
+    assert pyproject["project"]["urls"] == {
+        "Homepage": "https://github.com/com-junkawasaki/svgraph",
+        "Repository": "https://github.com/com-junkawasaki/svgraph",
+        "Issues": "https://github.com/com-junkawasaki/svgraph/issues",
+    }
+    assert package_metadata["homepage"] == "https://com-junkawasaki.github.io/svgraph/"
+    assert package_metadata["repository"]["url"] == "git+https://github.com/com-junkawasaki/svgraph.git"
+    assert package_metadata["bugs"]["url"] == "https://github.com/com-junkawasaki/svgraph/issues"
+    assert "https://github.com/com-junkawasaki/svgraph/issues" in readme
+    assert "https://com-junkawasaki.github.io/svgraph/" in readme
+    assert "https://com-junkawasaki.github.io/svgraph/" in migration
+    for source in [readme, migration, json.dumps(package_metadata), json.dumps(pyproject)]:
+        assert "github.com/com-junkawasaki/drawingml-svg" not in source
+        assert "com-junkawasaki.github.io/drawingml-svg" not in source
+
+
 def test_pyproject_keeps_legacy_console_scripts_as_svgraph_compatibility_aliases() -> None:
     project = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8"))[
         "project"
