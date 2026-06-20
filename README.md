@@ -1,6 +1,6 @@
-# drawingml-svg
+# svgraph
 
-[![CI](https://github.com/com-junkawasaki/drawingml-svg/actions/workflows/ci.yml/badge.svg)](https://github.com/com-junkawasaki/drawingml-svg/actions/workflows/ci.yml)
+[![CI](https://github.com/com-junkawasaki/svgraph/actions/workflows/ci.yml/badge.svg)](https://github.com/com-junkawasaki/svgraph/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -45,8 +45,8 @@ npm run build:web
 - Release checklist: [RELEASE.md](RELEASE.md)
 - Security policy: [SECURITY.md](SECURITY.md)
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- Issue tracker: <https://github.com/com-junkawasaki/drawingml-svg/issues>
-- SVGraph web editor: <https://com-junkawasaki.github.io/drawingml-svg/>
+- Issue tracker: <https://github.com/com-junkawasaki/svgraph/issues>
+- SVGraph web editor: <https://com-junkawasaki.github.io/svgraph/>
 
 ## Install
 

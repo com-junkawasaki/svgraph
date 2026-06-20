@@ -77,9 +77,9 @@ def test_project_metadata_exposes_public_repository_links() -> None:
 
     assert "Typing :: Typed" in project["classifiers"]
     assert project["urls"] == {
-        "Homepage": "https://github.com/com-junkawasaki/drawingml-svg",
-        "Repository": "https://github.com/com-junkawasaki/drawingml-svg",
-        "Issues": "https://github.com/com-junkawasaki/drawingml-svg/issues",
+        "Homepage": "https://github.com/com-junkawasaki/svgraph",
+        "Repository": "https://github.com/com-junkawasaki/svgraph",
+        "Issues": "https://github.com/com-junkawasaki/svgraph/issues",
     }
 
 
