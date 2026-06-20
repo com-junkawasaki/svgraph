@@ -567,7 +567,7 @@ function extractShapes(root) {
     const rootStyle = computedStyle(root, baseStyle, css, refs, viewport);
     for (const child of Array.from(root.children))
         walk(child, rootMatrix, rootStyle, new Set(), viewport);
-    return shapes;
+    return extractSvgTables(shapes);
 }
 function elementToShape(element, matrix, style, id, viewport) {
     const tag = localName(element);
@@ -823,6 +823,166 @@ function tableFromGroup(group, matrix, id, inheritedStyle, css = [], viewport = 
         rows: yEdges.slice(1).map((edge, index) => edge - (yEdges[index] || 0)),
         cells: tableCells,
     };
+}
+function extractSvgTables(shapes) {
+    const extracted = extractSvgRectTable(shapes);
+    return extracted ?? shapes;
+}
+function extractSvgRectTable(shapes) {
+    const rects = shapes.filter((shape) => svgTableRectCandidate(shape));
+    if (rects.length < 2 || rects.length !== shapes.filter((shape) => shape.kind === "rect").length)
+        return null;
+    const xEdges = tableEdges(rects.flatMap((rect) => [rect.x, rect.x + rect.width]));
+    const yEdges = tableEdges(rects.flatMap((rect) => [rect.y, rect.y + rect.height]));
+    if (xEdges.length < 2 || yEdges.length < 2)
+        return null;
+    const columns = xEdges.slice(1).map((edge, index) => edge - xEdges[index]);
+    const rows = yEdges.slice(1).map((edge, index) => edge - yEdges[index]);
+    if (columns.some((width) => width <= 0) || rows.some((height) => height <= 0))
+        return null;
+    const rowCount = rows.length;
+    const columnCount = columns.length;
+    const origins = new Map();
+    const occupancy = Array.from({ length: rowCount }, () => Array(columnCount).fill(null));
+    for (const rect of rects) {
+        const col = tableEdgeIndex(xEdges, rect.x);
+        const row = tableEdgeIndex(yEdges, rect.y);
+        const right = tableEdgeIndex(xEdges, rect.x + rect.width);
+        const bottom = tableEdgeIndex(yEdges, rect.y + rect.height);
+        if (col == null || row == null || right == null || bottom == null || right <= col || bottom <= row)
+            return null;
+        const key = `${row}:${col}`;
+        if (origins.has(key))
+            return null;
+        origins.set(key, { rect, colSpan: right - col, rowSpan: bottom - row });
+        for (let r = row; r < bottom; r += 1) {
+            for (let c = col; c < right; c += 1) {
+                if (occupancy[r]?.[c] != null)
+                    return null;
+                occupancy[r][c] = key;
+            }
+        }
+    }
+    if (occupancy.some((row) => row.some((key) => key == null)))
+        return null;
+    const textMap = new Map();
+    const consumedTextIndexes = new Set();
+    shapes.forEach((shape, index) => {
+        if (!svgTableTextCandidate(shape))
+            return;
+        const [anchorX, anchorY] = tableTextAnchorPoint(shape);
+        const col = tableIntervalIndex(xEdges, anchorX);
+        const row = tableIntervalIndex(yEdges, anchorY);
+        if (row == null || col == null)
+            return;
+        const key = occupancy[row]?.[col];
+        if (!key)
+            return;
+        if (textMap.has(key)) {
+            textMap.set("__duplicate__", shape);
+            return;
+        }
+        textMap.set(key, shape);
+        consumedTextIndexes.add(index);
+    });
+    if (textMap.has("__duplicate__"))
+        return null;
+    const cells = [];
+    for (let row = 0; row < rowCount; row += 1) {
+        for (let col = 0; col < columnCount; col += 1) {
+            const key = occupancy[row][col];
+            if (key !== `${row}:${col}`)
+                continue;
+            const origin = origins.get(key);
+            if (!origin)
+                return null;
+            cells.push(tableCellFromRect(origin.rect, textMap.get(key), row, col, origin.colSpan, origin.rowSpan));
+        }
+    }
+    const consumedRectIds = new Set(rects.map((rect) => rect.id));
+    const table = {
+        id: Math.min(...rects.map((rect) => rect.id)),
+        kind: "table",
+        name: "svg-grid-table",
+        data: {},
+        x: xEdges[0],
+        y: yEdges[0],
+        columns,
+        rows,
+        cells,
+    };
+    const remaining = shapes.filter((shape, index) => !consumedRectIds.has(shape.id) && !consumedTextIndexes.has(index));
+    return [table, ...remaining];
+}
+function svgTableRectCandidate(shape) {
+    return shape.kind === "rect" && shape.width > 0 && shape.height > 0 && numbersClose(shape.rx, 0);
+}
+function svgTableTextCandidate(shape) {
+    return shape.kind === "text" && shape.rotation == null;
+}
+function tableTextAnchorPoint(shape) {
+    const x = shape.anchor === "middle" ? shape.x + shape.width / 2 : shape.anchor === "end" ? shape.x + shape.width : shape.x;
+    const y = shape.baseline === "middle" ? shape.y + shape.height / 2 : shape.baseline === "text-after-edge" ? shape.y + shape.height : shape.y + shape.fontSize;
+    return [x, y];
+}
+function tableCellFromRect(rect, text, row, col, colSpan, rowSpan) {
+    const border = tableBorderFromRect(rect);
+    return {
+        row,
+        col,
+        colSpan,
+        rowSpan,
+        text: text?.text ?? "",
+        runs: text?.runs ?? [],
+        fill: rect.fill,
+        fillAlpha: rect.fillAlpha,
+        textFill: text?.fill ?? "#111827",
+        textFillAlpha: null,
+        textBold: text?.bold ?? false,
+        textAlign: text?.anchor ?? null,
+        verticalAlign: text?.baseline ?? null,
+        paddingLeft: text ? Math.max(0, text.x - rect.x) : 0,
+        paddingRight: text ? Math.max(0, rect.x + rect.width - (text.x + text.width)) : 0,
+        paddingTop: text ? Math.max(0, text.y - rect.y) : 0,
+        paddingBottom: text ? Math.max(0, rect.y + rect.height - (text.y + text.height)) : 0,
+        direction: text?.direction ?? null,
+        nowrap: false,
+        borderLeft: border,
+        borderRight: border,
+        borderTop: border,
+        borderBottom: border,
+    };
+}
+function tableBorderFromRect(rect) {
+    return {
+        stroke: rect.stroke,
+        strokeAlpha: rect.strokeAlpha,
+        strokeWidth: rect.strokeWidth,
+        strokeLineCap: rect.strokeLineCap,
+        strokeLineJoin: rect.strokeLineJoin,
+        strokeMiterlimit: rect.strokeMiterlimit,
+        strokeDasharray: rect.strokeDasharray,
+        compound: null,
+    };
+}
+function tableEdges(values) {
+    const result = [];
+    for (const value of values) {
+        if (!result.some((edge) => numbersClose(edge, value, 1e-6)))
+            result.push(value);
+    }
+    return result.sort((a, b) => a - b);
+}
+function tableEdgeIndex(edges, value) {
+    const index = edges.findIndex((edge) => numbersClose(edge, value, 1e-6));
+    return index >= 0 ? index : null;
+}
+function tableIntervalIndex(edges, value) {
+    for (let index = 0; index < edges.length - 1; index += 1) {
+        if (value >= edges[index] - 1e-6 && value <= edges[index + 1] + 1e-6)
+            return index;
+    }
+    return null;
 }
 function shapesFromForeignObject(element, matrix, id, inheritedStyle, css = [], viewport = defaultViewport()) {
     const table = Array.from(element.querySelectorAll("table")).find((item) => localName(item) === "table");
