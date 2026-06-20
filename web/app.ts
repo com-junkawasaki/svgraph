@@ -5506,14 +5506,15 @@ function patternColors(element: Element, refs: Map<string, Element>, inheritedSt
   const colors: string[] = [];
   for (const child of Array.from(element.children)) {
     const tag = localName(child);
+    const style = simpleElementStyle(child, inheritedStyle, refs, seen);
+    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") continue;
     if (tag === "g" || tag === "svg" || tag === "a") {
-      colors.push(...patternColors(child, refs, inheritedStyle, seen));
+      colors.push(...patternColors(child, refs, style, seen));
       continue;
     }
     if (!["rect", "circle", "ellipse", "path", "polygon", "polyline", "text", "tspan", "line"].includes(tag)) continue;
-    const style = simpleElementStyle(child, inheritedStyle, refs, seen);
-    if (tag !== "line" && style.fill) colors.push(style.fill);
-    if (style.stroke) colors.push(style.stroke);
+    if (tag !== "line" && style.fill && style.fillAlpha !== 0) colors.push(style.fill);
+    if (style.stroke && style.strokeAlpha !== 0) colors.push(style.stroke);
     colors.push(...patternColors(child, refs, style, seen));
   }
   return colors;
@@ -5524,9 +5525,19 @@ function simpleElementStyle(element: Element, inheritedStyle: SvgStyle, refs: Ma
   const value = (name: string): string | null => declarations[name] ?? element.getAttribute(name) ?? null;
   const fill = value("fill");
   const stroke = value("stroke");
+  const display = value("display");
+  const visibility = value("visibility");
+  const opacity = value("opacity");
+  const fillOpacity = value("fill-opacity");
+  const strokeOpacity = value("stroke-opacity");
   const next: SvgStyle = { ...inheritedStyle };
+  const opacityAlpha = parseAlpha(opacity);
+  if (display != null) next.display = normalizeDisplay(display);
+  if (visibility != null) next.visibility = normalizeVisibility(visibility);
   if (fill != null) next.fill = normalizePatternPaint(fill, refs, next, seen);
   if (stroke != null) next.stroke = normalizePatternPaint(stroke, refs, next, seen);
+  if (fill != null || opacityAlpha != null || fillOpacity != null) next.fillAlpha = combinedAlpha(opacityAlpha, parseAlpha(fillOpacity), next.fillAlpha);
+  if (stroke != null || opacityAlpha != null || strokeOpacity != null) next.strokeAlpha = combinedAlpha(opacityAlpha, parseAlpha(strokeOpacity), next.strokeAlpha);
   return next;
 }
 
