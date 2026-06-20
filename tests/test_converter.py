@@ -267,7 +267,7 @@ def test_ci_pptx_smoke_covers_recent_fixture_regressions() -> None:
     assert 'spc="' in workflow
 
 
-def test_dependabot_tracks_actions_and_python_dependencies() -> None:
+def test_dependabot_tracks_actions_python_and_web_dependencies() -> None:
     dependabot = (_project_root() / ".github" / "dependabot.yml").read_text(encoding="utf-8")
 
     assert dependabot.startswith("version: 2\n")

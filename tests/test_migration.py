@@ -626,6 +626,22 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "git diff --exit-code docs/app.js" in workflow
 
 
+def test_dependabot_tracks_all_svgraph_dependency_surfaces() -> None:
+    dependabot = (Path(__file__).resolve().parents[1] / ".github" / "dependabot.yml").read_text(encoding="utf-8")
+
+    for ecosystem, label in [
+        ("github-actions", "github-actions"),
+        ("pip", "python"),
+        ("npm", "web"),
+    ]:
+        assert f'package-ecosystem: "{ecosystem}"' in dependabot
+        assert f'- "{label}"' in dependabot
+    assert dependabot.count('directory: "/"') == 3
+    assert dependabot.count('interval: "weekly"') == 3
+    assert "drawingml-svg" not in dependabot
+    assert "pptxsvg" not in dependabot
+
+
 def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
     changelog = (Path(__file__).resolve().parents[1] / "CHANGELOG.md").read_text(encoding="utf-8")
 
