@@ -825,7 +825,7 @@ function tableFromGroup(group, matrix, id, inheritedStyle, css = [], viewport = 
     };
 }
 function extractSvgTables(shapes) {
-    const extracted = extractSvgRectTable(shapes);
+    const extracted = extractSvgRectTable(shapes) ?? extractSvgLineTable(shapes);
     return extracted ?? shapes;
 }
 function extractSvgRectTable(shapes) {
@@ -887,6 +887,8 @@ function extractSvgRectTable(shapes) {
     });
     if (textMap.has("__duplicate__"))
         return null;
+    const gridLines = rectGridLines(shapes, xEdges, yEdges, origins);
+    const lineBorders = gridLines ? tableGridBorders(gridLines, xEdges, yEdges) : null;
     const cells = [];
     for (let row = 0; row < rowCount; row += 1) {
         for (let col = 0; col < columnCount; col += 1) {
@@ -896,10 +898,12 @@ function extractSvgRectTable(shapes) {
             const origin = origins.get(key);
             if (!origin)
                 return null;
-            cells.push(tableCellFromRect(origin.rect, textMap.get(key), row, col, origin.colSpan, origin.rowSpan));
+            const borders = lineBorders && origin.colSpan === 1 && origin.rowSpan === 1 ? cellGridBorders(lineBorders, row, col) : undefined;
+            cells.push(tableCellFromRect(origin.rect, textMap.get(key), row, col, origin.colSpan, origin.rowSpan, borders));
         }
     }
     const consumedRectIds = new Set(rects.map((rect) => rect.id));
+    const consumedLineIds = new Set(gridLines?.map((line) => line.id) ?? []);
     const table = {
         id: Math.min(...rects.map((rect) => rect.id)),
         kind: "table",
@@ -911,7 +915,78 @@ function extractSvgRectTable(shapes) {
         rows,
         cells,
     };
-    const remaining = shapes.filter((shape, index) => !consumedRectIds.has(shape.id) && !consumedTextIndexes.has(index));
+    const remaining = shapes.filter((shape, index) => !consumedRectIds.has(shape.id) && !consumedLineIds.has(shape.id) && !consumedTextIndexes.has(index));
+    return [table, ...remaining];
+}
+function extractSvgLineTable(shapes) {
+    if (shapes.some((shape) => !["line", "text"].includes(shape.kind)))
+        return null;
+    const lines = shapes.filter((shape) => shape.kind === "line" && svgTableLineCandidate(shape));
+    if (lines.length < 4 || lines.length !== shapes.filter((shape) => shape.kind === "line").length)
+        return null;
+    const verticals = lines.filter(svgTableVerticalLine);
+    const horizontals = lines.filter(svgTableHorizontalLine);
+    if (verticals.length < 3 || horizontals.length < 3 || verticals.length + horizontals.length !== lines.length)
+        return null;
+    const xEdges = tableEdges(verticals.map(lineMinX));
+    const yEdges = tableEdges(horizontals.map(lineMinY));
+    if (xEdges.length < 3 || yEdges.length < 3)
+        return null;
+    const xMin = xEdges[0];
+    const xMax = xEdges[xEdges.length - 1];
+    const yMin = yEdges[0];
+    const yMax = yEdges[yEdges.length - 1];
+    if (!tableLinesCoverEdges(verticals, xEdges, yMin, yMax, "vertical"))
+        return null;
+    if (!tableLinesCoverEdges(horizontals, yEdges, xMin, xMax, "horizontal"))
+        return null;
+    const columns = xEdges.slice(1).map((edge, index) => edge - xEdges[index]);
+    const rows = yEdges.slice(1).map((edge, index) => edge - yEdges[index]);
+    if (columns.some((width) => width <= 0) || rows.some((height) => height <= 0))
+        return null;
+    const borders = tableGridBorders(lines, xEdges, yEdges);
+    if (!borders)
+        return null;
+    const textMap = new Map();
+    const consumedTextIndexes = new Set();
+    shapes.forEach((shape, index) => {
+        if (!svgTableTextCandidate(shape))
+            return;
+        const [anchorX, anchorY] = tableTextAnchorPoint(shape);
+        const col = tableIntervalIndex(xEdges, anchorX);
+        const row = tableIntervalIndex(yEdges, anchorY);
+        if (row == null || col == null)
+            return;
+        const key = `${row}:${col}`;
+        if (textMap.has(key)) {
+            textMap.set("__duplicate__", shape);
+            return;
+        }
+        textMap.set(key, shape);
+        consumedTextIndexes.add(index);
+    });
+    if (textMap.has("__duplicate__"))
+        return null;
+    const cells = [];
+    for (let row = 0; row < rows.length; row += 1) {
+        for (let col = 0; col < columns.length; col += 1) {
+            const rect = syntheticTableRect(xEdges[col], yEdges[row], columns[col], rows[row], tableGridPaint(lines));
+            cells.push(tableCellFromRect(rect, textMap.get(`${row}:${col}`), row, col, 1, 1, cellGridBorders(borders, row, col)));
+        }
+    }
+    const consumedLineIds = new Set(lines.map((line) => line.id));
+    const table = {
+        id: Math.min(...lines.map((line) => line.id)),
+        kind: "table",
+        name: "svg-line-grid-table",
+        data: {},
+        x: xMin,
+        y: yMin,
+        columns,
+        rows,
+        cells,
+    };
+    const remaining = shapes.filter((shape, index) => !consumedLineIds.has(shape.id) && !consumedTextIndexes.has(index));
     return [table, ...remaining];
 }
 function svgTableRectCandidate(shape) {
@@ -925,7 +1000,7 @@ function tableTextAnchorPoint(shape) {
     const y = shape.baseline === "middle" ? shape.y + shape.height / 2 : shape.baseline === "text-after-edge" ? shape.y + shape.height : shape.y + shape.fontSize;
     return [x, y];
 }
-function tableCellFromRect(rect, text, row, col, colSpan, rowSpan) {
+function tableCellFromRect(rect, text, row, col, colSpan, rowSpan, borders) {
     const border = tableBorderFromRect(rect);
     return {
         row,
@@ -947,10 +1022,10 @@ function tableCellFromRect(rect, text, row, col, colSpan, rowSpan) {
         paddingBottom: text ? Math.max(0, rect.y + rect.height - (text.y + text.height)) : 0,
         direction: text?.direction ?? null,
         nowrap: false,
-        borderLeft: border,
-        borderRight: border,
-        borderTop: border,
-        borderBottom: border,
+        borderLeft: borders?.[0] ?? border,
+        borderRight: borders?.[1] ?? border,
+        borderTop: borders?.[2] ?? border,
+        borderBottom: borders?.[3] ?? border,
     };
 }
 function tableBorderFromRect(rect) {
@@ -984,6 +1059,115 @@ function tableIntervalIndex(edges, value) {
     }
     return null;
 }
+function rectGridLines(shapes, xEdges, yEdges, origins) {
+    if (origins.size !== (xEdges.length - 1) * (yEdges.length - 1))
+        return null;
+    if ([...origins.values()].some(({ colSpan, rowSpan }) => colSpan !== 1 || rowSpan !== 1))
+        return null;
+    const lines = shapes.filter((shape) => shape.kind === "line");
+    if (!lines.length || lines.some((line) => !svgTableLineCandidate(line)))
+        return null;
+    const verticals = lines.filter(svgTableVerticalLine);
+    const horizontals = lines.filter(svgTableHorizontalLine);
+    if (verticals.length + horizontals.length !== lines.length)
+        return null;
+    if (!tableLinesCoverEdges(verticals, xEdges, yEdges[0], yEdges[yEdges.length - 1], "vertical"))
+        return null;
+    if (!tableLinesCoverEdges(horizontals, yEdges, xEdges[0], xEdges[xEdges.length - 1], "horizontal"))
+        return null;
+    return lines;
+}
+function svgTableLineCandidate(shape) {
+    return Boolean(shape.stroke) && (svgTableVerticalLine(shape) || svgTableHorizontalLine(shape));
+}
+function svgTableVerticalLine(shape) {
+    return numbersClose(shape.x1, shape.x2, 1e-6) && Math.abs(shape.y2 - shape.y1) > 0;
+}
+function svgTableHorizontalLine(shape) {
+    return numbersClose(shape.y1, shape.y2, 1e-6) && Math.abs(shape.x2 - shape.x1) > 0;
+}
+function tableLinesCoverEdges(lines, edges, start, end, orientation) {
+    return edges.every((edge) => lines.some((line) => tableLineCoversEdge(line, edge, start, end, orientation)));
+}
+function tableLineCoversEdge(line, edge, start, end, orientation) {
+    if (orientation === "vertical")
+        return numbersClose(lineMinX(line), edge, 1e-6) && numbersClose(lineMinY(line), start, 1e-6) && numbersClose(lineMaxY(line), end, 1e-6);
+    return numbersClose(lineMinY(line), edge, 1e-6) && numbersClose(lineMinX(line), start, 1e-6) && numbersClose(lineMaxX(line), end, 1e-6);
+}
+function tableGridBorders(lines, xEdges, yEdges) {
+    const verticals = new Map();
+    const horizontals = new Map();
+    for (const line of lines) {
+        if (svgTableVerticalLine(line)) {
+            const index = tableEdgeIndex(xEdges, lineMinX(line));
+            if (index == null)
+                return null;
+            verticals.set(index, tableBorderFromLine(line));
+        }
+        else if (svgTableHorizontalLine(line)) {
+            const index = tableEdgeIndex(yEdges, lineMinY(line));
+            if (index == null)
+                return null;
+            horizontals.set(index, tableBorderFromLine(line));
+        }
+        else {
+            return null;
+        }
+    }
+    for (let index = 0; index < xEdges.length; index += 1)
+        if (!verticals.has(index))
+            return null;
+    for (let index = 0; index < yEdges.length; index += 1)
+        if (!horizontals.has(index))
+            return null;
+    return [verticals, horizontals];
+}
+function cellGridBorders(borders, row, col) {
+    const [verticals, horizontals] = borders;
+    return [verticals.get(col), verticals.get(col + 1), horizontals.get(row), horizontals.get(row + 1)];
+}
+function tableBorderFromLine(line) {
+    return {
+        stroke: line.stroke,
+        strokeAlpha: line.strokeAlpha,
+        strokeWidth: line.strokeWidth,
+        strokeLineCap: line.strokeLineCap,
+        strokeLineJoin: line.strokeLineJoin,
+        strokeMiterlimit: line.strokeMiterlimit,
+        strokeDasharray: line.strokeDasharray,
+        compound: null,
+    };
+}
+function tableGridPaint(lines) {
+    return tableBorderFromLine(lines.find((line) => line.stroke) ?? lines[0]);
+}
+function syntheticTableRect(x, y, width, height, border) {
+    return {
+        id: 0,
+        kind: "rect",
+        name: "table-cell",
+        data: {},
+        x,
+        y,
+        width,
+        height,
+        rx: 0,
+        fill: null,
+        fillAlpha: null,
+        stroke: border.stroke,
+        strokeAlpha: border.strokeAlpha,
+        strokeWidth: border.strokeWidth,
+        strokeLineCap: border.strokeLineCap,
+        strokeLineJoin: border.strokeLineJoin,
+        strokeMiterlimit: border.strokeMiterlimit,
+        strokeDasharray: border.strokeDasharray,
+        strokeDashoffset: null,
+    };
+}
+function lineMinX(line) { return Math.min(line.x1, line.x2); }
+function lineMaxX(line) { return Math.max(line.x1, line.x2); }
+function lineMinY(line) { return Math.min(line.y1, line.y2); }
+function lineMaxY(line) { return Math.max(line.y1, line.y2); }
 function shapesFromForeignObject(element, matrix, id, inheritedStyle, css = [], viewport = defaultViewport()) {
     const table = Array.from(element.querySelectorAll("table")).find((item) => localName(item) === "table");
     if (!table)
