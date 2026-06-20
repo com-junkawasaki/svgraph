@@ -9,7 +9,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from .converter import EMU_PER_PX, NS_A, NS_P, svg_to_drawingml, qn
-from .ir import svg_to_svgraph_presentation
+from .svgraph import svg_to_svgraph_presentation
 
 PRESENTATION_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"

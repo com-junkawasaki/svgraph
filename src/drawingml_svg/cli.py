@@ -9,8 +9,8 @@ from xml.etree import ElementTree as ET
 
 from .coverage import analyze_svg
 from .converter import drawingml_to_svg, svg_to_drawingml
-from .ir import svg_ir_to_json, svg_pptx_ir_to_json, svg_svgraph_presentation_to_json, svg_svgraph_to_json
 from .pptx import svg_to_pptx
+from .svgraph import svg_ir_to_json, svg_pptx_ir_to_json, svg_svgraph_presentation_to_json, svg_svgraph_to_json
 
 
 def main(argv: list[str] | None = None) -> int:

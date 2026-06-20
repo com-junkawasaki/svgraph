@@ -4,10 +4,11 @@ import json
 from dataclasses import asdict
 
 from drawingml_svg import svg_to_ir, svg_to_pptx_ir, svg_to_svgraph, svg_to_svgraph_presentation
-from drawingml_svg.ir import svg_ir_to_json, svg_pptx_ir_to_json, svg_svgraph_presentation_to_json, svg_svgraph_to_json
+from drawingml_svg.ir import svg_ir_to_json, svg_pptx_ir_to_json
+from drawingml_svg.svgraph import svg_svgraph_presentation_to_json, svg_svgraph_to_json
 
 
-def test_svg_ir_preserves_metadata_data_attributes_and_dependencies() -> None:
+def test_svgraph_preserves_metadata_data_attributes_and_dependencies() -> None:
     svg = """\
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50">
   <metadata>{"title": "System", "relations": [{"from": "api", "to": "db"}]}</metadata>
@@ -19,29 +20,29 @@ def test_svg_ir_preserves_metadata_data_attributes_and_dependencies() -> None:
 </svg>
 """
 
-    ir = svg_to_ir(svg)
+    svgraph = svg_to_svgraph(svg)
 
-    assert ir.kind == "svgraph"
-    assert ir.version == "0.1"
-    assert ir.metadata["json"] == {"title": "System", "relations": [{"from": "api", "to": "db"}]}
-    assert ir.presentation.kind == "svgraph-presentation"
-    assert ir.presentation.slide_size == (100.0, 50.0)
-    assert ir.presentation.slides[0].slide_id == "slide-1"
-    assert ir.presentation.parts[-1].part_name == "/ppt/slides/slide1.xml"
-    rect = ir.root.children[1]
+    assert svgraph.kind == "svgraph"
+    assert svgraph.version == "0.1"
+    assert svgraph.metadata["json"] == {"title": "System", "relations": [{"from": "api", "to": "db"}]}
+    assert svgraph.presentation.kind == "svgraph-presentation"
+    assert svgraph.presentation.slide_size == (100.0, 50.0)
+    assert svgraph.presentation.slides[0].slide_id == "slide-1"
+    assert svgraph.presentation.parts[-1].part_name == "/ppt/slides/slide1.xml"
+    rect = svgraph.root.children[1]
     assert rect.tag == "rect"
     assert rect.data == {"bind": "svc.api", "kind": "service"}
     assert rect.dependencies[0].kind == "paint-server"
     assert rect.dependencies[0].target == "#g"
-    assert "#fef9c3" not in [dep.target for dep in ir.dependencies]
-    use = ir.root.children[2]
+    assert "#fef9c3" not in [dep.target for dep in svgraph.dependencies]
+    use = svgraph.root.children[2]
     assert use.dependencies[0].kind == "href"
     assert use.dependencies[0].target == "#api"
-    assert [dep.target for dep in ir.dependencies] == ["#g", "#api"]
+    assert [dep.target for dep in svgraph.dependencies] == ["#g", "#api"]
 
 
-def test_svg_ir_json_cli_payload_is_serializable() -> None:
-    payload = svg_ir_to_json(
+def test_svgraph_json_cli_payload_is_serializable() -> None:
+    payload = svg_svgraph_to_json(
         """<svg xmlns="http://www.w3.org/2000/svg"><rect data-kind="table" width="10" height="10"/></svg>"""
     )
 
@@ -52,10 +53,10 @@ def test_svg_ir_json_cli_payload_is_serializable() -> None:
     assert data["presentation"]["kind"] == "svgraph-presentation"
 
 
-def test_svgraph_alias_matches_svg_ir_payload() -> None:
+def test_legacy_svg_ir_alias_matches_svgraph_payload() -> None:
     svg = """<svg xmlns="http://www.w3.org/2000/svg"><rect data-kind="table" width="10" height="10"/></svg>"""
-    direct = svg_to_svgraph(svg).to_dict()
-    payload = json.loads(svg_svgraph_to_json(svg))
+    direct = svg_to_ir(svg).to_dict()
+    payload = json.loads(svg_ir_to_json(svg))
 
     assert direct["kind"] == "svgraph"
     assert payload["kind"] == "svgraph"

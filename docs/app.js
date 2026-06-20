@@ -469,11 +469,11 @@ function svgToPptx(svgText) {
     if (error)
         throw new Error((error.textContent || "").trim());
     const root = doc.documentElement;
-    const ir = buildSVGraph(svgText);
+    const svgraph = buildSVGraph(svgText);
     const slides = declaredSlides(root);
     const selectedSlides = slides.length ? slides : [root];
     const slideXmls = selectedSlides.map((slide, index) => buildSlideXml(slide, index + 1));
-    return writePptx(slideXmls, ir.presentation.slide_size);
+    return writePptx(slideXmls, svgraph.presentation.slide_size);
 }
 const coverageSupportedElements = new Set([
     "a",

@@ -75,14 +75,8 @@ drawingml-svg analyze input.svg
 # metadata-preserving SVGraph
 drawingml-svg svgraph input.svg
 
-# legacy alias for SVGraph
-drawingml-svg ir input.svg
-
 # PPTX/package-oriented SVGraph presentation projection
 drawingml-svg svgraph-presentation input.svg
-
-# legacy alias for SVGraph presentation
-drawingml-svg pptxsvg input.svg
 
 # installed package version
 drawingml-svg --version
