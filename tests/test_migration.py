@@ -250,6 +250,8 @@ def test_github_templates_cover_canonical_svgraph_surfaces() -> None:
     assert "Browser editor" in templates["feature_request.yml"]
     assert advisory_url in templates["config.yml"]
     assert advisory_url in security
+    assert "SVGraph JSON payload" in security
+    assert "generated PPTX package" in security
     assert "tmp/svgraph-coverage.pptx" in pr_template
     for source in [*templates.values(), pr_template, security]:
         assert "drawingml-svg" not in source

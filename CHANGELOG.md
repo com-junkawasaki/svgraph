@@ -23,6 +23,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Expanded the migration guide to cover every retained compatibility console script and its canonical `svgraph` command.
 - Aligned the README and migration guide Python import examples with the canonical top-level `svgraph.__all__` API.
 - Aligned the security policy with the canonical `com-junkawasaki/svgraph` private advisory URL.
+- Aligned security reporting guidance with SVGraph JSON payloads and generated PPTX packages.
 - Aligned the pull request checklist with canonical SVGraph JSON and presentation JSON smoke commands.
 - Added regression coverage for SVGraph-oriented GitHub issue template surfaces.
 - Expanded release checklist smoke coverage for every retained legacy console alias.
