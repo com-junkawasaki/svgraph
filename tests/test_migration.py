@@ -153,6 +153,24 @@ def test_public_surfaces_use_svgraph_repo_and_artifact_names() -> None:
     assert unexpected == []
 
 
+def test_browser_coverage_sets_match_python_analyzer_contract() -> None:
+    root = Path(__file__).resolve().parents[1]
+    coverage_source = (root / "src" / "svgraph" / "coverage.py").read_text(encoding="utf-8")
+    web_source = (root / "web" / "app.ts").read_text(encoding="utf-8")
+    app_js = (root / "docs" / "app.js").read_text(encoding="utf-8")
+
+    expected_supported = set(_literal_assignment(coverage_source, "SUPPORTED_ELEMENTS"))
+    expected_ignored = set(_literal_assignment(coverage_source, "IGNORED_ELEMENTS"))
+    expected_unsupported = set(_literal_assignment(coverage_source, "UNSUPPORTED_ATTRIBUTES"))
+    expected_text_layout = set(_literal_assignment(coverage_source, "TEXT_LAYOUT_ATTRIBUTES"))
+
+    for generated in [web_source, app_js]:
+        assert _typescript_string_set(generated, "coverageSupportedElements") == expected_supported
+        assert _typescript_string_set(generated, "coverageIgnoredElements") == expected_ignored
+        assert _typescript_string_set(generated, "coverageUnsupportedAttributes") == expected_unsupported
+        assert _typescript_string_set(generated, "coverageTextLayoutAttributes") == expected_text_layout
+
+
 def test_distribution_metadata_uses_svgraph_name() -> None:
     root = Path(__file__).resolve().parents[1]
     unexpected: list[str] = []
@@ -1641,3 +1659,10 @@ def _literal_assignment(source: str, name: str) -> object:
         if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
             return ast.literal_eval(node.value)
     raise AssertionError(f"missing {name} assignment")
+
+
+def _typescript_string_set(source: str, name: str) -> set[str]:
+    match = re.search(rf"const {name} = new Set\(\[([\s\S]*?)\]\);", source)
+    if not match:
+        raise AssertionError(f"missing {name} set")
+    return set(re.findall(r'"([^"]+)"', match.group(1)))

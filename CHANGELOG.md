@@ -74,6 +74,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Aligned the browser coverage analyzer with SVG `text-decoration-color` and `text-decoration-thickness` diagnostics.
 - Aligned the browser coverage analyzer with CSS declaration diagnostics for supported SVG text, stroke, transform, and opacity attributes, and fixed browser PPTX wavy underline style propagation.
 - Aligned browser coverage analyzer text-layout no-op handling for non-text SVG subtrees.
+- Added migration guards that directly compare browser coverage element and attribute sets against the Python analyzer contract.
 - Added Python PPTX custom XML `source_svg` preservation so generated packages carry the editable SVG source alongside SVGraph presentation metadata.
 - Added browser PPTX custom XML `source_svg` preservation so browser-generated packages match Python source recovery metadata.
 - Added web editor design package part schema documentation for `part_name`, `content_type`, `kind`, and `source_node_id`.
