@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "homepage": "https://com-junkawasaki.github.io/svgraph/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/com-junkawasaki/svgraph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/com-junkawasaki/svgraph/issues"
+  },
+  "license": "MIT",
   "scripts": {
     "build:web": "tsc -p tsconfig.web.json",
     "check:web": "tsc -p tsconfig.web.json --noEmit"

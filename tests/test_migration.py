@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from email.parser import Parser
+import json
 from pathlib import Path
 import tomllib
 
@@ -214,11 +215,19 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     root = Path(__file__).resolve().parents[1]
     package_json = (root / "package.json").read_text(encoding="utf-8")
     package_lock = (root / "package-lock.json").read_text(encoding="utf-8")
+    package_metadata = json.loads(package_json)
     html = (root / "docs" / "index.html").read_text(encoding="utf-8")
     source = (root / "web" / "app.ts").read_text(encoding="utf-8")
 
     assert '"name": "svgraph-web"' in package_json
     assert '"name": "svgraph-web"' in package_lock
+    assert package_metadata["homepage"] == "https://com-junkawasaki.github.io/svgraph/"
+    assert package_metadata["repository"] == {
+        "type": "git",
+        "url": "git+https://github.com/com-junkawasaki/svgraph.git",
+    }
+    assert package_metadata["bugs"] == {"url": "https://github.com/com-junkawasaki/svgraph/issues"}
+    assert package_metadata["license"] == "MIT"
     assert "<title>SVGraph Editor</title>" in html
     assert 'id="downloadSVGraphBtn"' in html
     assert 'mustElement<HTMLButtonElement>("downloadSVGraphBtn")' in source
