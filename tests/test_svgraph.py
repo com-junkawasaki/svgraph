@@ -7,9 +7,17 @@ import pytest
 
 import drawingml_svg
 import drawingml_svg.ir
+import svgraph as svgraph_package
 from drawingml_svg import svg_to_svgraph, svg_to_svgraph_presentation
 from drawingml_svg.ir import svg_ir_to_json, svg_pptx_ir_to_json, svg_to_ir, svg_to_pptx_ir
 from drawingml_svg.svgraph import svg_svgraph_presentation_to_json, svg_svgraph_to_json
+
+
+def test_svgraph_package_is_canonical_api_surface() -> None:
+    assert svgraph_package.svg_to_svgraph is svg_to_svgraph
+    assert svgraph_package.svg_to_svgraph_presentation is svg_to_svgraph_presentation
+    assert "svg_to_svgraph" in svgraph_package.__all__
+    assert "svg_to_ir" not in svgraph_package.__all__
 
 
 def test_svgraph_preserves_metadata_data_attributes_and_dependencies() -> None:

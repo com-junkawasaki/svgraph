@@ -192,11 +192,12 @@ jobs:
               wheel_metadata = wheel.read(metadata_name).decode("utf-8")
               entry_points = wheel.read(entry_points_name).decode("utf-8")
           assert "drawingml_svg/py.typed" in wheel_names
+          assert "svgraph/py.typed" in wheel_names
           assert "Project-URL: Homepage, https://github.com/com-junkawasaki/svgraph" in wheel_metadata
           assert "Project-URL: Repository, https://github.com/com-junkawasaki/svgraph" in wheel_metadata
           assert "Project-URL: Issues, https://github.com/com-junkawasaki/svgraph/issues" in wheel_metadata
-          assert "svgraph = drawingml_svg.cli:main" in entry_points
-          assert "drawingml-svg = drawingml_svg.cli:main" in entry_points
+          assert "svgraph = svgraph.cli:main" in entry_points
+          assert "drawingml-svg = svgraph.cli:main" in entry_points
 
           with tarfile.open(sdist_path) as sdist:
               sdist_names = set(sdist.getnames())
@@ -209,6 +210,7 @@ jobs:
           assert f"{root}/RELEASE.md" in sdist_names
           assert f"{root}/SECURITY.md" in sdist_names
           assert f"{root}/src/drawingml_svg/py.typed" in sdist_names
+          assert f"{root}/src/svgraph/py.typed" in sdist_names
           PY
           python -m venv tmp/wheel-venv
           tmp/wheel-venv/bin/python -m pip install tmp/dist/drawingml_svg-*.whl

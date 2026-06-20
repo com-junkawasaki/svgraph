@@ -13,7 +13,7 @@
 
 - [ ] `ruff check .`
 - [ ] `PYTHONPATH=src python -m pytest -q`
-- [ ] `PYTHONPATH=src python -m drawingml_svg.cli analyze examples/coverage.svg`
+- [ ] `PYTHONPATH=src python -m svgraph.cli analyze examples/coverage.svg`
 - [ ] `PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/svgraph-coverage.pptx`
 - [ ] `python -m zipfile --test tmp/svgraph-coverage.pptx`
 

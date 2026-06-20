@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 import pytest
 
 import drawingml_svg
+import svgraph as svgraph_package
 from drawingml_svg import analyze_svg, drawingml_to_svg, svg_to_drawingml, svg_to_pptx_bytes
 from drawingml_svg.cli import main as cli_main
 from examples.make_pptx import build_slide_xml, main as make_pptx_main, prepare_slide_media, write_pptx
@@ -70,14 +71,15 @@ def _webp_data_uri(width: int, height: int) -> str:
 
 def test_package_declares_inline_types() -> None:
     assert resources.files(drawingml_svg).joinpath("py.typed").is_file()
+    assert resources.files(svgraph_package).joinpath("py.typed").is_file()
 
 
 def test_project_metadata_exposes_public_repository_links() -> None:
     metadata = tomllib.loads((_project_root() / "pyproject.toml").read_text(encoding="utf-8"))
     project = metadata["project"]
 
-    assert project["scripts"]["svgraph"] == "drawingml_svg.cli:main"
-    assert project["scripts"]["drawingml-svg"] == "drawingml_svg.cli:main"
+    assert project["scripts"]["svgraph"] == "svgraph.cli:main"
+    assert project["scripts"]["drawingml-svg"] == "svgraph.cli:main"
     assert "Typing :: Typed" in project["classifiers"]
     assert project["urls"] == {
         "Homepage": "https://github.com/com-junkawasaki/svgraph",
@@ -99,8 +101,8 @@ def test_generated_distribution_metadata_preserves_svgraph_identity() -> None:
     assert "Homepage, https://github.com/com-junkawasaki/svgraph" in project_urls
     assert "Repository, https://github.com/com-junkawasaki/svgraph" in project_urls
     assert "Issues, https://github.com/com-junkawasaki/svgraph/issues" in project_urls
-    assert "svgraph = drawingml_svg.cli:main" in entry_point_text
-    assert "drawingml-svg = drawingml_svg.cli:main" in entry_point_text
+    assert "svgraph = svgraph.cli:main" in entry_point_text
+    assert "drawingml-svg = svgraph.cli:main" in entry_point_text
 
 
 def test_readme_documents_supported_drawingml_presets() -> None:
@@ -200,7 +202,7 @@ def test_cli_version_writes_installed_package_version(capsys) -> None:
 def test_pyproject_installs_svgraph_console_script() -> None:
     pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
 
-    assert 'svgraph = "drawingml_svg.cli:main"' in pyproject
+    assert 'svgraph = "svgraph.cli:main"' in pyproject
 
 
 def test_cli_help_lists_svgraph_commands_and_hides_legacy_aliases(capsys) -> None:

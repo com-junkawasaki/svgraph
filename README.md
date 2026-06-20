@@ -111,7 +111,7 @@ PYTHONPATH=src python examples/make_pptx.py examples/svgraph.svg -o tmp/svgraph-
 ## Python API
 
 ```python
-from drawingml_svg import drawingml_to_svg, svg_to_drawingml, svg_to_pptx
+from svgraph import drawingml_to_svg, svg_to_drawingml, svg_to_pptx
 
 dml = svg_to_drawingml("<svg viewBox='0 0 100 50'><rect x='5' y='5' width='40' height='20'/></svg>")
 svg = drawingml_to_svg(dml)
@@ -119,22 +119,24 @@ svg_to_pptx("<svg><rect width='100' height='50'/></svg>", "deck.pptx")
 ```
 
 ```python
-from drawingml_svg import analyze_svg
+from svgraph import analyze_svg
 
 report = analyze_svg(svg_text).to_dict()
 ```
 
 ```python
-from drawingml_svg import svg_to_svgraph
+from svgraph import svg_to_svgraph
 
 svgraph = svg_to_svgraph(svg_text).to_dict()
 ```
 
 ```python
-from drawingml_svg import svg_to_svgraph_presentation
+from svgraph import svg_to_svgraph_presentation
 
 presentation = svg_to_svgraph_presentation(svg_text)
 ```
+
+`drawingml_svg` remains available as a compatibility import path.
 
 ## SVGraph
 

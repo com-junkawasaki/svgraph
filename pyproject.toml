@@ -30,12 +30,12 @@ Repository = "https://github.com/com-junkawasaki/svgraph"
 Issues = "https://github.com/com-junkawasaki/svgraph/issues"
 
 [project.scripts]
-svgraph = "drawingml_svg.cli:main"
-drawingml-svg = "drawingml_svg.cli:main"
-dml2svg = "drawingml_svg.cli:main"
-svg2dml = "drawingml_svg.cli:main"
-svg2pptx = "drawingml_svg.cli:main"
-drawingml-svg-analyze = "drawingml_svg.cli:main"
+svgraph = "svgraph.cli:main"
+drawingml-svg = "svgraph.cli:main"
+dml2svg = "svgraph.cli:main"
+svg2dml = "svgraph.cli:main"
+svg2pptx = "svgraph.cli:main"
+drawingml-svg-analyze = "svgraph.cli:main"
 
 [project.optional-dependencies]
 dev = ["build>=1.2", "pytest>=8.0", "ruff>=0.5"]
@@ -49,6 +49,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 drawingml_svg = ["py.typed"]
+svgraph = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
