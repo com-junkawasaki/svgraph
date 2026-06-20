@@ -107,7 +107,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
         </table>
       </body>
     </foreignObject>
-    <foreignObject id="alpha-html-table" x="90" y="465" width="360" height="90">
+    <foreignObject id="alpha-html-table" style="x:90px;y:465px;width:360px;height:90px">
       <body xmlns="http://www.w3.org/1999/xhtml">
         <table>
           <tr>
@@ -153,6 +153,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
       .css-geom-rect { x: 735px; y: 165px; width: 75px; height: 38px; rx: 8px; fill: #fee2e2; stroke: #b91c1c; stroke-width: 2px; }
       .css-geom-circle { cx: 845px; cy: 184px; r: 19px; fill: #dcfce7; stroke: #15803d; stroke-width: 2px; }
       .css-geom-line { x1: 735px; y1: 220px; x2: 875px; y2: 220px; stroke: #0f172a; stroke-width: 4px; }
+      .css-image-frame { x: 980px; y: 340px; width: 96px; height: 48px; }
     </style>
     <rect width="1280" height="720" fill="#ffffff" stroke="none"/>
     <text x="90" y="90" style="font-size:40;font-family:Arial;font-weight:700;fill:#17202a">Browser SVG coverage</text>
@@ -166,7 +167,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <path id="arc-path" d="M 640 520 A 90 55 0 0 1 820 520 A 90 55 0 0 1 640 520" style="fill:#fef3c7;stroke:#a16207;stroke-width:5"/>
     <rect id="geometry-lengths" x="calc(50% - 80px)" y="42%" width="10%" height="8%" style="fill:#ecfccb;stroke:#4d7c0f;stroke-width:2pt"/>
     <line id="marked-line" x1="980" y1="185" x2="1130" y2="260" style="stroke:#7c3aed;stroke-width:8;marker-end:url(#arrow)"/>
-    <image id="pixel" x="980" y="340" width="96" height="48" preserveAspectRatio="xMidYMid slice" opacity="35%" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg=="/>
+    <image id="pixel" class="css-image-frame" preserveAspectRatio="xMidYMid slice" opacity="35%" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg=="/>
     <circle class="css-circle" cx="1130" cy="388" r="48"/>
     <rect id="clipped-bar" x="930" y="500" width="250" height="70" style="fill:#fecaca;stroke:#991b1b;clip-path:url(#bar-clip)"/>
     <ellipse id="bbox-clipped-ellipse" cx="1090" cy="560" rx="80" ry="50" style="fill:#ede9fe;stroke:#6d28d9;clip-path:url(#bbox-clip)"/>
@@ -1824,7 +1825,9 @@ function elementToShape(element, matrix, style, id, viewport, css = [], refs = n
     if (tag === "image") {
         const href = hrefValue(element);
         if (supportedDataImage(href)) {
-            const imageFit = imagePreserveAspectRatioRect(geom(element, "x", "x", viewport), geom(element, "y", "y", viewport), geom(element, "width", "x", viewport), geom(element, "height", "y", viewport), href, element.getAttribute("preserveAspectRatio"));
+            const imageFit = imagePreserveAspectRatioRect(cascadedGeom(element, declarations, "x", "x", viewport), cascadedGeom(element, declarations, "y", "y", viewport), cascadedGeom(element, declarations, "width", "x", viewport), cascadedGeom(element, declarations, "height", "y", viewport), href, element.getAttribute("preserveAspectRatio"));
+            if (imageFit.width <= 0 || imageFit.height <= 0)
+                return null;
             const box = transformedImageBox(matrix, imageFit.x, imageFit.y, imageFit.width, imageFit.height);
             return {
                 id,
@@ -2267,7 +2270,8 @@ function shapesFromForeignObject(element, matrix, id, inheritedStyle, css = [], 
     const columnCount = htmlTableColumnCount(rows);
     if (columnCount <= 0)
         return [];
-    const box = transformedBox(matrix, geom(element, "x", "x", viewport), geom(element, "y", "y", viewport), geom(element, "width", "x", viewport), geom(element, "height", "y", viewport));
+    const declarations = resolvedCascadedDeclarations(element, css, inheritedStyle);
+    const box = transformedBox(matrix, cascadedGeom(element, declarations, "x", "x", viewport), cascadedGeom(element, declarations, "y", "y", viewport), cascadedGeom(element, declarations, "width", "x", viewport), cascadedGeom(element, declarations, "height", "y", viewport));
     if (box.width <= 0 || box.height <= 0)
         return [];
     const tableStyle = htmlElementStyle(table, inheritedStyle, css);
