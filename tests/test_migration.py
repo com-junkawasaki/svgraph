@@ -473,10 +473,13 @@ def test_generated_distribution_metadata_preserves_legacy_compatibility_entry_po
 
 
 def test_release_checklist_keeps_legacy_console_alias_smoke() -> None:
-    release = (Path(__file__).resolve().parents[1] / "RELEASE.md").read_text(encoding="utf-8")
+    root = Path(__file__).resolve().parents[1]
+    release = (root / "RELEASE.md").read_text(encoding="utf-8")
+    scripts = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["scripts"]
 
     assert "pyproject.toml` and `package.json` have the intended version" in release
-    assert "drawingml-svg --version" in release
+    for executable in sorted(set(scripts) - {"svgraph"}):
+        assert f"tmp/release-venv/bin/{executable} --version" in release
 
 
 def test_release_checklist_verifies_public_svgraph_repo_identity() -> None:
@@ -566,7 +569,7 @@ def test_release_checklist_smokes_canonical_svgraph_pptx_export() -> None:
     assert "tmp/release-venv/bin/svgraph svg2dml examples/sample.svg -o tmp/release-smoke.xml" in release
     assert "tmp/release-venv/bin/svgraph svg2pptx examples/sample.svg -o tmp/release-smoke.pptx" in release
     assert "python -m zipfile --test tmp/release-smoke.pptx" in release
-    assert "tmp/release-venv/bin/svg2pptx" not in release
+    assert "tmp/release-venv/bin/svg2pptx examples/" not in release
 
 
 def test_release_checklist_smokes_all_canonical_svgraph_report_commands() -> None:

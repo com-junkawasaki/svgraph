@@ -110,6 +110,10 @@ tmp/release-venv/bin/python -m pip install tmp/dist/svgraph-*.whl
 tmp/release-venv/bin/python -m svgraph --version
 tmp/release-venv/bin/svgraph --version
 tmp/release-venv/bin/drawingml-svg --version
+tmp/release-venv/bin/svg2dml --version
+tmp/release-venv/bin/svg2pptx --version
+tmp/release-venv/bin/dml2svg --version
+tmp/release-venv/bin/drawingml-svg-analyze --version
 tmp/release-venv/bin/python - <<'PY'
 import svgraph
 from svgraph import svg_to_svgraph, svg_to_svgraph_presentation
