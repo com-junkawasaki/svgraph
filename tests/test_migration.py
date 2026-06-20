@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from email.parser import Parser
 import json
 from pathlib import Path
@@ -81,6 +82,16 @@ COMPATIBILITY_WRAPPER_MODULES = {
     "src/drawingml_svg/svgraph.py": "from svgraph.model import *",
 }
 
+CANONICAL_TOP_LEVEL_API = [
+    "analyze_svg",
+    "drawingml_to_svg",
+    "svg_to_drawingml",
+    "svg_to_pptx",
+    "svg_to_pptx_bytes",
+    "svg_to_svgraph",
+    "svg_to_svgraph_presentation",
+]
+
 
 def test_legacy_names_are_limited_to_compatibility_surfaces() -> None:
     root = Path(__file__).resolve().parents[1]
@@ -136,6 +147,19 @@ def test_pyproject_keeps_legacy_console_scripts_as_svgraph_compatibility_aliases
     assert project["scripts"]["dml2svg"] == "svgraph.cli:main"
     assert project["scripts"]["svg2dml"] == "svgraph.cli:main"
     assert project["scripts"]["svg2pptx"] == "svgraph.cli:main"
+
+
+def test_top_level_packages_expose_only_canonical_svgraph_api() -> None:
+    root = Path(__file__).resolve().parents[1]
+    svgraph_init = (root / "src" / "svgraph" / "__init__.py").read_text(encoding="utf-8")
+    compatibility_init = (root / "src" / "drawingml_svg" / "__init__.py").read_text(encoding="utf-8")
+
+    assert _literal_all(svgraph_init) == CANONICAL_TOP_LEVEL_API
+    assert _literal_all(compatibility_init) == CANONICAL_TOP_LEVEL_API
+    for source in [svgraph_init, compatibility_init]:
+        assert "svg_to_ir" not in source
+        assert "svg_to_pptx_ir" not in source
+        assert "SvgIRDocument" not in source
 
 
 def test_readme_lists_all_legacy_console_compatibility_aliases() -> None:
@@ -356,3 +380,14 @@ def _text_files(root: Path) -> list[Path]:
         and path.suffix in suffixes
         and not any(part in skipped or part.endswith(".egg-info") for part in path.relative_to(root).parts)
     )
+
+
+def _literal_all(source: str) -> list[str]:
+    module = ast.parse(source)
+    for node in module.body:
+        if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "__all__" for target in node.targets):
+            value = ast.literal_eval(node.value)
+            assert isinstance(value, list)
+            assert all(isinstance(item, str) for item in value)
+            return value
+    raise AssertionError("missing __all__ assignment")
