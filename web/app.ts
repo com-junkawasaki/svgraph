@@ -176,6 +176,8 @@ type TextShape = BaseShape & {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  baselineShift: string | null;
+  letterSpacing: number | null;
   anchor: string | null;
   baseline: string | null;
   runs: TextRun[];
@@ -190,6 +192,8 @@ type TextRun = {
   bold: boolean;
   italic: boolean;
   underline: boolean;
+  baselineShift: string | null;
+  letterSpacing: number | null;
 };
 
 type FreeformShape = BaseShape & {
@@ -252,6 +256,11 @@ type SvgStyle = {
   textDecoration?: string;
   textAnchor?: string | null;
   textBaseline?: string | null;
+  baselineShift?: string | null;
+  letterSpacing?: number | null;
+  wordSpacing?: number | null;
+  textLength?: number | null;
+  lengthAdjust?: string | null;
   markerStart?: boolean;
   markerEnd?: boolean;
   clipPath?: string | null;
@@ -321,8 +330,9 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect id="css-colors" x="740" y="615" width="120" height="50" style="color:orange;fill:currentColor;stroke:hsl(210 100% 50%)"/>
     <rect id="alpha-shape" x="580" y="615" width="120" height="50" style="fill:rgba(239,68,68,0.5);stroke:#2563ebcc;stroke-width:6;fill-opacity:0.8;stroke-opacity:0.5"/>
     <line id="dash-line" x1="120" y1="650" x2="300" y2="650" style="stroke:#0f766e;stroke-width:8;stroke-dasharray:18 10;stroke-linecap:round;stroke-linejoin:bevel"/>
-    <text id="rich-text" x="330" y="660" style="font-size:24;font-family:Arial;fill:#111827">Rich <tspan style="fill:#dc2626;font-weight:700">red</tspan><tspan style="fill:#2563eb;font-style:italic;text-decoration:underline"> blue</tspan></text>
+    <text id="rich-text" x="330" y="660" style="font-size:24;font-family:Arial;fill:#111827">Rich <tspan style="fill:#dc2626;font-weight:700;baseline-shift:super">red</tspan><tspan style="fill:#2563eb;font-style:italic;text-decoration:underline;letter-spacing:2px"> blue</tspan></text>
     <text id="anchored-text" x="680" y="660" style="font-size:24;font-family:Arial;fill:#0f172a;text-anchor:middle;dominant-baseline:middle">Centered</text>
+    <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
     <rect id="gradient-fill" x="900" y="615" width="120" height="50" style="fill:url(#linear-fallback);stroke:url(#radial-fallback)"/>
     <circle id="pattern-fill" cx="1080" cy="640" r="32" style="fill:url(#pattern-fallback);stroke:#334155"/>
     <use href="#reused-chip" class="accent-use" x="360" y="400"/>
@@ -758,7 +768,7 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
     const [x, y] = point(matrix, num(element, "x"), num(element, "y"));
     const runs = textRuns(element, style);
     const text = runs.map((run) => run.text).join("").trim();
-    const width = Math.max(80, text.length * fontSize * 0.62);
+    const width = Math.max(80, style.textLength ?? text.length * fontSize * 0.62 + wordSpacingExtra(style, text));
     const height = fontSize * 1.35;
     const anchor = style.textAnchor ?? null;
     const baseline = style.textBaseline ?? null;
@@ -778,6 +788,8 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
       bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
       italic: isItalic(style),
       underline: hasUnderline(style),
+      baselineShift: style.baselineShift ?? null,
+      letterSpacing: effectiveLetterSpacing(style, text, fontSize),
       anchor,
       baseline,
       runs,
@@ -898,6 +910,8 @@ function textRuns(element: Element, inheritedStyle: SvgStyle): TextRun[] {
       bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
       italic: isItalic(style),
       underline: hasUnderline(style),
+      baselineShift: style.baselineShift ?? null,
+      letterSpacing: effectiveLetterSpacing(style, text, style.fontSize ?? inheritedStyle.fontSize ?? 18),
     });
   };
   for (const node of Array.from(element.childNodes)) {
@@ -944,6 +958,38 @@ function normalizeTextBaseline(value: string): string | null {
   if (normalized === "text-after-edge" || normalized === "ideographic") return "text-after-edge";
   if (normalized === "text-before-edge" || normalized === "hanging") return "text-before-edge";
   return null;
+}
+
+function normalizeBaselineShift(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "super" || normalized === "sub" ? normalized : null;
+}
+
+function normalizeLengthAdjust(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "spacing" || normalized === "spacingandglyphs" ? normalized : null;
+}
+
+function effectiveLetterSpacing(style: SvgStyle, text: string, fontSize: number): number | null {
+  if (style.letterSpacing != null) return style.letterSpacing;
+  const line = text.trim();
+  if (style.textLength != null && (style.lengthAdjust == null || style.lengthAdjust === "spacing" || style.lengthAdjust === "spacingandglyphs") && line.length > 1 && !text.includes("\n")) {
+    const naturalWidth = fontSize * line.length * 0.9;
+    return (style.textLength - naturalWidth) / (line.length - 1);
+  }
+  if (style.wordSpacing != null && line.length > 1 && !text.includes("\n")) {
+    const gaps = wordGapCount(line);
+    if (gaps > 0) return (style.wordSpacing * gaps) / (line.length - 1);
+  }
+  return null;
+}
+
+function wordSpacingExtra(style: SvgStyle, text: string): number {
+  return style.wordSpacing != null ? style.wordSpacing * wordGapCount(text) : 0;
+}
+
+function wordGapCount(text: string): number {
+  return (text.trim().match(/[ \t\f\v]+/g) || []).length;
 }
 
 function markRelationConnectors(shapes: Shape[]): void {
@@ -1133,16 +1179,27 @@ function textXml(shape: TextShape): string {
     bold: shape.bold,
     italic: shape.italic,
     underline: shape.underline,
-    anchor: shape.anchor,
-    baseline: shape.baseline,
+    baselineShift: shape.baselineShift,
+    letterSpacing: shape.letterSpacing,
   }]).map(textRunXml).join("");
   const body = `<p:txBody><a:bodyPr wrap="none"${textBaselineAnchorXml(shape.baseline)}/><a:lstStyle/><a:p>${paragraphAlignXml(shape.anchor)}${runs}</a:p></p:txBody>`;
   return spXml(shape.id, shape.name, shape.x, shape.y, shape.width, shape.height, "rect", "<a:noFill/><a:ln><a:noFill/></a:ln>", body);
 }
 
 function textRunXml(run: TextRun): string {
-  const attrs = ` lang="en-US" sz="${Math.round(run.fontSize * 100)}"${run.bold ? ' b="1"' : ""}${run.italic ? ' i="1"' : ""}${run.underline ? ' u="sng"' : ""}`;
+  const attrs = ` lang="en-US" sz="${Math.round(run.fontSize * 100)}"${run.bold ? ' b="1"' : ""}${run.italic ? ' i="1"' : ""}${run.underline ? ' u="sng"' : ""}${baselineShiftXml(run.baselineShift)}${letterSpacingXml(run.letterSpacing)}`;
   return `<a:r><a:rPr${attrs}>${solidColorXml(run.fill, run.fillAlpha)}<a:latin typeface="${xml(run.fontFamily)}"/></a:rPr><a:t>${xml(run.text)}</a:t></a:r>`;
+}
+
+function baselineShiftXml(value: string | null): string {
+  if (value === "super") return ' baseline="30000"';
+  if (value === "sub") return ' baseline="-25000"';
+  return "";
+}
+
+function letterSpacingXml(value: number | null): string {
+  if (value == null || Math.abs(value) < 0.001) return "";
+  return ` spc="${Math.round(value * 75)}"`;
 }
 
 function paragraphAlignXml(anchor: string | null): string {
@@ -1553,6 +1610,11 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   const textDecoration = value("text-decoration-line") ?? value("text-decoration");
   const textAnchor = value("text-anchor");
   const textBaseline = value("dominant-baseline") ?? value("alignment-baseline");
+  const baselineShift = value("baseline-shift");
+  const letterSpacing = value("letter-spacing");
+  const wordSpacing = value("word-spacing");
+  const textLength = inlineDeclarations.textLength ?? element.getAttribute("textLength") ?? cssDeclarations.textLength ?? null;
+  const lengthAdjust = inlineDeclarations.lengthAdjust ?? element.getAttribute("lengthAdjust") ?? cssDeclarations.lengthAdjust ?? null;
   const clipPath = value("clip-path");
   const marker = value("marker");
   const markerStart = value("marker-start");
@@ -1590,6 +1652,11 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   if (textDecoration != null) next.textDecoration = textDecoration;
   if (textAnchor != null) next.textAnchor = normalizeTextAnchor(textAnchor);
   if (textBaseline != null) next.textBaseline = normalizeTextBaseline(textBaseline);
+  if (baselineShift != null) next.baselineShift = normalizeBaselineShift(baselineShift);
+  if (letterSpacing != null) next.letterSpacing = normalizeSpacingLength(letterSpacing);
+  if (wordSpacing != null) next.wordSpacing = normalizeSpacingLength(wordSpacing);
+  if (textLength != null) next.textLength = parseLength(textLength, next.textLength ?? 0);
+  if (lengthAdjust != null) next.lengthAdjust = normalizeLengthAdjust(lengthAdjust);
   if (clipPath != null) next.clipPath = clipPath.trim();
   if (marker != null) {
     const enabled = marker !== "none";
@@ -1681,6 +1748,13 @@ function normalizeStrokeDasharray(value: string): string | null {
   const normalized = value.trim();
   if (!normalized || normalized === "none") return null;
   return dasharrayNumbers(normalized) ? normalized : null;
+}
+
+function normalizeSpacingLength(value: string): number | null {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized || normalized === "normal") return null;
+  const parsed = parseLength(normalized, Number.NaN);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function dasharrayNumbers(value: string): number[] | null {
