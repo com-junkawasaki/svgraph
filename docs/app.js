@@ -35,6 +35,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <polyline id="zig" points="390,170 460,250 530,170 600,250" style="fill:none;stroke:#dc2626"/>
     <path id="box-path" d="M 690 170 L 900 170 L 900 315 L 690 315 Z" style="fill:#dcfce7;stroke:#15803d"/>
     <path id="curve-path" d="M 120 520 C 190 430 260 610 330 520 Q 390 445 450 520 T 570 520" style="fill:none;stroke:#ea580c;stroke-width:6"/>
+    <path id="arc-path" d="M 640 520 A 90 55 0 0 1 820 520 A 90 55 0 0 1 640 520" style="fill:#fef3c7;stroke:#a16207;stroke-width:5"/>
     <line id="marked-line" x1="980" y1="185" x2="1130" y2="260" style="stroke:#7c3aed;stroke-width:8;marker-end:url(#arrow)"/>
     <image id="pixel" x="980" y="340" width="96" height="96" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg=="/>
     <circle class="css-circle" cx="1130" cy="388" r="48"/>
@@ -482,7 +483,7 @@ function elementToShape(element, matrix, style, id) {
                 data,
                 points: parsed.points,
                 closed: parsed.closed,
-                fill: parsed.closed ? (style.fill ?? "#000000") : null,
+                fill: style.fill ?? (parsed.closed ? "#000000" : null),
                 stroke: style.stroke ?? "#111827",
                 strokeWidth: style.strokeWidth ?? 1,
                 markerStart: style.markerStart ?? false,
@@ -1091,7 +1092,7 @@ function parsePoints(value) {
     return points;
 }
 function parseBasicPath(value, matrix) {
-    const tokens = value.match(/[MmLlHhVvCcSsQqTtZz]|[-+]?(?:(?:\d*\.\d+)|(?:\d+\.?))(?:[eE][-+]?\d+)?/g) || [];
+    const tokens = value.match(/[MmLlHhVvCcSsQqTtAaZz]|[-+]?(?:(?:\d*\.\d+)|(?:\d+\.?))(?:[eE][-+]?\d+)?/g) || [];
     const points = [];
     let command = "";
     let index = 0;
@@ -1124,7 +1125,7 @@ function parseBasicPath(value, matrix) {
             command = token;
             index += 1;
         }
-        if (!/[MmLlHhVvCcSsQqTtZz]/.test(command))
+        if (!/[MmLlHhVvCcSsQqTtAaZz]/.test(command))
             return null;
         if (command === "Z" || command === "z") {
             closed = true;
@@ -1209,6 +1210,21 @@ function parseBasicPath(value, matrix) {
             lastQuadControl = control;
             lastCubicControl = null;
         }
+        else if (command === "A" || command === "a") {
+            const rx = nextNumber();
+            const ry = nextNumber();
+            const angle = nextNumber();
+            const largeArc = nextNumber();
+            const sweep = nextNumber();
+            const end = nextPoint(command === "a");
+            if (rx == null || ry == null || angle == null || largeArc == null || sweep == null || !end)
+                return null;
+            for (const arc of arcPoints([x, y], rx, ry, angle, Math.round(largeArc) !== 0, Math.round(sweep) !== 0, end))
+                pushPoint(arc);
+            [x, y] = end;
+            lastQuadControl = null;
+            lastCubicControl = null;
+        }
     }
     return points.length >= 2 ? { points, closed } : null;
 }
@@ -1235,6 +1251,52 @@ function quadraticPoints(start, control, end) {
         ]);
     }
     return points;
+}
+function arcPoints(start, rxValue, ryValue, xAxisRotation, largeArc, sweep, end) {
+    if (rxValue === 0 || ryValue === 0 || (start[0] === end[0] && start[1] === end[1]))
+        return [end];
+    let rx = Math.abs(rxValue);
+    let ry = Math.abs(ryValue);
+    const phi = ((xAxisRotation % 360) * Math.PI) / 180;
+    const cosPhi = Math.cos(phi);
+    const sinPhi = Math.sin(phi);
+    const dx = (start[0] - end[0]) / 2;
+    const dy = (start[1] - end[1]) / 2;
+    const x1p = cosPhi * dx + sinPhi * dy;
+    const y1p = -sinPhi * dx + cosPhi * dy;
+    const radiusScale = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
+    if (radiusScale > 1) {
+        const scale = Math.sqrt(radiusScale);
+        rx *= scale;
+        ry *= scale;
+    }
+    const sign = largeArc === sweep ? -1 : 1;
+    const numerator = Math.max(rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p, 0);
+    const denominator = rx * rx * y1p * y1p + ry * ry * x1p * x1p;
+    const coef = denominator ? sign * Math.sqrt(numerator / denominator) : 0;
+    const cxp = coef * ((rx * y1p) / ry);
+    const cyp = coef * ((-ry * x1p) / rx);
+    const cx = cosPhi * cxp - sinPhi * cyp + (start[0] + end[0]) / 2;
+    const cy = sinPhi * cxp + cosPhi * cyp + (start[1] + end[1]) / 2;
+    const startAngle = vectorAngle([1, 0], [(x1p - cxp) / rx, (y1p - cyp) / ry]);
+    let deltaAngle = vectorAngle([(x1p - cxp) / rx, (y1p - cyp) / ry], [(-x1p - cxp) / rx, (-y1p - cyp) / ry]);
+    if (!sweep && deltaAngle > 0)
+        deltaAngle -= Math.PI * 2;
+    if (sweep && deltaAngle < 0)
+        deltaAngle += Math.PI * 2;
+    const segments = Math.max(4, Math.min(32, Math.ceil(Math.abs(deltaAngle) / (Math.PI / 12))));
+    const points = [];
+    for (let step = 1; step <= segments; step += 1) {
+        const theta = startAngle + (deltaAngle * step) / segments;
+        points.push([
+            cosPhi * rx * Math.cos(theta) - sinPhi * ry * Math.sin(theta) + cx,
+            sinPhi * rx * Math.cos(theta) + cosPhi * ry * Math.sin(theta) + cy,
+        ]);
+    }
+    return points;
+}
+function vectorAngle(u, v) {
+    return Math.atan2(u[0] * v[1] - u[1] * v[0], u[0] * v[0] + u[1] * v[1]);
 }
 function emu(value) {
     return Math.round(value * emuPerPx);
