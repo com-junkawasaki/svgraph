@@ -21,6 +21,7 @@ REPORT_COMMANDS = {"analyze", "ir", "svgraph", "svgraph-presentation", "pptxsvg"
 
 def main(argv: list[str] | None = None) -> int:
     argv_was_provided = argv is not None
+    invoked_as = None if argv_was_provided else Path(sys.argv[0]).name
     argv = _normalize_argv(argv)
     parser = argparse.ArgumentParser(prog=_program_name(argv_was_provided))
     parser.add_argument("--version", action="version", version=f"%(prog)s {_package_version()}")
@@ -36,8 +37,8 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("-o", "--output", help="Output file. Writes stdout when omitted.")
 
     args = parser.parse_args(argv)
-    if not argv_was_provided and Path(sys.argv[0]).name == "drawingml-svg":
-        _warn_legacy_executable(parser, "drawingml-svg", "svgraph")
+    if invoked_as is not None:
+        _warn_legacy_executable_invocation(parser, invoked_as)
     try:
         source = _read_text(args.input)
         if args.command == "svg2dml":
@@ -148,6 +149,19 @@ def _warn_legacy_executable(parser: argparse.ArgumentParser, executable: str, re
         f"{parser.prog}: warning: executable '{executable}' is deprecated; use '{replacement}'.\n",
         sys.stderr,
     )
+
+
+def _warn_legacy_executable_invocation(parser: argparse.ArgumentParser, invoked_as: str) -> None:
+    replacements = {
+        "drawingml-svg": "svgraph",
+        "svg2dml": "svgraph svg2dml",
+        "dml2svg": "svgraph dml2svg",
+        "svg2pptx": "svgraph svg2pptx",
+        "drawingml-svg-analyze": "svgraph analyze",
+    }
+    replacement = replacements.get(invoked_as)
+    if replacement is not None:
+        _warn_legacy_executable(parser, invoked_as, replacement)
 
 
 if __name__ == "__main__":

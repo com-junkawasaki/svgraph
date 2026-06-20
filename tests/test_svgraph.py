@@ -9,7 +9,7 @@ import drawingml_svg
 import drawingml_svg.ir
 import svgraph as svgraph_package
 from drawingml_svg.ir import svg_ir_to_json, svg_pptx_ir_to_json, svg_to_ir, svg_to_pptx_ir
-from svgraph import svg_to_svgraph, svg_to_svgraph_presentation
+from svgraph import svg_to_drawingml, svg_to_svgraph, svg_to_svgraph_presentation
 from svgraph.cli import main as cli_main
 from svgraph.model import svg_svgraph_presentation_to_json, svg_svgraph_to_json
 
@@ -78,6 +78,41 @@ def test_legacy_executable_accepts_direct_svgraph_input(monkeypatch, tmp_path, c
 
     assert '"kind": "svgraph"' in captured.out
     assert "executable 'drawingml-svg' is deprecated; use 'svgraph'" in captured.err
+
+
+@pytest.mark.parametrize(
+    ("executable", "replacement"),
+    [
+        ("svg2dml", "svgraph svg2dml"),
+        ("dml2svg", "svgraph dml2svg"),
+        ("svg2pptx", "svgraph svg2pptx"),
+        ("drawingml-svg-analyze", "svgraph analyze"),
+    ],
+)
+def test_legacy_executable_aliases_warn_toward_canonical_svgraph_commands(
+    monkeypatch,
+    tmp_path,
+    capsys,
+    executable: str,
+    replacement: str,
+) -> None:
+    svg_source = tmp_path / "input.svg"
+    svg_source.write_text('<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="8"/></svg>', encoding="utf-8")
+    dml_source = tmp_path / "input.xml"
+    dml_source.write_text(svg_to_drawingml(svg_source.read_text(encoding="utf-8")), encoding="utf-8")
+    output = tmp_path / "out"
+    argv_by_executable = {
+        "svg2dml": ["svg2dml", str(svg_source), "-o", str(output.with_suffix(".xml"))],
+        "dml2svg": ["dml2svg", str(dml_source), "-o", str(output.with_suffix(".svg"))],
+        "svg2pptx": ["svg2pptx", str(svg_source), "-o", str(output.with_suffix(".pptx"))],
+        "drawingml-svg-analyze": ["drawingml-svg-analyze", str(svg_source)],
+    }
+    monkeypatch.setattr("sys.argv", argv_by_executable[executable])
+
+    assert cli_main() == 0
+    captured = capsys.readouterr()
+
+    assert f"executable '{executable}' is deprecated; use '{replacement}'" in captured.err
 
 
 def test_cli_help_lists_svgraph_commands_and_hides_legacy_aliases(capsys) -> None:
