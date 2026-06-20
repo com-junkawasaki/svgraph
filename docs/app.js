@@ -26,7 +26,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <text x="90" y="90" font-size="40" font-family="Arial" font-weight="700" fill="#17202a">foreignObject table becomes native</text>
     <foreignObject id="html-table" x="90" y="150" width="620" height="250">
       <body xmlns="http://www.w3.org/1999/xhtml">
-        <table>
+        <table cellpadding="6">
           <colgroup>
             <col style="width:35%"/>
             <col style="width:25%"/>
@@ -38,11 +38,11 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
           </tr>
           <tr>
             <td rowspan="2" style="background-color:#dcfce7;color:#14532d;border:2px solid #16a34a;font-weight:700">Roadmap</td>
-            <td style="background-color:#ffffff;color:#111827;border:1px solid #94a3b8">IR</td>
-            <td style="background-color:#f8fafc;color:#111827;border:1px solid #94a3b8">Browser</td>
+            <td align="center" valign="top" style="background-color:#ffffff;color:#111827;border:1px solid #94a3b8">IR</td>
+            <td style="background-color:#f8fafc;color:#111827;border:1px solid #94a3b8;border-right:3px dotted #dc2626;border-top:4px double #2563eb;border-bottom-style:dashed;border-bottom-width:2px;border-bottom-color:#16a34a">Browser</td>
           </tr>
           <tr>
-            <td style="background-color:#ffffff;color:#111827;border:1px solid #94a3b8">PPTX</td>
+            <td style="background-color:#ffffff;color:#111827;border:none;padding:1px">PPTX</td>
             <td style="background-color:#f8fafc;color:#111827;border:1px solid #94a3b8">Pages</td>
           </tr>
         </table>
@@ -637,12 +637,13 @@ function tableFromGroup(group, matrix, id, inheritedStyle, css = []) {
         fill: cell.fill,
         textFill: cell.textFill,
         textBold: cell.textBold,
-        stroke: cell.stroke,
-        strokeAlpha: cell.strokeAlpha,
-        strokeWidth: cell.strokeWidth,
-        strokeLineCap: cell.strokeLineCap,
-        strokeLineJoin: cell.strokeLineJoin,
-        strokeDasharray: cell.strokeDasharray,
+        textAlign: cell.textAlign,
+        verticalAlign: cell.verticalAlign,
+        padding: cell.padding,
+        borderLeft: cell.borderLeft,
+        borderRight: cell.borderRight,
+        borderTop: cell.borderTop,
+        borderBottom: cell.borderBottom,
     }));
     return {
         id,
@@ -716,13 +717,26 @@ function tableFromForeignObject(element, matrix, id, inheritedStyle, css = []) {
     };
 }
 function tableCellStyle(style, header) {
+    const border = tableBorderFromStyle(style);
     return {
         textFill: style.color ?? style.fill ?? "#111827",
         textBold: header || ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
+        textAlign: style.tableCellTextAlign ?? (header ? "center" : null),
+        verticalAlign: style.tableCellVerticalAlign ?? "middle",
+        padding: style.tableCellPadding ?? 0,
+        borderLeft: style.tableBorderLeft ?? border,
+        borderRight: style.tableBorderRight ?? border,
+        borderTop: style.tableBorderTop ?? border,
+        borderBottom: style.tableBorderBottom ?? border,
+    };
+}
+function tableBorderFromStyle(style) {
+    return {
         stroke: style.stroke ?? null,
         strokeAlpha: style.strokeAlpha ?? null,
         strokeWidth: style.strokeWidth ?? 1,
         ...strokeStyle(style),
+        compound: null,
     };
 }
 function htmlTableRows(table) {
@@ -783,10 +797,13 @@ function htmlElementStyle(element, inheritedStyle, css) {
     const value = (name) => inlineDeclarations[name] ?? element.getAttribute(name) ?? cssDeclarations[name] ?? null;
     const next = { ...inheritedStyle };
     const color = value("color");
-    const background = value("background-color") ?? value("background");
-    const border = value("border");
+    const background = value("background-color") ?? value("background") ?? element.getAttribute("bgcolor");
+    const border = value("border") ?? (element.hasAttribute("border") ? `${element.getAttribute("border") || "1"} solid` : null);
     const borderColor = value("border-color") ?? element.getAttribute("bordercolor");
     const borderWidth = value("border-width") ?? element.getAttribute("border");
+    const padding = value("padding") ?? element.getAttribute("cellpadding");
+    const textAlign = value("text-align") ?? element.getAttribute("align");
+    const verticalAlign = value("vertical-align") ?? element.getAttribute("valign");
     const fontWeight = value("font-weight");
     if (color != null)
         next.color = parseCssColor(color, next) ?? next.color ?? null;
@@ -795,39 +812,88 @@ function htmlElementStyle(element, inheritedStyle, css) {
         next.fillAlpha = cssColorAlpha(background);
     }
     const parsedBorder = parseHtmlBorder(border, next);
-    if (parsedBorder.color != null)
-        next.stroke = parsedBorder.color;
-    if (parsedBorder.alpha != null)
-        next.strokeAlpha = parsedBorder.alpha;
-    if (parsedBorder.width != null)
-        next.strokeWidth = parsedBorder.width;
-    if (parsedBorder.dasharray != null)
-        next.strokeDasharray = parsedBorder.dasharray;
+    if (border != null) {
+        next.stroke = parsedBorder.stroke;
+        next.strokeAlpha = parsedBorder.strokeAlpha;
+        next.strokeWidth = parsedBorder.strokeWidth;
+        next.strokeDasharray = parsedBorder.strokeDasharray;
+    }
     if (borderColor != null) {
         next.stroke = parseCssColor(borderColor, next);
         next.strokeAlpha = cssColorAlpha(borderColor);
     }
     if (borderWidth != null)
         next.strokeWidth = htmlCssLength(borderWidth, 1) ?? next.strokeWidth ?? 1;
+    if (padding != null)
+        next.tableCellPadding = htmlCssLength(padding, 0) ?? next.tableCellPadding ?? 0;
+    if (textAlign != null)
+        next.tableCellTextAlign = normalizeHtmlTextAlign(textAlign);
+    if (verticalAlign != null)
+        next.tableCellVerticalAlign = normalizeHtmlVerticalAlign(verticalAlign);
+    const currentBorder = tableBorderFromStyle(next);
+    next.tableBorderLeft = htmlSideBorder(element, "left", currentBorder, next);
+    next.tableBorderRight = htmlSideBorder(element, "right", currentBorder, next);
+    next.tableBorderTop = htmlSideBorder(element, "top", currentBorder, next);
+    next.tableBorderBottom = htmlSideBorder(element, "bottom", currentBorder, next);
     if (fontWeight != null)
         next.fontWeight = fontWeight;
     return next;
 }
+function htmlSideBorder(element, side, fallback, style) {
+    const declarations = styleDeclarations(element.getAttribute("style"));
+    const shorthand = declarations[`border-${side}`];
+    const sideStyle = declarations[`border-${side}-style`];
+    const sideWidth = declarations[`border-${side}-width`];
+    const sideColor = declarations[`border-${side}-color`];
+    if (!shorthand && !sideStyle && !sideWidth && !sideColor)
+        return null;
+    const parsed = parseHtmlBorder(shorthand ?? [sideWidth, sideStyle, sideColor].filter(Boolean).join(" "), style);
+    return {
+        ...fallback,
+        stroke: parsed.stroke,
+        strokeAlpha: parsed.strokeAlpha,
+        strokeWidth: parsed.strokeWidth,
+        strokeDasharray: parsed.strokeDasharray,
+        compound: parsed.compound,
+    };
+}
 function parseHtmlBorder(value, style) {
     if (!value || value.trim().toLowerCase() === "none")
-        return { color: null, alpha: null, width: null, dasharray: null };
+        return { stroke: null, strokeAlpha: null, strokeWidth: 0, strokeLineCap: null, strokeLineJoin: null, strokeDasharray: null, compound: null };
     const parts = value.trim().split(/\s+/);
     const width = parts.map((part) => htmlCssLength(part, 1)).find((item) => item != null) ?? null;
     const colorPart = parts.find((part) => parseCssColor(part, style));
     const stylePart = parts.find((part) => ["dashed", "dotted", "double"].includes(part.toLowerCase()))?.toLowerCase() || null;
     const borderWidth = width ?? 1;
-    const dasharray = stylePart === "dashed" ? `${borderWidth * 3} ${borderWidth * 2}` : stylePart === "dotted" ? `${borderWidth} ${borderWidth}` : stylePart === "double" ? `${borderWidth * 3} ${borderWidth}` : null;
+    const dasharray = stylePart === "dashed" ? `${borderWidth * 3} ${borderWidth * 3}` : stylePart === "dotted" ? `${borderWidth} ${borderWidth}` : null;
     return {
-        color: colorPart ? parseCssColor(colorPart, style) : null,
-        alpha: colorPart ? cssColorAlpha(colorPart) : null,
-        width,
-        dasharray,
+        stroke: colorPart ? parseCssColor(colorPart, style) : (style.stroke ?? "#000000"),
+        strokeAlpha: colorPart ? cssColorAlpha(colorPart) : (style.strokeAlpha ?? null),
+        strokeWidth: borderWidth,
+        ...strokeStyle(style),
+        strokeDasharray: dasharray,
+        compound: stylePart === "double" ? "dbl" : null,
     };
+}
+function normalizeHtmlTextAlign(value) {
+    const normalized = value.trim().toLowerCase();
+    if (["left", "start"].includes(normalized))
+        return "start";
+    if (["center", "middle"].includes(normalized))
+        return "middle";
+    if (["right", "end"].includes(normalized))
+        return "end";
+    return null;
+}
+function normalizeHtmlVerticalAlign(value) {
+    const normalized = value.trim().toLowerCase();
+    if (["top", "text-top"].includes(normalized))
+        return "top";
+    if (["middle", "center"].includes(normalized))
+        return "middle";
+    if (["bottom", "text-bottom"].includes(normalized))
+        return "bottom";
+    return null;
 }
 function htmlCssLength(value, basis) {
     if (!value)
@@ -1271,7 +1337,7 @@ function tableXml(shape) {
             const origin = Boolean(cell && cell.row === rowIndex && cell.col === colIndex);
             const text = origin && cell?.text ? tableCellTextXml(cell) : "";
             const borders = origin ? tableBorderXml(cell) : "";
-            return `<a:tc${attrs}><a:txBody><a:bodyPr/><a:lstStyle/><a:p>${text}</a:p></a:txBody><a:tcPr>${fillXml(cell?.fill || "#ffffff")}${borders}</a:tcPr></a:tc>`;
+            return `<a:tc${attrs}><a:txBody>${tableCellBodyPrXml(cell)}<a:lstStyle/><a:p>${tableCellParagraphPrXml(cell)}${text}</a:p></a:txBody><a:tcPr>${fillXml(cell?.fill || "#ffffff")}${borders}</a:tcPr></a:tc>`;
         })
             .join("");
         return `<a:tr h="${emu(height)}">${cells}</a:tr>`;
@@ -1305,18 +1371,49 @@ function tableCellTextXml(cell) {
     const fill = solidColorXml(cell.textFill || "#111827");
     return `<a:r><a:rPr${attrs}>${fill}</a:rPr><a:t>${xml(cell.text)}</a:t></a:r>`;
 }
-function tableBorderXml(cell) {
-    if (!cell || !cell.stroke || cell.strokeWidth <= 0)
-        return "";
-    return ["lnL", "lnR", "lnT", "lnB"].map((tag) => tableBorderLineXml(tag, cell)).join("");
+function tableCellBodyPrXml(cell) {
+    const padding = emu(cell?.padding ?? 0);
+    const anchor = tableVerticalAnchor(cell?.verticalAlign ?? null);
+    return `<a:bodyPr lIns="${padding}" rIns="${padding}" tIns="${padding}" bIns="${padding}"${anchor}/>`;
 }
-function tableBorderLineXml(tag, cell) {
-    const stroke = cell.stroke;
-    if (!stroke)
+function tableCellParagraphPrXml(cell) {
+    const align = tableHorizontalAlign(cell?.textAlign ?? null);
+    return align ? `<a:pPr algn="${align}"/>` : "";
+}
+function tableHorizontalAlign(value) {
+    if (value === "middle")
+        return "ctr";
+    if (value === "end")
+        return "r";
+    return null;
+}
+function tableVerticalAnchor(value) {
+    if (value === "top")
+        return ' anchor="t"';
+    if (value === "bottom")
+        return ' anchor="b"';
+    if (value === "middle")
+        return ' anchor="ctr"';
+    return "";
+}
+function tableBorderXml(cell) {
+    if (!cell)
         return "";
-    const cap = svgLineCapToDml(cell.strokeLineCap);
+    return [
+        tableBorderLineXml("lnL", cell.borderLeft),
+        tableBorderLineXml("lnR", cell.borderRight),
+        tableBorderLineXml("lnT", cell.borderTop),
+        tableBorderLineXml("lnB", cell.borderBottom),
+    ].join("");
+}
+function tableBorderLineXml(tag, border) {
+    const stroke = border.stroke;
+    const cap = svgLineCapToDml(border.strokeLineCap);
     const capAttr = cap ? ` cap="${xml(cap)}"` : "";
-    return `<a:${tag} w="${emu(cell.strokeWidth)}"${capAttr}><a:solidFill><a:srgbClr val="${hex(stroke)}">${alphaXml(cell.strokeAlpha)}</a:srgbClr></a:solidFill>${dashXml(cell.strokeDasharray, cell.strokeWidth)}${joinXml(cell.strokeLineJoin)}</a:${tag}>`;
+    const compoundAttr = border.compound ? ` cmpd="${xml(border.compound)}"` : "";
+    if (!stroke || border.strokeWidth <= 0)
+        return `<a:${tag} w="0"${capAttr}${compoundAttr}><a:noFill/></a:${tag}>`;
+    return `<a:${tag} w="${emu(border.strokeWidth)}"${capAttr}${compoundAttr}><a:solidFill><a:srgbClr val="${hex(stroke)}">${alphaXml(border.strokeAlpha)}</a:srgbClr></a:solidFill>${dashXml(border.strokeDasharray, border.strokeWidth)}${joinXml(border.strokeLineJoin)}</a:${tag}>`;
 }
 function freeformXml(shape) {
     const box = shapeBox(shape);
