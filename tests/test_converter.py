@@ -173,6 +173,12 @@ def test_cli_version_writes_installed_package_version(capsys) -> None:
     assert captured.out == "drawingml-svg 0.1.0\n"
 
 
+def test_pyproject_installs_svgraph_console_script() -> None:
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert 'svgraph = "drawingml_svg.cli:main"' in pyproject
+
+
 def test_cli_help_lists_svgraph_commands_and_hides_legacy_aliases(capsys) -> None:
     with pytest.raises(SystemExit) as excinfo:
         cli_main(["--help"])
@@ -184,6 +190,30 @@ def test_cli_help_lists_svgraph_commands_and_hides_legacy_aliases(capsys) -> Non
     assert "svgraph-presentation" in captured.out
     assert "pptxsvg" not in captured.out
     assert "{svg2dml,dml2svg,svg2pptx,analyze,ir" not in captured.out
+
+
+def test_svgraph_executable_defaults_to_svgraph_json(monkeypatch, tmp_path, capsys) -> None:
+    source = tmp_path / "input.svg"
+    source.write_text('<svg><rect id="box" width="10" height="8"/></svg>', encoding="utf-8")
+    monkeypatch.setattr("sys.argv", ["svgraph", str(source)])
+
+    assert cli_main() == 0
+    captured = capsys.readouterr()
+
+    assert '"kind": "svgraph"' in captured.out
+    assert '"id": "box"' in captured.out
+
+
+def test_svgraph_executable_keeps_svgraph_program_name(monkeypatch, capsys) -> None:
+    monkeypatch.setattr("sys.argv", ["svgraph", "--version"])
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli_main()
+
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 0
+    assert captured.out == "svgraph 0.1.0\n"
 
 
 def test_pptx_exporter_uses_only_svgraph_internal_shape_prefix() -> None:

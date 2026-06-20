@@ -205,6 +205,7 @@ jobs:
           PY
           python -m venv tmp/wheel-venv
           tmp/wheel-venv/bin/python -m pip install tmp/dist/drawingml_svg-*.whl
+          tmp/wheel-venv/bin/svgraph --version
           tmp/wheel-venv/bin/drawingml-svg --version
           tmp/wheel-venv/bin/svg2dml --version
           tmp/wheel-venv/bin/svg2pptx --version
@@ -212,7 +213,7 @@ jobs:
           tmp/wheel-venv/bin/drawingml-svg-analyze --version
           tmp/wheel-venv/bin/drawingml-svg analyze examples/coverage.svg
           tmp/wheel-venv/bin/drawingml-svg-analyze examples/coverage.svg
-          tmp/wheel-venv/bin/drawingml-svg svgraph examples/svgraph.svg > tmp/wheel-svgraph.json
+          tmp/wheel-venv/bin/svgraph examples/svgraph.svg > tmp/wheel-svgraph.json
           tmp/wheel-venv/bin/drawingml-svg svgraph-presentation examples/svgraph.svg > tmp/wheel-svgraph-presentation.json
           python - <<'PY'
           import json

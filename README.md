@@ -58,31 +58,31 @@ pip install -e .
 
 ```bash
 # SVG -> DrawingML
-drawingml-svg svg2dml input.svg -o shape.xml
+svgraph svg2dml input.svg -o shape.xml
 
 # SVG/SVGraph presentation -> complete PPTX package
-drawingml-svg svg2pptx deck.svg -o deck.pptx
+svgraph svg2pptx deck.svg -o deck.pptx
 
 # DrawingML -> SVG
-drawingml-svg dml2svg shape.xml -o shape.svg
+svgraph dml2svg shape.xml -o shape.svg
 
 # stdin/stdout
-cat input.svg | drawingml-svg svg2dml > shape.xml
+cat input.svg | svgraph svg2dml > shape.xml
 
 # coverage / maturity report
-drawingml-svg analyze input.svg
+svgraph analyze input.svg
 
 # metadata-preserving SVGraph
-drawingml-svg svgraph input.svg
+svgraph input.svg
 
 # PPTX/package-oriented SVGraph presentation projection
-drawingml-svg svgraph-presentation input.svg
+svgraph svgraph-presentation input.svg
 
 # installed package version
-drawingml-svg --version
+svgraph --version
 ```
 
-`dml2svg` and `svg2dml` are also installed as aliases.
+`drawingml-svg`, `dml2svg`, and `svg2dml` are also installed as compatibility aliases.
 
 ## PPTX smoke test
 

@@ -30,6 +30,7 @@ Repository = "https://github.com/com-junkawasaki/svgraph"
 Issues = "https://github.com/com-junkawasaki/svgraph/issues"
 
 [project.scripts]
+svgraph = "drawingml_svg.cli:main"
 drawingml-svg = "drawingml_svg.cli:main"
 dml2svg = "drawingml_svg.cli:main"
 svg2dml = "drawingml_svg.cli:main"

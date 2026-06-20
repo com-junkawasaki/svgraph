@@ -19,8 +19,9 @@ REPORT_COMMANDS = {"analyze", "ir", "svgraph", "svgraph-presentation", "pptxsvg"
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv_was_provided = argv is not None
     argv = _normalize_argv(argv)
-    parser = argparse.ArgumentParser(prog="drawingml-svg")
+    parser = argparse.ArgumentParser(prog=_program_name(argv_was_provided))
     parser.add_argument("--version", action="version", version=f"%(prog)s {_package_version()}")
     subparsers = parser.add_subparsers(dest="command", metavar="{" + ",".join(VISIBLE_COMMANDS) + "}")
     subparsers.required = True
@@ -78,6 +79,9 @@ def _normalize_argv(argv: list[str] | None) -> list[str] | None:
     if argv is not None:
         return argv
     invoked_as = Path(sys.argv[0]).name
+    if invoked_as == "svgraph" and sys.argv[1:] and sys.argv[1] not in {*VISIBLE_COMMANDS, *LEGACY_COMMANDS}:
+        if sys.argv[1] not in {"--version", "-h", "--help"}:
+            return ["svgraph", *sys.argv[1:]]
     if invoked_as in {"svg2dml", "dml2svg", "svg2pptx", "drawingml-svg-analyze"}:
         if sys.argv[1:] == ["--version"]:
             return sys.argv[1:]
@@ -85,6 +89,15 @@ def _normalize_argv(argv: list[str] | None) -> list[str] | None:
             invoked_as = "analyze"
         return [invoked_as, *sys.argv[1:]]
     return None
+
+
+def _program_name(argv_was_provided: bool) -> str:
+    if argv_was_provided:
+        return "drawingml-svg"
+    invoked_as = Path(sys.argv[0]).name
+    if invoked_as in {"svgraph", "drawingml-svg"}:
+        return invoked_as
+    return "drawingml-svg"
 
 
 def _read_text(path: str | None) -> str:
