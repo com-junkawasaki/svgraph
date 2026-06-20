@@ -137,6 +137,26 @@ jobs:
           assert any(name.startswith("ppt/media/image") for name in names), "complex PPTX media image was not embedded"
           PY
 
+          drawingml-svg svg2pptx examples/pptxsvg.svg -o tmp/ci-pptxsvg.pptx
+          python -m zipfile --test tmp/ci-pptxsvg.pptx
+          python - <<'PY'
+          import zipfile
+
+          with zipfile.ZipFile("tmp/ci-pptxsvg.pptx") as pptx:
+              names = set(pptx.namelist())
+              presentation = pptx.read("ppt/presentation.xml").decode("utf-8")
+              app = pptx.read("docProps/app.xml").decode("utf-8")
+              slide1 = pptx.read("ppt/slides/slide1.xml").decode("utf-8")
+              slide2 = pptx.read("ppt/slides/slide2.xml").decode("utf-8")
+
+          assert {"ppt/slides/slide1.xml", "ppt/slides/slide2.xml"} <= names
+          assert presentation.count("<p:sldId ") == 2
+          assert 'cx="12192000" cy="6858000"' in presentation
+          assert "<Slides>2</Slides>" in app
+          assert "<a:t>PPTXSVG</a:t>" in slide1
+          assert "<a:t>Table semantics stay in IR</a:t>" in slide2
+          PY
+
       - name: Build distribution smoke
         run: |
           python -m build --sdist --wheel -o tmp/dist
@@ -171,9 +191,12 @@ jobs:
           tmp/wheel-venv/bin/python -m pip install tmp/dist/drawingml_svg-*.whl
           tmp/wheel-venv/bin/drawingml-svg --version
           tmp/wheel-venv/bin/svg2dml --version
+          tmp/wheel-venv/bin/svg2pptx --version
           tmp/wheel-venv/bin/dml2svg --version
           tmp/wheel-venv/bin/drawingml-svg-analyze --version
           tmp/wheel-venv/bin/drawingml-svg analyze examples/coverage.svg
           tmp/wheel-venv/bin/drawingml-svg-analyze examples/coverage.svg
           tmp/wheel-venv/bin/svg2dml examples/sample.svg -o tmp/wheel-smoke.xml
           test -s tmp/wheel-smoke.xml
+          tmp/wheel-venv/bin/svg2pptx examples/sample.svg -o tmp/wheel-smoke.pptx
+          python -m zipfile --test tmp/wheel-smoke.pptx

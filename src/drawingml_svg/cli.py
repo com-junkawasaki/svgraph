@@ -10,6 +10,7 @@ from xml.etree import ElementTree as ET
 from .coverage import analyze_svg
 from .converter import drawingml_to_svg, svg_to_drawingml
 from .ir import svg_ir_to_json, svg_pptx_ir_to_json
+from .pptx import svg_to_pptx
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -19,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command")
     subparsers.required = True
 
-    for command in ("svg2dml", "dml2svg", "analyze", "ir", "pptxsvg"):
+    for command in ("svg2dml", "dml2svg", "svg2pptx", "analyze", "ir", "pptxsvg"):
         sub = subparsers.add_parser(command)
         sub.add_argument("input", nargs="?", help="Input file. Reads stdin when omitted.")
         if command not in {"analyze", "ir", "pptxsvg"}:
@@ -32,6 +33,11 @@ def main(argv: list[str] | None = None) -> int:
             output = svg_to_drawingml(source)
         elif args.command == "dml2svg":
             output = drawingml_to_svg(source)
+        elif args.command == "svg2pptx":
+            if not args.output:
+                parser.error("svg2pptx requires -o/--output")
+            svg_to_pptx(source, args.output)
+            output = None
         elif args.command == "analyze":
             output = json.dumps(analyze_svg(source).to_dict(), indent=2, sort_keys=True) + "\n"
         elif args.command == "ir":
@@ -41,7 +47,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             parser.error(f"unknown command: {args.command}")
 
-        _write_text(getattr(args, "output", None), output)
+        if output is not None:
+            _write_text(getattr(args, "output", None), output)
     except (ET.ParseError, OSError, ValueError) as exc:
         parser.exit(1, f"{parser.prog}: error: {exc}\n")
     return 0
@@ -58,7 +65,7 @@ def _normalize_argv(argv: list[str] | None) -> list[str] | None:
     if argv is not None:
         return argv
     invoked_as = Path(sys.argv[0]).name
-    if invoked_as in {"svg2dml", "dml2svg", "drawingml-svg-analyze"}:
+    if invoked_as in {"svg2dml", "dml2svg", "svg2pptx", "drawingml-svg-analyze"}:
         if sys.argv[1:] == ["--version"]:
             return sys.argv[1:]
         if invoked_as == "drawingml-svg-analyze":

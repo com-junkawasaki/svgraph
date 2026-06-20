@@ -75,6 +75,52 @@ def test_svg_pptx_ir_discovers_declared_slides() -> None:
     assert [part.source_node_id for part in presentation.parts[-2:]] == ["n0.0", "n0.1"]
 
 
+def test_svg_pptx_ir_preserves_presentation_templates_guides_rulers_and_text_styles() -> None:
+    svg = """\
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <metadata>{
+    "presentation": {
+      "masters": [{"id": "brand-master", "theme": "brand"}],
+      "layouts": [{"id": "title-content", "master": "brand-master"}],
+      "guides": [{"id": "safe-left", "orientation": "vertical", "position": 96}],
+      "rulers": [{"id": "x", "orientation": "horizontal", "origin": 0, "spacing": 16}],
+      "textStyles": {
+        "title": {"fontFamily": "Aptos Display", "fontSize": 48, "bold": true},
+        "lead": {"fontFamily": "Aptos", "fontSize": 24},
+        "body": {"fontFamily": "Aptos", "fontSize": 16}
+      }
+    }
+  }</metadata>
+  <g id="master-node" data-kind="slide-master" data-name="Brand"/>
+  <g id="layout-node" data-kind="slide-layout" data-master="brand-master"/>
+  <line id="guide-node" data-kind="guide" data-orientation="horizontal" data-position="120"/>
+  <line id="ruler-node" data-kind="ruler" data-orientation="vertical" data-origin="8" data-spacing="24"/>
+  <text id="caption-style" data-kind="style-template" data-role="caption" font-size="12"/>
+  <g id="slide-a" data-kind="slide"><rect width="10" height="10"/></g>
+</svg>
+"""
+
+    presentation = svg_to_pptx_ir(svg)
+
+    assert [master.template_id for master in presentation.masters] == ["brand-master", "master-node"]
+    assert [layout.template_id for layout in presentation.layouts] == ["title-content", "layout-node"]
+    assert [part.part_name for part in presentation.parts if part.kind == "slide-master"] == [
+        "/ppt/slideMasters/slideMaster1.xml",
+        "/ppt/slideMasters/slideMaster2.xml",
+    ]
+    assert [part.source_node_id for part in presentation.parts if part.kind == "slide-master"] == [None, "n0.0"]
+    assert [(guide.guide_id, guide.orientation, guide.position) for guide in presentation.guides] == [
+        ("safe-left", "vertical", 96.0),
+        ("guide-node", "horizontal", 120.0),
+    ]
+    assert [(ruler.ruler_id, ruler.orientation, ruler.spacing) for ruler in presentation.rulers] == [
+        ("x", "horizontal", 16.0),
+        ("ruler-node", "vertical", 24.0),
+    ]
+    assert [style.role for style in presentation.text_styles] == ["title", "lead", "body", "caption"]
+    assert presentation.text_styles[0].properties["fontSize"] == 48
+
+
 def test_svg_pptx_ir_json_cli_payload_is_serializable() -> None:
     payload = svg_pptx_ir_to_json(
         """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 9"><g data-slide="1"/></svg>"""

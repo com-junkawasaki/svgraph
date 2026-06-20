@@ -336,7 +336,7 @@
 
     <script>
       const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
-  <metadata>{"presentation":{"slideSize":{"width":1280,"height":720}}}</metadata>
+  <metadata>{"presentation":{"slideSize":{"width":1280,"height":720},"masters":[{"id":"brand-master"}],"layouts":[{"id":"title-content","master":"brand-master"}],"guides":[{"id":"safe-left","orientation":"vertical","position":90}],"rulers":[{"id":"x","orientation":"horizontal","origin":0,"spacing":16}],"textStyles":{"title":{"fontFamily":"Aptos Display","fontSize":54,"bold":true},"lead":{"fontFamily":"Aptos","fontSize":28},"body":{"fontFamily":"Aptos","fontSize":18}}}}</metadata>
   <g id="cover" data-kind="slide" data-title="PPTXSVG Cover">
     <rect width="1280" height="720" fill="#f8fafc"/>
     <rect x="90" y="96" width="500" height="210" rx="22" fill="#ccfbf1" stroke="#0f766e" stroke-width="4"/>
@@ -493,8 +493,101 @@
               source_node_id: slide.node_id,
             })),
           ],
+          masters: templates(nodes, rootMeta.masters, "slide-master"),
+          layouts: templates(nodes, rootMeta.layouts, "slide-layout"),
+          guides: guides(nodes, rootMeta.guides),
+          rulers: rulers(nodes, rootMeta.rulers),
+          text_styles: textStyles(nodes, rootMeta.textStyles || rootMeta.text_styles),
           metadata: rootMeta,
         };
+      }
+
+      function templates(nodes, metadataItems, kind) {
+        const fromMeta = Array.isArray(metadataItems)
+          ? metadataItems.map((item, index) => ({
+              template_id: String(item.id || item.name || `${kind}-${index + 1}`),
+              kind,
+              node_id: null,
+              data: {},
+              metadata: item,
+            }))
+          : [];
+        const fromNodes = nodes
+          .filter((node) => node.data.kind === kind || node.data.role === kind)
+          .map((node) => ({
+            template_id: node.attributes.id || node.data.template || node.node_id,
+            kind,
+            node_id: node.node_id,
+            data: node.data,
+            metadata: node.metadata,
+          }));
+        return [...fromMeta, ...fromNodes];
+      }
+
+      function guides(nodes, metadataItems) {
+        const fromMeta = Array.isArray(metadataItems)
+          ? metadataItems.map((item, index) => ({
+              guide_id: String(item.id || `guide-${index + 1}`),
+              orientation: String(item.orientation || "vertical"),
+              position: Number(item.position || 0),
+              unit: String(item.unit || "px"),
+              node_id: null,
+            }))
+          : [];
+        const fromNodes = nodes
+          .filter((node) => node.data.kind === "guide" || node.data.role === "guide")
+          .map((node) => ({
+            guide_id: node.attributes.id || node.node_id,
+            orientation: node.data.orientation || (node.attributes.y ? "horizontal" : "vertical"),
+            position: Number(node.data.position || node.attributes.x || node.attributes.y || 0),
+            unit: node.data.unit || "px",
+            node_id: node.node_id,
+          }));
+        return [...fromMeta, ...fromNodes];
+      }
+
+      function rulers(nodes, metadataItems) {
+        const fromMeta = Array.isArray(metadataItems)
+          ? metadataItems.map((item, index) => ({
+              ruler_id: String(item.id || `ruler-${index + 1}`),
+              orientation: String(item.orientation || "horizontal"),
+              origin: Number(item.origin || 0),
+              unit: String(item.unit || "px"),
+              spacing: item.spacing == null ? null : Number(item.spacing),
+              node_id: null,
+            }))
+          : [];
+        const fromNodes = nodes
+          .filter((node) => node.data.kind === "ruler" || node.data.role === "ruler")
+          .map((node) => ({
+            ruler_id: node.attributes.id || node.node_id,
+            orientation: node.data.orientation || "horizontal",
+            origin: Number(node.data.origin || 0),
+            unit: node.data.unit || "px",
+            spacing: node.data.spacing == null ? null : Number(node.data.spacing),
+            node_id: node.node_id,
+          }));
+        return [...fromMeta, ...fromNodes];
+      }
+
+      function textStyles(nodes, metadataStyles) {
+        const fromMeta = metadataStyles && !Array.isArray(metadataStyles)
+          ? Object.entries(metadataStyles).map(([role, properties]) => ({
+              style_id: role,
+              role,
+              properties,
+              node_id: null,
+            }))
+          : [];
+        const fromNodes = nodes
+          .filter((node) => node.data.kind === "style-template" || node.data.role === "style-template")
+          .map((node) => ({
+            style_id: node.attributes.id || node.data.style || node.node_id,
+            role: node.data.role || node.data.style || node.attributes.id || node.node_id,
+            properties: { ...node.attributes, ...node.data },
+            node_id: node.node_id,
+          }));
+        return [...fromMeta, ...fromNodes];
       }
 
       function buildIr(svgText) {
@@ -545,13 +638,16 @@
         const nodes = flatten(state.ir.root);
         const semantic = nodes.filter((node) => Object.keys(node.data).length > 0).length;
         const deps = state.ir.dependencies.length;
+        const templates = state.pptxsvg.masters.length + state.pptxsvg.layouts.length + state.pptxsvg.text_styles.length;
         if (state.tab === "summary") {
           panel.innerHTML = `
             <div class="metrics">
               <div class="metric"><strong>${nodes.length}</strong><span>SVG IR nodes</span></div>
               <div class="metric"><strong>${state.pptxsvg.slides.length}</strong><span>PPTXSVG slides</span></div>
               <div class="metric"><strong>${semantic}</strong><span>semantic nodes</span></div>
+              <div class="metric"><strong>${templates}</strong><span>templates</span></div>
               <div class="metric"><strong>${deps}</strong><span>dependencies</span></div>
+              <div class="metric"><strong>${state.pptxsvg.guides.length + state.pptxsvg.rulers.length}</strong><span>guides/rulers</span></div>
             </div>
             <div class="list">
               ${nodes.slice(0, 12).map((node) => `

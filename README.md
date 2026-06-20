@@ -23,7 +23,7 @@ It targets the practical subset needed for generated Office graphics and simple 
 - Reuse: local `defs`/`use` expansion for referenced shapes, groups, and basic `symbol viewBox` scaling, including legacy `xlink:href`, with unsupported missing/external use references reported by the analyzer
 - Text: basic font size, weight, italic style, font family, `small-caps` and `all-small-caps` font variants, inherited and per-`tspan` `text-transform`, run-level `tspan` fill/font/outline/decoration/letter-spacing/word-spacing/baseline styling, DrawingML rich text runs as SVG `tspan` styles, text fill/no-fill, text outline color/width/cap/join/dash/miter, underline/strike decoration including `text-decoration-line`, `text-decoration` shorthand, and dashed/dotted/double/wavy underline styles, horizontal/vertical anchor including supported first-`tspan` `text-anchor`/baseline and `alignment-baseline` fallbacks, simple `direction="rtl"` paragraph direction, text-level `baseline-shift` `super`/`sub`, `xml:space="preserve"`, single-value `rotate` including CSS angle units, `letter-spacing`, simple `word-spacing`, `textLength` spacing adjustment, approximate `spacingAndGlyphs`, `dx`/`dy` positioning, first-`tspan` positioning fallback, multi-line `tspan` extraction, and multiple DrawingML paragraph extraction
 
-The converter accepts fragments, not complete `.pptx` or `.docx` packages. It is intended as a reusable core that can later be wrapped by OOXML package readers/writers.
+The converter supports DrawingML shape fragments and can also emit complete `.pptx` packages from PPTXSVG slide metadata. It does not read complete `.pptx` or `.docx` packages yet.
 
 ## Project links
 
@@ -46,6 +46,9 @@ pip install -e .
 ```bash
 # SVG -> DrawingML
 drawingml-svg svg2dml input.svg -o shape.xml
+
+# SVG/PPTXSVG -> complete PPTX package
+drawingml-svg svg2pptx deck.svg -o deck.pptx
 
 # DrawingML -> SVG
 drawingml-svg dml2svg shape.xml -o shape.svg
@@ -70,12 +73,13 @@ drawingml-svg --version
 
 ## PPTX smoke test
 
-The repository includes examples that embed converted DrawingML shapes into one-slide `.pptx` packages:
+The repository includes examples that embed converted DrawingML shapes into `.pptx` packages. SVGs with `data-kind="slide"`, `data-role="slide"`, or `data-slide` produce multiple slides:
 
 ```bash
 PYTHONPATH=src python examples/make_pptx.py examples/sample.svg -o tmp/drawingml-svg-sample.pptx
 PYTHONPATH=src python examples/make_pptx.py examples/coverage.svg -o tmp/drawingml-svg-coverage.pptx
 PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/drawingml-svg-complex.pptx
+PYTHONPATH=src python examples/make_pptx.py examples/pptxsvg.svg -o tmp/drawingml-svg-pptxsvg.pptx
 ```
 
 ## Supported DrawingML presets
@@ -94,10 +98,11 @@ PYTHONPATH=src python examples/make_pptx.py examples/complex.svg -o tmp/drawingm
 ## Python API
 
 ```python
-from drawingml_svg import drawingml_to_svg, svg_to_drawingml
+from drawingml_svg import drawingml_to_svg, svg_to_drawingml, svg_to_pptx
 
 dml = svg_to_drawingml("<svg viewBox='0 0 100 50'><rect x='5' y='5' width='40' height='20'/></svg>")
 svg = drawingml_to_svg(dml)
+svg_to_pptx("<svg><rect width='100' height='50'/></svg>", "deck.pptx")
 ```
 
 ```python
@@ -128,7 +133,7 @@ This is intended as the stable handoff layer for expanding one SVG source into d
 - DrawingML: editable shapes, text, and native tables can be emitted where the target supports them.
 - PresentationML: slide-level structure, connectors, reading order, notes, tags, or custom XML can be derived from the same IR.
 
-The `pptxsvg` command and `svg_to_pptx_ir()` API expose just the presentation/package view. Slide boundaries are inferred from elements with `data-kind="slide"`, `data-role="slide"`, or `data-slide`; if none are present, the root SVG becomes a single slide. Slide size is taken from root `<metadata>` `{"presentation": {"slideSize": {"width": 1280, "height": 720}}}`, then root `viewBox`, then the first slide viewBox. The view also includes a package part blueprint for `/ppt/presentation.xml`, slide master/layout/theme parts, and generated `/ppt/slides/slideN.xml` parts.
+The `pptxsvg` command and `svg_to_pptx_ir()` API expose just the presentation/package view. Slide boundaries are inferred from elements with `data-kind="slide"`, `data-role="slide"`, or `data-slide`; if none are present, the root SVG becomes a single slide. Slide size is taken from root `<metadata>` `{"presentation": {"slideSize": {"width": 1280, "height": 720}}}`, then root `viewBox`, then the first slide viewBox. The view also includes a package part blueprint for `/ppt/presentation.xml`, slide master/layout/theme parts, and generated `/ppt/slides/slideN.xml` parts. Presentation metadata can also carry `masters`, `layouts`, `guides`, `rulers`, and `textStyles` templates for title, lead, body, caption, and other PresentationML text roles.
 
 See [docs/adr/0001-svg-semantic-ir.md](docs/adr/0001-svg-semantic-ir.md) for the design contract.
 See [docs/pptxsvg-web-editor.md](docs/pptxsvg-web-editor.md) for the browser editor and WebGPU LLM integration design.

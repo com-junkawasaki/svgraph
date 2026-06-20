@@ -33,6 +33,7 @@ Issues = "https://github.com/com-junkawasaki/drawingml-svg/issues"
 drawingml-svg = "drawingml_svg.cli:main"
 dml2svg = "drawingml_svg.cli:main"
 svg2dml = "drawingml_svg.cli:main"
+svg2pptx = "drawingml_svg.cli:main"
 drawingml-svg-analyze = "drawingml_svg.cli:main"
 
 [project.optional-dependencies]

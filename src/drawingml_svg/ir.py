@@ -50,6 +50,11 @@ class SvgIRPresentation:
     slide_size: tuple[float, float]
     slides: tuple["SvgIRSlide", ...]
     parts: tuple["SvgIRPackagePart", ...]
+    masters: tuple["SvgIRTemplate", ...]
+    layouts: tuple["SvgIRTemplate", ...]
+    guides: tuple["SvgIRGuide", ...]
+    rulers: tuple["SvgIRRuler", ...]
+    text_styles: tuple["SvgIRTextStyle", ...]
     metadata: dict[str, object]
 
 
@@ -69,6 +74,42 @@ class SvgIRPackagePart:
     content_type: str
     kind: str
     source_node_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SvgIRTemplate:
+    template_id: str
+    kind: str
+    node_id: str | None
+    data: dict[str, str]
+    metadata: dict[str, object]
+
+
+@dataclass(frozen=True)
+class SvgIRGuide:
+    guide_id: str
+    orientation: str
+    position: float
+    unit: str
+    node_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SvgIRRuler:
+    ruler_id: str
+    orientation: str
+    origin: float
+    unit: str
+    spacing: float | None = None
+    node_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SvgIRTextStyle:
+    style_id: str
+    role: str
+    properties: dict[str, object]
+    node_id: str | None = None
 
 
 def svg_to_ir(svg_text: str) -> SvgIRDocument:
@@ -181,12 +222,20 @@ def _presentation_ir(root: SvgIRNode) -> SvgIRPresentation:
     if not slides:
         slides = (root,)
     slide_irs = tuple(_slide_ir(node, index) for index, node in enumerate(slides, start=1))
+    metadata = _presentation_metadata(root.metadata)
+    masters = _templates(root, metadata, "masters", "slide-master")
+    layouts = _templates(root, metadata, "layouts", "slide-layout")
     return SvgIRPresentation(
         kind="pptxsvg",
         slide_size=_slide_size(root, slide_irs[0].view_box),
         slides=slide_irs,
-        parts=_package_parts(slide_irs),
-        metadata=_presentation_metadata(root.metadata),
+        parts=_package_parts(slide_irs, masters, layouts),
+        masters=masters,
+        layouts=layouts,
+        guides=_guides(root, metadata),
+        rulers=_rulers(root, metadata),
+        text_styles=_text_styles(root, metadata),
+        metadata=metadata,
     )
 
 
@@ -226,29 +275,158 @@ def _slide_ir(node: SvgIRNode, index: int) -> SvgIRSlide:
     )
 
 
-def _package_parts(slides: tuple[SvgIRSlide, ...]) -> tuple[SvgIRPackagePart, ...]:
+def _nodes_by_kind(root: SvgIRNode, kind: str) -> tuple[SvgIRNode, ...]:
+    nodes: list[SvgIRNode] = []
+    _collect_nodes_by_kind(root, kind, nodes)
+    return tuple(nodes)
+
+
+def _collect_nodes_by_kind(node: SvgIRNode, kind: str, nodes: list[SvgIRNode]) -> None:
+    if node.data.get("kind") == kind or node.data.get("role") == kind:
+        nodes.append(node)
+    for child in node.children:
+        _collect_nodes_by_kind(child, kind, nodes)
+
+
+def _templates(root: SvgIRNode, metadata: dict[str, object], metadata_key: str, kind: str) -> tuple[SvgIRTemplate, ...]:
+    templates: list[SvgIRTemplate] = []
+    for index, entry in enumerate(_list_metadata(metadata, metadata_key), start=1):
+        if isinstance(entry, dict):
+            template_id = str(entry.get("id") or entry.get("name") or f"{kind}-{index}")
+            templates.append(SvgIRTemplate(template_id, kind, None, {}, entry))
+    for node in _nodes_by_kind(root, kind):
+        templates.append(
+            SvgIRTemplate(
+                node.attributes.get("id") or node.data.get("template") or node.node_id,
+                kind,
+                node.node_id,
+                node.data,
+                node.metadata,
+            )
+        )
+    return tuple(templates)
+
+
+def _guides(root: SvgIRNode, metadata: dict[str, object]) -> tuple[SvgIRGuide, ...]:
+    guides: list[SvgIRGuide] = []
+    for index, entry in enumerate(_list_metadata(metadata, "guides"), start=1):
+        if not isinstance(entry, dict):
+            continue
+        position = _number(entry.get("position"))
+        if position is None:
+            continue
+        guides.append(
+            SvgIRGuide(
+                str(entry.get("id") or f"guide-{index}"),
+                str(entry.get("orientation") or "vertical"),
+                position,
+                str(entry.get("unit") or "px"),
+            )
+        )
+    for node in _nodes_by_kind(root, "guide"):
+        position = _number(node.data.get("position") or node.attributes.get("x") or node.attributes.get("y"))
+        if position is None:
+            continue
+        guides.append(
+            SvgIRGuide(
+                node.attributes.get("id") or node.node_id,
+                node.data.get("orientation") or ("horizontal" if "y" in node.attributes else "vertical"),
+                position,
+                node.data.get("unit") or "px",
+                node.node_id,
+            )
+        )
+    return tuple(guides)
+
+
+def _rulers(root: SvgIRNode, metadata: dict[str, object]) -> tuple[SvgIRRuler, ...]:
+    rulers: list[SvgIRRuler] = []
+    for index, entry in enumerate(_list_metadata(metadata, "rulers"), start=1):
+        if not isinstance(entry, dict):
+            continue
+        origin = _number(entry.get("origin")) or 0.0
+        rulers.append(
+            SvgIRRuler(
+                str(entry.get("id") or f"ruler-{index}"),
+                str(entry.get("orientation") or "horizontal"),
+                origin,
+                str(entry.get("unit") or "px"),
+                _number(entry.get("spacing")),
+            )
+        )
+    for node in _nodes_by_kind(root, "ruler"):
+        rulers.append(
+            SvgIRRuler(
+                node.attributes.get("id") or node.node_id,
+                node.data.get("orientation") or "horizontal",
+                _number(node.data.get("origin")) or 0.0,
+                node.data.get("unit") or "px",
+                _number(node.data.get("spacing")),
+                node.node_id,
+            )
+        )
+    return tuple(rulers)
+
+
+def _text_styles(root: SvgIRNode, metadata: dict[str, object]) -> tuple[SvgIRTextStyle, ...]:
+    styles: list[SvgIRTextStyle] = []
+    raw_styles = metadata.get("textStyles") or metadata.get("text_styles")
+    if isinstance(raw_styles, dict):
+        for role, properties in raw_styles.items():
+            if isinstance(properties, dict):
+                styles.append(SvgIRTextStyle(str(role), str(role), properties))
+    for index, entry in enumerate(_list_metadata(metadata, "textStyles"), start=1):
+        if isinstance(entry, dict):
+            role = str(entry.get("role") or entry.get("id") or f"text-style-{index}")
+            styles.append(SvgIRTextStyle(str(entry.get("id") or role), role, entry))
+    for node in _nodes_by_kind(root, "style-template"):
+        role = node.data.get("role") or node.data.get("style") or node.attributes.get("id") or node.node_id
+        styles.append(SvgIRTextStyle(node.attributes.get("id") or role, role, {**node.attributes, **node.data}, node.node_id))
+    return tuple(styles)
+
+
+def _list_metadata(metadata: dict[str, object], key: str) -> list[object]:
+    value = metadata.get(key)
+    return value if isinstance(value, list) else []
+
+
+def _package_parts(
+    slides: tuple[SvgIRSlide, ...],
+    masters: tuple[SvgIRTemplate, ...] = (),
+    layouts: tuple[SvgIRTemplate, ...] = (),
+) -> tuple[SvgIRPackagePart, ...]:
     parts = [
         SvgIRPackagePart(
             part_name="/ppt/presentation.xml",
             content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
             kind="presentation",
         ),
-        SvgIRPackagePart(
-            part_name="/ppt/slideMasters/slideMaster1.xml",
-            content_type="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml",
-            kind="slide-master",
-        ),
-        SvgIRPackagePart(
-            part_name="/ppt/slideLayouts/slideLayout1.xml",
-            content_type="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml",
-            kind="slide-layout",
-        ),
+    ]
+    for index, master in enumerate(masters or (None,), start=1):
+        parts.append(
+            SvgIRPackagePart(
+                part_name=f"/ppt/slideMasters/slideMaster{index}.xml",
+                content_type="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml",
+                kind="slide-master",
+                source_node_id=master.node_id if master is not None else None,
+            )
+        )
+    for index, layout in enumerate(layouts or (None,), start=1):
+        parts.append(
+            SvgIRPackagePart(
+                part_name=f"/ppt/slideLayouts/slideLayout{index}.xml",
+                content_type="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml",
+                kind="slide-layout",
+                source_node_id=layout.node_id if layout is not None else None,
+            )
+        )
+    parts.append(
         SvgIRPackagePart(
             part_name="/ppt/theme/theme1.xml",
             content_type="application/vnd.openxmlformats-officedocument.theme+xml",
             kind="theme",
-        ),
-    ]
+        )
+    )
     for index, slide in enumerate(slides, start=1):
         parts.append(
             SvgIRPackagePart(

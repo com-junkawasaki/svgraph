@@ -11,7 +11,7 @@ from xml.etree import ElementTree as ET
 import pytest
 
 import drawingml_svg
-from drawingml_svg import analyze_svg, drawingml_to_svg, svg_to_drawingml
+from drawingml_svg import analyze_svg, drawingml_to_svg, svg_to_drawingml, svg_to_pptx_bytes
 from drawingml_svg.cli import main as cli_main
 from examples.make_pptx import build_slide_xml, main as make_pptx_main, prepare_slide_media, write_pptx
 
@@ -540,6 +540,63 @@ def test_make_pptx_cli_embeds_native_table_frames(tmp_path) -> None:
     assert "<p:graphicFrame>" in slide
     assert "<a:tbl>" in slide
     assert "<p:sp>" not in slide
+
+
+def test_svg_to_pptx_bytes_creates_multi_slide_package_from_pptxsvg() -> None:
+    pptx_data = svg_to_pptx_bytes(
+        """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+          <metadata>{"presentation": {"slideSize": {"width": 1280, "height": 720}}}</metadata>
+          <g id="cover" data-kind="slide" data-title="Cover">
+            <rect width="200" height="120" fill="#ccfbf1"/>
+            <text x="20" y="60" font-size="30">Cover</text>
+          </g>
+          <g id="detail" data-kind="slide" data-title="Detail">
+            <ellipse cx="120" cy="80" rx="70" ry="40" fill="#dbeafe"/>
+            <text x="20" y="150" font-size="30">Detail</text>
+          </g>
+        </svg>"""
+    )
+
+    with zipfile.ZipFile(io.BytesIO(pptx_data)) as pptx:
+        names = set(pptx.namelist())
+        presentation = pptx.read("ppt/presentation.xml").decode("utf-8")
+        rels = pptx.read("ppt/_rels/presentation.xml.rels").decode("utf-8")
+        app = pptx.read("docProps/app.xml").decode("utf-8")
+        slide1 = pptx.read("ppt/slides/slide1.xml").decode("utf-8")
+        slide2 = pptx.read("ppt/slides/slide2.xml").decode("utf-8")
+
+    assert "ppt/slides/slide1.xml" in names
+    assert "ppt/slides/slide2.xml" in names
+    assert "ppt/slides/_rels/slide1.xml.rels" in names
+    assert "ppt/slides/_rels/slide2.xml.rels" in names
+    assert presentation.count("<p:sldId ") == 2
+    assert 'cx="12192000" cy="6858000"' in presentation
+    assert 'Target="slides/slide1.xml"' in rels
+    assert 'Target="slides/slide2.xml"' in rels
+    assert "<Slides>2</Slides>" in app
+    assert "<a:t>Cover</a:t>" in slide1
+    assert "<a:t>Detail</a:t>" in slide2
+
+
+def test_svg2pptx_cli_writes_multi_slide_package(tmp_path) -> None:
+    source = tmp_path / "deck.svg"
+    output = tmp_path / "deck.pptx"
+    source.write_text(
+        """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+          <g data-slide="one"><rect width="100" height="100"/></g>
+          <g data-slide="two"><circle cx="50" cy="50" r="40"/></g>
+        </svg>""",
+        encoding="utf-8",
+    )
+
+    assert cli_main(["svg2pptx", str(source), "-o", str(output)]) == 0
+
+    with zipfile.ZipFile(output) as pptx:
+        names = set(pptx.namelist())
+        presentation = pptx.read("ppt/presentation.xml").decode("utf-8")
+
+    assert {"ppt/slides/slide1.xml", "ppt/slides/slide2.xml"} <= names
+    assert presentation.count("<p:sldId ") == 2
 
 
 def test_make_pptx_cli_reports_errors_without_traceback(tmp_path, capsys) -> None:
