@@ -8,7 +8,11 @@ Security fixes are handled on the default branch until the project publishes sta
 
 Please do not open a public issue for a suspected security vulnerability.
 
-Report vulnerabilities through GitHub's private vulnerability reporting for this repository when available. If that is not available, contact the maintainer listed in `pyproject.toml`.
+Report vulnerabilities through GitHub's private vulnerability reporting for this repository:
+
+<https://github.com/com-junkawasaki/svgraph/security/advisories/new>
+
+If that is not available, contact the maintainer listed in `pyproject.toml`.
 
 Include:
 

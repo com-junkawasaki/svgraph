@@ -235,6 +235,8 @@ def test_github_templates_cover_canonical_svgraph_surfaces() -> None:
         for path in sorted((root / ".github" / "ISSUE_TEMPLATE").glob("*.yml"))
     }
     pr_template = (root / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
+    security = (root / "SECURITY.md").read_text(encoding="utf-8")
+    advisory_url = "https://github.com/com-junkawasaki/svgraph/security/advisories/new"
 
     assert set(templates) == {"bug_report.yml", "config.yml", "feature_request.yml"}
     assert "SVG to SVGraph" in templates["bug_report.yml"]
@@ -246,9 +248,10 @@ def test_github_templates_cover_canonical_svgraph_surfaces() -> None:
     assert "SVGraph presentation model" in templates["feature_request.yml"]
     assert "PresentationML/PPTX export" in templates["feature_request.yml"]
     assert "Browser editor" in templates["feature_request.yml"]
-    assert "https://github.com/com-junkawasaki/svgraph/security/advisories/new" in templates["config.yml"]
+    assert advisory_url in templates["config.yml"]
+    assert advisory_url in security
     assert "tmp/svgraph-coverage.pptx" in pr_template
-    for source in [*templates.values(), pr_template]:
+    for source in [*templates.values(), pr_template, security]:
         assert "drawingml-svg" not in source
         assert "pptxsvg" not in source
 
@@ -812,6 +815,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "stale local `*.egg-info` metadata",
         "browser type checking and committed Pages artifact freshness",
         "every retained compatibility console script",
+        "canonical `com-junkawasaki/svgraph` private advisory URL",
         "wheel metadata",
         "canonical `svgraph` surfaces",
         "canonical typed Python import package",
