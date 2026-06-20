@@ -659,6 +659,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <text id="decoration-inherit" x="560" y="700" style="font-size:18;font-family:Arial;fill:#0f172a;text-decoration-line:underline;text-decoration-style:wavy;text-decoration-color:#dc2626;text-decoration-thickness:2px">Inherited <tspan style="text-decoration-style:inherit;text-decoration-color:inherit;text-decoration-thickness:inherit">decor</tspan></text>
     <text id="preserve-text" x="90" y="355" xml:space="preserve" style="font-size:22;font-family:Arial;fill:#64748b">  padded  <tspan style="fill:#0f766e"> kept </tspan></text>
     <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
+    <text id="length-glyphs-text" x="735" y="125" textLength="170" lengthAdjust=" SPACINGANDGLYPHS " style="font-size:22;font-family:Arial;fill:#334155;letter-spacing:NORMAL">Glyph fit</text>
     <text id="font-shorthand" class="font-short-title" x="760" y="135">Font short</text>
     <text id="rtl-text" x="560" y="95" direction="rtl" style="font-size:22;font-family:Arial;fill:#0f766e">RTL
 line</text>
@@ -1901,8 +1902,10 @@ function textDecorationShorthandIsSupported(value: string, style: SvgStyle): boo
   return hasLine;
 }
 
-function textLengthIsSupported(element: Element, tag: string, value: string, style: SvgStyle): boolean {
+function textLengthIsSupported(element: Element, tag: string, value: string, style: SvgStyle, lengthAdjustValue: string | null = style.lengthAdjust ?? null): boolean {
   if (tag !== "text" && tag !== "tspan") return false;
+  if (value.includes("%") || style.letterSpacing != null) return false;
+  if (lengthAdjustValue != null && normalizeLengthAdjust(lengthAdjustValue) == null) return false;
   const length = parseCssLength(value, style.fontSize ?? rootFontSize, Number.NaN);
   if (!Number.isFinite(length) || length < 0) return false;
   const text = element.textContent || "";
@@ -4633,6 +4636,7 @@ function aspectAlignmentOffset(part: string, extra: number): number {
 function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [], refs: Map<string, Element> = new Map(), viewport: Viewport = defaultViewport()): SvgStyle {
   const declarations = resolvedCascadedDeclarations(element, css, inherited);
   const value = (name: string): string | null => declarations[name] ?? null;
+  const tag = localName(element);
   const next: SvgStyle = { ...inherited, customProperties: customPropertiesFromDeclarations(declarations, inherited) };
   const color = value("color");
   const fill = value("fill");
@@ -4731,8 +4735,8 @@ function computedStyle(element: Element, inherited: SvgStyle, css: CssRule[] = [
   if (baselineShift != null) next.baselineShift = normalizeBaselineShift(baselineShift);
   if (letterSpacing != null) next.letterSpacing = normalizeSpacingLength(letterSpacing, next.fontSize ?? rootFontSize);
   if (wordSpacing != null) next.wordSpacing = normalizeSpacingLength(wordSpacing, next.fontSize ?? rootFontSize);
-  if (textLength != null) next.textLength = parseCssLength(textLength, next.fontSize ?? rootFontSize, next.textLength ?? 0);
   if (lengthAdjust != null) next.lengthAdjust = normalizeLengthAdjust(lengthAdjust);
+  if (textLength != null) next.textLength = textLengthIsSupported(element, tag, textLength, next, lengthAdjust) ? parseCssLength(textLength, next.fontSize ?? rootFontSize, 0) : null;
   if (rotate != null) next.rotate = singleTextRotation(rotate, element.textContent || null);
   if (direction != null) next.direction = normalizeTextDirection(direction);
   if (pathLength != null) next.pathLength = normalizePathLength(pathLength);

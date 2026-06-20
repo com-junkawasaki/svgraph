@@ -1158,6 +1158,10 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert 'name === "writing-mode"' in generated
         assert "function textDecorationShorthandIsSupported" in generated
         assert "function textLengthIsSupported" in generated
+        assert 'value.includes("%") || style.letterSpacing != null' in generated
+        assert 'normalizeLengthAdjust(lengthAdjustValue) == null' in generated
+        assert 'id="length-glyphs-text"' in generated
+        assert 'lengthAdjust=" SPACINGANDGLYPHS "' in generated
         assert 'decoration.includes("wavy")' in generated
         assert 'name === "text-decoration-style"' in generated
         assert "textDecorationStyleTokens.has(normalized)" in generated

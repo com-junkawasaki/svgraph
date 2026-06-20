@@ -207,6 +207,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <text id="decoration-inherit" x="560" y="700" style="font-size:18;font-family:Arial;fill:#0f172a;text-decoration-line:underline;text-decoration-style:wavy;text-decoration-color:#dc2626;text-decoration-thickness:2px">Inherited <tspan style="text-decoration-style:inherit;text-decoration-color:inherit;text-decoration-thickness:inherit">decor</tspan></text>
     <text id="preserve-text" x="90" y="355" xml:space="preserve" style="font-size:22;font-family:Arial;fill:#64748b">  padded  <tspan style="fill:#0f766e"> kept </tspan></text>
     <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
+    <text id="length-glyphs-text" x="735" y="125" textLength="170" lengthAdjust=" SPACINGANDGLYPHS " style="font-size:22;font-family:Arial;fill:#334155;letter-spacing:NORMAL">Glyph fit</text>
     <text id="font-shorthand" class="font-short-title" x="760" y="135">Font short</text>
     <text id="rtl-text" x="560" y="95" direction="rtl" style="font-size:22;font-family:Arial;fill:#0f766e">RTL
 line</text>
@@ -1549,8 +1550,12 @@ function textDecorationShorthandIsSupported(value, style) {
     }
     return hasLine;
 }
-function textLengthIsSupported(element, tag, value, style) {
+function textLengthIsSupported(element, tag, value, style, lengthAdjustValue = style.lengthAdjust ?? null) {
     if (tag !== "text" && tag !== "tspan")
+        return false;
+    if (value.includes("%") || style.letterSpacing != null)
+        return false;
+    if (lengthAdjustValue != null && normalizeLengthAdjust(lengthAdjustValue) == null)
         return false;
     const length = parseCssLength(value, style.fontSize ?? rootFontSize, Number.NaN);
     if (!Number.isFinite(length) || length < 0)
@@ -4345,6 +4350,7 @@ function aspectAlignmentOffset(part, extra) {
 function computedStyle(element, inherited, css = [], refs = new Map(), viewport = defaultViewport()) {
     const declarations = resolvedCascadedDeclarations(element, css, inherited);
     const value = (name) => declarations[name] ?? null;
+    const tag = localName(element);
     const next = { ...inherited, customProperties: customPropertiesFromDeclarations(declarations, inherited) };
     const color = value("color");
     const fill = value("fill");
@@ -4469,10 +4475,10 @@ function computedStyle(element, inherited, css = [], refs = new Map(), viewport 
         next.letterSpacing = normalizeSpacingLength(letterSpacing, next.fontSize ?? rootFontSize);
     if (wordSpacing != null)
         next.wordSpacing = normalizeSpacingLength(wordSpacing, next.fontSize ?? rootFontSize);
-    if (textLength != null)
-        next.textLength = parseCssLength(textLength, next.fontSize ?? rootFontSize, next.textLength ?? 0);
     if (lengthAdjust != null)
         next.lengthAdjust = normalizeLengthAdjust(lengthAdjust);
+    if (textLength != null)
+        next.textLength = textLengthIsSupported(element, tag, textLength, next, lengthAdjust) ? parseCssLength(textLength, next.fontSize ?? rootFontSize, 0) : null;
     if (rotate != null)
         next.rotate = singleTextRotation(rotate, element.textContent || null);
     if (direction != null)
