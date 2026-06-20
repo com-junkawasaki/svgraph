@@ -11,6 +11,8 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Moved the converter, coverage analyzer, PPTX exporter, SVGraph model, and CLI implementation under the canonical `svgraph` package, leaving `drawingml_svg` as a compatibility wrapper.
 - Renamed the public repository and Pages site to `com-junkawasaki/svgraph`, and aligned web package names, generated PPTX metadata, generated DrawingML/SVG object names, and smoke artifact filenames with SVGraph branding.
 - Added `svgraph` as the canonical typed Python import package and console-script entry point target, including `svgraph.model`, `svgraph.converter`, `svgraph.coverage`, and `svgraph.pptx` wrapper modules, while preserving `drawingml_svg` and `drawingml-svg` compatibility surfaces.
+- Packaged the browser editor source, committed Pages artifact, and examples in the `svgraph` source distribution so OSS consumers can rebuild docs/app.js, inspect examples, and reproduce release smoke checks from the published sdist.
+- Accepted canonical snake_case SVGraph presentation metadata keys such as `slide_size` and `text_styles` in both Python and browser runtimes, while continuing to read SVG-authored `slideSize` and `textStyles`.
 - Switched direct Python CLI entry calls to use `svgraph` as the program name, while preserving legacy executable names for compatibility aliases.
 - Added `python -m svgraph` as a canonical module execution path and moved local contribution checks away from `python -m svgraph.cli`.
 - Updated README, ADR, and release checklist guidance to document `python -m svgraph` and `svgraph.model` as canonical migration targets.

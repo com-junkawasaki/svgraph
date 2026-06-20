@@ -597,6 +597,10 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "svgraph.coverage",
         "svgraph.pptx",
         "contributing, security, code of conduct, issue templates, PR template",
+        "browser editor source, committed Pages artifact, and examples",
+        "published sdist",
+        "`slide_size` and `text_styles`",
+        "`slideSize` and `textStyles`",
     ]:
         assert expected in changelog
 
