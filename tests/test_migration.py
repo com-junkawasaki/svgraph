@@ -180,6 +180,18 @@ def test_module_execution_is_canonical_svgraph_entry_point() -> None:
     assert "python -m drawingml_svg" not in migration
 
 
+def test_cli_visible_commands_are_canonical_svgraph_commands() -> None:
+    root = Path(__file__).resolve().parents[1]
+    cli_source = (root / "src" / "svgraph" / "cli.py").read_text(encoding="utf-8")
+    visible_commands = _literal_assignment(cli_source, "VISIBLE_COMMANDS")
+    legacy_commands = _literal_assignment(cli_source, "LEGACY_COMMANDS")
+
+    assert visible_commands == ("svg2dml", "dml2svg", "svg2pptx", "analyze", "svgraph", "svgraph-presentation")
+    assert legacy_commands == ("ir", "pptxsvg")
+    assert "ir" not in visible_commands
+    assert "pptxsvg" not in visible_commands
+
+
 def test_readme_lists_all_legacy_console_compatibility_aliases() -> None:
     root = Path(__file__).resolve().parents[1]
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
@@ -493,3 +505,11 @@ def _literal_all(source: str) -> list[str]:
             assert all(isinstance(item, str) for item in value)
             return value
     raise AssertionError("missing __all__ assignment")
+
+
+def _literal_assignment(source: str, name: str) -> object:
+    module = ast.parse(source)
+    for node in module.body:
+        if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+            return ast.literal_eval(node.value)
+    raise AssertionError(f"missing {name} assignment")
