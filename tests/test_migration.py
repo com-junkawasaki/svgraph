@@ -424,6 +424,9 @@ def test_release_and_ci_distribution_smoke_use_svgraph_artifact_names() -> None:
             "PresentationML/PPTX, and browser-only web editing."
         ) in source
         assert "Keywords: drawingml,svg,svgraph,presentationml,ooxml,pptx,web,converter" in source
+        assert 'pyproject["project"]["name"] == "svgraph"' in source
+        assert 'pyproject["project"]["description"] == "Small, dependency-free SVG presentation graph toolkit' in source
+        assert '"presentationml", "pptx", "web"' in source
         assert "tmp/dist/drawingml_svg-" not in source
         assert "tmp/dist/drawingml-svg-" not in source
 

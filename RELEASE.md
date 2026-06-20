@@ -34,6 +34,7 @@ test -f tmp/dist/svgraph-*.whl
 python - <<'PY'
 import glob
 import tarfile
+import tomllib
 import zipfile
 
 wheel_path = glob.glob("tmp/dist/svgraph-*.whl")[0]
@@ -46,7 +47,11 @@ assert "Summary: Small, dependency-free SVG presentation graph toolkit for SVGra
 assert "Keywords: drawingml,svg,svgraph,presentationml,ooxml,pptx,web,converter" in wheel_metadata
 with tarfile.open(sdist_path) as sdist:
     names = set(sdist.getnames())
-root = next(name for name in names if name.endswith("/pyproject.toml")).rsplit("/", 1)[0]
+    root = next(name for name in names if name.endswith("/pyproject.toml")).rsplit("/", 1)[0]
+    pyproject = tomllib.loads(sdist.extractfile(f"{root}/pyproject.toml").read().decode("utf-8"))
+assert pyproject["project"]["name"] == "svgraph"
+assert pyproject["project"]["description"] == "Small, dependency-free SVG presentation graph toolkit for SVGraph, DrawingML, PresentationML/PPTX, and browser-only web editing."
+assert {"svg", "svgraph", "drawingml", "presentationml", "pptx", "web"} <= set(pyproject["project"]["keywords"])
 for expected in [
     "docs/index.html",
     "docs/app.js",
