@@ -73,12 +73,12 @@ jobs:
 
       - name: Build PPTX smoke fixture
         run: |
-          python examples/make_pptx.py examples/coverage.svg -o tmp/ci-coverage.pptx
-          python -m zipfile --test tmp/ci-coverage.pptx
+          python examples/make_pptx.py examples/coverage.svg -o tmp/svgraph-ci-coverage.pptx
+          python -m zipfile --test tmp/svgraph-ci-coverage.pptx
           python - <<'PY'
           import zipfile
 
-          with zipfile.ZipFile("tmp/ci-coverage.pptx") as pptx:
+          with zipfile.ZipFile("tmp/svgraph-ci-coverage.pptx") as pptx:
               slide = pptx.read("ppt/slides/slide1.xml").decode("utf-8")
               rels = pptx.read("ppt/slides/_rels/slide1.xml.rels").decode("utf-8")
               names = set(pptx.namelist())
@@ -128,12 +128,12 @@ jobs:
           assert any(name.startswith("ppt/media/image") for name in names), "PPTX media image was not embedded"
           PY
 
-          python examples/make_pptx.py examples/complex.svg -o tmp/ci-complex.pptx
-          python -m zipfile --test tmp/ci-complex.pptx
+          python examples/make_pptx.py examples/complex.svg -o tmp/svgraph-ci-complex.pptx
+          python -m zipfile --test tmp/svgraph-ci-complex.pptx
           python - <<'PY'
           import zipfile
 
-          with zipfile.ZipFile("tmp/ci-complex.pptx") as pptx:
+          with zipfile.ZipFile("tmp/svgraph-ci-complex.pptx") as pptx:
               slide = pptx.read("ppt/slides/slide1.xml").decode("utf-8")
               rels = pptx.read("ppt/slides/_rels/slide1.xml.rels").decode("utf-8")
               names = set(pptx.namelist())
@@ -153,12 +153,12 @@ jobs:
           assert any(name.startswith("ppt/media/image") for name in names), "complex PPTX media image was not embedded"
           PY
 
-          svgraph svg2pptx examples/svgraph.svg -o tmp/ci-svgraph.pptx
-          python -m zipfile --test tmp/ci-svgraph.pptx
+          svgraph svg2pptx examples/svgraph.svg -o tmp/svgraph-ci-presentation.pptx
+          python -m zipfile --test tmp/svgraph-ci-presentation.pptx
           python - <<'PY'
           import zipfile
 
-          with zipfile.ZipFile("tmp/ci-svgraph.pptx") as pptx:
+          with zipfile.ZipFile("tmp/svgraph-ci-presentation.pptx") as pptx:
               names = set(pptx.namelist())
               presentation = pptx.read("ppt/presentation.xml").decode("utf-8")
               app = pptx.read("docProps/app.xml").decode("utf-8")

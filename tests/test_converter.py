@@ -219,7 +219,15 @@ def test_ci_pptx_smoke_covers_recent_fixture_regressions() -> None:
     workflow = (_project_root() / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
     assert "svgraph analyze examples/coverage.svg" in workflow
-    assert "svgraph svg2pptx examples/svgraph.svg -o tmp/ci-svgraph.pptx" in workflow
+    assert "examples/coverage.svg -o tmp/svgraph-ci-coverage.pptx" in workflow
+    assert "python -m zipfile --test tmp/svgraph-ci-coverage.pptx" in workflow
+    assert "examples/complex.svg -o tmp/svgraph-ci-complex.pptx" in workflow
+    assert "python -m zipfile --test tmp/svgraph-ci-complex.pptx" in workflow
+    assert "svgraph svg2pptx examples/svgraph.svg -o tmp/svgraph-ci-presentation.pptx" in workflow
+    assert "python -m zipfile --test tmp/svgraph-ci-presentation.pptx" in workflow
+    assert "tmp/ci-coverage.pptx" not in workflow
+    assert "tmp/ci-complex.pptx" not in workflow
+    assert "tmp/ci-svgraph.pptx" not in workflow
     assert "from svgraph import svg_to_svgraph, svg_to_svgraph_presentation" in workflow
     assert '"svg_to_" + "ir" not in svgraph.__all__' in workflow
     assert 'f"{root}/MIGRATION.md" in sdist_names' in workflow
