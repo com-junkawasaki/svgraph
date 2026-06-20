@@ -594,6 +594,22 @@ def test_pptxsvg_semantic_relation_and_table_export_as_native_pptx_objects() -> 
     assert slide2.count("<a:tc>") >= 4
 
 
+def test_svg_to_pptx_bytes_keeps_plain_lines_as_editable_shapes() -> None:
+    pptx_data = svg_to_pptx_bytes(
+        """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120">
+          <line x1="20" y1="40" x2="180" y2="40" stroke="#0f172a" stroke-width="4"/>
+          <rect x="20" y="60" width="80" height="40" fill="#dbeafe"/>
+        </svg>"""
+    )
+
+    with zipfile.ZipFile(io.BytesIO(pptx_data)) as pptx:
+        slide = pptx.read("ppt/slides/slide1.xml").decode("utf-8")
+
+    assert "<p:cxnSp>" not in slide
+    assert slide.count("<p:sp>") == 2
+    assert 'prst="line"' in slide
+
+
 def test_svg2pptx_cli_writes_multi_slide_package(tmp_path) -> None:
     source = tmp_path / "deck.svg"
     output = tmp_path / "deck.pptx"

@@ -72,7 +72,7 @@ def build_slide_xml(shapes: list[ET.Element]) -> bytes:
     ET.SubElement(xfrm, qn(NS_A, "chExt"), {"cx": "0", "cy": "0"})
 
     for shape in shapes:
-        sp_tree.append(_line_shape_to_connector(shape) if _is_line_shape(shape) else shape)
+        sp_tree.append(_line_shape_to_connector(shape) if _is_relation_line_shape(shape) else shape)
 
     ET.SubElement(slide, qn(PRESENTATION_NS, "clrMapOvr")).append(ET.Element(qn(NS_A, "masterClrMapping")))
     return ET.tostring(slide, encoding="utf-8", xml_declaration=True)
@@ -131,6 +131,10 @@ def _is_line_shape(shape: ET.Element) -> bool:
         return False
     c_nv_pr = shape.find(f"./{qn(NS_P, 'nvSpPr')}/{qn(NS_P, 'cNvPr')}")
     return c_nv_pr is not None and c_nv_pr.get("name") == "line"
+
+
+def _is_relation_line_shape(shape: ET.Element) -> bool:
+    return _is_line_shape(shape) and shape.get("_pptxsvg_relation") == "1"
 
 
 def _line_shape_to_connector(shape: ET.Element) -> ET.Element:
