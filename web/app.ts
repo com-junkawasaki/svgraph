@@ -181,6 +181,13 @@ type TextShape = BaseShape & {
   height: number;
   text: string;
   fill: string | null;
+  stroke: string | null;
+  strokeAlpha: number | null;
+  strokeWidth: number;
+  strokeLineCap: string | null;
+  strokeLineJoin: string | null;
+  strokeMiterlimit: number | null;
+  strokeDasharray: string | null;
   fontSize: number;
   fontFamily: string;
   bold: boolean;
@@ -206,6 +213,13 @@ type TextRun = {
   preserveSpace: boolean;
   fill: string | null;
   fillAlpha: number | null;
+  stroke: string | null;
+  strokeAlpha: number | null;
+  strokeWidth: number;
+  strokeLineCap: string | null;
+  strokeLineJoin: string | null;
+  strokeMiterlimit: number | null;
+  strokeDasharray: string | null;
   fontSize: number;
   fontFamily: string;
   bold: boolean;
@@ -482,7 +496,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect id="alpha-shape" x="580" y="615" width="120" height="50" style="fill:rgba(239,68,68,0.5);stroke:#2563ebcc;stroke-width:6;fill-opacity:0.8;stroke-opacity:0.5"/>
     <line id="dash-line" x1="120" y1="650" x2="300" y2="650" style="stroke:#0f766e;stroke-width:8;stroke-dasharray:18 10;stroke-dashoffset:5;stroke-linecap:round;stroke-linejoin:bevel"/>
     <text id="rich-text" x="330" y="660" rotate="6" style="font-size:24;font-family:Arial;fill:#111827;font-variant:small-caps;text-transform:capitalize">rich <tspan style="fill:#dc2626;font-weight:700;baseline-shift:super;text-transform:uppercase">red</tspan><tspan style="fill:#2563eb;font-style:italic;text-decoration:underline line-through;letter-spacing:2px;text-transform:none"> blue</tspan></text>
-    <text id="anchored-text" x="680" y="660" style="font-size:24;font-family:Arial;fill:#0f172a;text-anchor:middle;dominant-baseline:middle;text-decoration-line:underline;text-decoration-color:#dc2626;text-decoration-thickness:3px">Centered</text>
+    <text id="anchored-text" x="680" y="660" style="font-size:24;font-family:Arial;fill:#0f172a;stroke:#ffffff;stroke-width:1;stroke-opacity:.5;text-anchor:middle;dominant-baseline:middle;text-decoration-line:underline;text-decoration-color:#dc2626;text-decoration-thickness:3px">Centered</text>
     <text id="preserve-text" x="90" y="355" xml:space="preserve" style="font-size:22;font-family:Arial;fill:#64748b">  padded  <tspan style="fill:#0f766e"> kept </tspan></text>
     <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
     <text id="font-shorthand" class="font-short-title" x="760" y="135">Font short</text>
@@ -971,6 +985,10 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
       height,
       text,
       fill: style.fill ?? "#111827",
+      stroke: style.stroke ?? null,
+      strokeAlpha: style.strokeAlpha ?? null,
+      strokeWidth: style.strokeWidth ?? 1,
+      ...strokeStyle(style),
       fontSize,
       fontFamily: style.fontFamily || "Aptos",
       bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
@@ -1309,6 +1327,10 @@ function htmlCaptionShape(caption: Element, style: SvgStyle, id: number, x: numb
     height,
     text,
     fill: style.color ?? "#000000",
+    stroke: style.stroke ?? null,
+    strokeAlpha: style.strokeAlpha ?? null,
+    strokeWidth: style.strokeWidth ?? 1,
+    ...strokeStyle(style),
     fontSize: style.fontSize ?? 14,
     fontFamily: style.fontFamily || "Aptos",
     bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
@@ -1640,6 +1662,10 @@ function htmlTextRun(text: string, style: SvgStyle): TextRun {
     preserveSpace: false,
     fill: style.color ?? style.fill ?? "#000000",
     fillAlpha: style.fillAlpha ?? null,
+    stroke: style.stroke ?? null,
+    strokeAlpha: style.strokeAlpha ?? null,
+    strokeWidth: style.strokeWidth ?? 1,
+    ...strokeStyle(style),
     fontSize: style.fontSize ?? 14,
     fontFamily: style.fontFamily || "Aptos",
     bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
@@ -1698,6 +1724,10 @@ function textRuns(element: Element, inheritedStyle: SvgStyle, viewport: Viewport
       preserveSpace,
       fill: style.fill ?? "#111827",
       fillAlpha: style.fillAlpha ?? null,
+      stroke: style.stroke ?? null,
+      strokeAlpha: style.strokeAlpha ?? null,
+      strokeWidth: style.strokeWidth ?? 1,
+      ...strokeStyle(style),
       fontSize: style.fontSize ?? inheritedStyle.fontSize ?? 18,
       fontFamily: style.fontFamily || inheritedStyle.fontFamily || "Aptos",
       bold: ["bold", "700", "800", "900"].includes(style.fontWeight || ""),
@@ -2127,6 +2157,13 @@ function textXml(shape: TextShape): string {
     preserveSpace: false,
     fill: shape.fill,
     fillAlpha: null,
+    stroke: shape.stroke,
+    strokeAlpha: shape.strokeAlpha,
+    strokeWidth: shape.strokeWidth,
+    strokeLineCap: shape.strokeLineCap,
+    strokeLineJoin: shape.strokeLineJoin,
+    strokeMiterlimit: shape.strokeMiterlimit,
+    strokeDasharray: shape.strokeDasharray,
     fontSize: shape.fontSize,
     fontFamily: shape.fontFamily,
     bold: shape.bold,
@@ -2148,8 +2185,13 @@ function textXml(shape: TextShape): string {
 function textRunXml(run: TextRun): string {
   const attrs = ` lang="en-US" sz="${Math.round(run.fontSize * 100)}"${run.bold ? ' b="1"' : ""}${run.italic ? ' i="1"' : ""}${fontVariantXml(run.fontVariant)}${underlineXml(run)}${run.strike ? ' strike="sngStrike"' : ""}${baselineShiftXml(run.baselineShift)}${letterSpacingXml(run.letterSpacing)}`;
   const parts = run.text.split(/\r\n|\r|\n/);
-  const runProperties = `${solidColorXml(run.fill, run.fillAlpha)}${underlineChildrenXml(run)}<a:latin typeface="${xml(run.fontFamily)}"/>`;
+  const runProperties = `${solidColorXml(run.fill, run.fillAlpha)}${textOutlineXml(run)}${underlineChildrenXml(run)}<a:latin typeface="${xml(run.fontFamily)}"/>`;
   return `${run.breakBefore ? "<a:br/>" : ""}${parts.map((part, index) => `${index > 0 ? "<a:br/>" : ""}<a:r><a:rPr${attrs}>${runProperties}</a:rPr><a:t>${xml(part)}</a:t></a:r>`).join("")}`;
+}
+
+function textOutlineXml(run: TextRun): string {
+  if (!run.stroke || run.strokeWidth <= 0) return "";
+  return lineStyleXml(run.stroke, run.strokeWidth, lineOptions(run));
 }
 
 function underlineXml(run: TextRun): string {
