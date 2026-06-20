@@ -93,7 +93,7 @@ def _normalize_argv(argv: list[str] | None) -> list[str] | None:
 
 def _program_name(argv_was_provided: bool) -> str:
     if argv_was_provided:
-        return "drawingml-svg"
+        return "svgraph"
     invoked_as = Path(sys.argv[0]).name
     if invoked_as in {"svgraph", "drawingml-svg"}:
         return invoked_as

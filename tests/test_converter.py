@@ -207,7 +207,7 @@ def test_cli_version_writes_installed_package_version(capsys) -> None:
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "drawingml-svg 0.1.0\n"
+    assert captured.out == "svgraph 0.1.0\n"
 
 
 def test_svgraph_module_cli_uses_canonical_program_name() -> None:
@@ -234,6 +234,7 @@ def test_cli_help_lists_svgraph_commands_and_hides_legacy_aliases(capsys) -> Non
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
+    assert captured.out.startswith("usage: svgraph ")
     assert "svgraph" in captured.out
     assert "svgraph-presentation" in captured.out
     assert "pptxsvg" not in captured.out
@@ -389,7 +390,7 @@ def test_cli_reports_missing_input_without_traceback(tmp_path, capsys) -> None:
 
     captured = capsys.readouterr()
     assert excinfo.value.code == 1
-    assert "drawingml-svg: error:" in captured.err
+    assert "svgraph: error:" in captured.err
     assert "missing.svg" in captured.err
     assert "Traceback" not in captured.err
 
@@ -403,7 +404,7 @@ def test_cli_reports_invalid_xml_without_traceback(tmp_path, capsys) -> None:
 
     captured = capsys.readouterr()
     assert excinfo.value.code == 1
-    assert "drawingml-svg: error:" in captured.err
+    assert "svgraph: error:" in captured.err
     assert "mismatched tag" in captured.err
     assert "Traceback" not in captured.err
 
