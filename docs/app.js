@@ -124,6 +124,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     </switch>
     <rect id="alpha-shape" x="580" y="615" width="120" height="50" style="fill:rgba(239,68,68,0.5);stroke:#2563ebcc;stroke-width:6;fill-opacity:0.8;stroke-opacity:0.5"/>
     <line id="dash-line" x1="120" y1="650" x2="300" y2="650" style="stroke:#0f766e;stroke-width:8;stroke-dasharray:18 10;stroke-dashoffset:5;stroke-linecap:round;stroke-linejoin:bevel"/>
+    <line id="path-length-line" x1="120" y1="675" x2="220" y2="675" pathLength="50" style="stroke:#0891b2;stroke-width:4;stroke-dasharray:10 5"/>
     <g id="scaled-stroke-group" transform="translate(320 640) scale(2)">
       <line id="scaled-stroke" x1="0" y1="0" x2="50" y2="0" style="stroke:#7c3aed;stroke-width:3;stroke-dasharray:9 3"/>
       <line id="non-scaling-stroke" x1="0" y1="18" x2="50" y2="18" style="stroke:#be185d;stroke-width:3;stroke-dasharray:9 3;vector-effect:non-scaling-stroke"/>
@@ -578,6 +579,7 @@ function elementToShape(element, matrix, style, id, viewport) {
     if (tag === "line") {
         const [x1, y1] = point(matrix, geom(element, "x1", "x", viewport), geom(element, "y1", "y", viewport));
         const [x2, y2] = point(matrix, geom(element, "x2", "x", viewport), geom(element, "y2", "y", viewport));
+        const pathPaintStyle = scaledPathLengthDashStyle(paintStyle, pathLengthScale(paintStyle, element, "line", viewport));
         return {
             id,
             kind: "line",
@@ -587,10 +589,10 @@ function elementToShape(element, matrix, style, id, viewport) {
             y1,
             x2,
             y2,
-            stroke: paintStyle.stroke ?? "#111827",
-            strokeAlpha: paintStyle.strokeAlpha ?? null,
-            strokeWidth: paintStyle.strokeWidth ?? 1,
-            ...strokeStyle(paintStyle),
+            stroke: pathPaintStyle.stroke ?? "#111827",
+            strokeAlpha: pathPaintStyle.strokeAlpha ?? null,
+            strokeWidth: pathPaintStyle.strokeWidth ?? 1,
+            ...strokeStyle(pathPaintStyle),
             relation: data.kind === "relation" || data.role === "relation",
             startId: null,
             endId: null,
@@ -646,8 +648,10 @@ function elementToShape(element, matrix, style, id, viewport) {
         };
     }
     if (tag === "polygon" || tag === "polyline") {
-        const points = parsePoints(element.getAttribute("points") || "").map(([x, y]) => point(matrix, x, y));
+        const sourcePoints = parsePoints(element.getAttribute("points") || "");
+        const points = sourcePoints.map(([x, y]) => point(matrix, x, y));
         if (points.length >= 2) {
+            const pathPaintStyle = scaledPathLengthDashStyle(paintStyle, pathLengthScale(paintStyle, element, tag, viewport, sourcePoints));
             return {
                 id,
                 kind: "freeform",
@@ -655,12 +659,12 @@ function elementToShape(element, matrix, style, id, viewport) {
                 data,
                 points,
                 closed: tag === "polygon",
-                fill: tag === "polygon" ? (paintStyle.fill ?? "#000000") : null,
-                fillAlpha: tag === "polygon" ? (paintStyle.fillAlpha ?? null) : null,
-                stroke: paintStyle.stroke ?? "#111827",
-                strokeAlpha: paintStyle.strokeAlpha ?? null,
-                strokeWidth: paintStyle.strokeWidth ?? 1,
-                ...strokeStyle(paintStyle),
+                fill: tag === "polygon" ? (pathPaintStyle.fill ?? "#000000") : null,
+                fillAlpha: tag === "polygon" ? (pathPaintStyle.fillAlpha ?? null) : null,
+                stroke: pathPaintStyle.stroke ?? "#111827",
+                strokeAlpha: pathPaintStyle.strokeAlpha ?? null,
+                strokeWidth: pathPaintStyle.strokeWidth ?? 1,
+                ...strokeStyle(pathPaintStyle),
                 markerStart: style.markerStart ?? false,
                 markerEnd: style.markerEnd ?? false,
             };
@@ -669,6 +673,8 @@ function elementToShape(element, matrix, style, id, viewport) {
     if (tag === "path") {
         const parsed = parseBasicPath(element.getAttribute("d") || "", matrix);
         if (parsed && parsed.points.length >= 2) {
+            const untransformed = parseBasicPath(element.getAttribute("d") || "", [1, 0, 0, 1, 0, 0]);
+            const pathPaintStyle = scaledPathLengthDashStyle(paintStyle, pathLengthScale(paintStyle, element, tag, viewport, untransformed?.points ?? []));
             return {
                 id,
                 kind: "freeform",
@@ -676,12 +682,12 @@ function elementToShape(element, matrix, style, id, viewport) {
                 data,
                 points: parsed.points,
                 closed: parsed.closed,
-                fill: paintStyle.fill ?? (parsed.closed ? "#000000" : null),
-                fillAlpha: paintStyle.fill ? (paintStyle.fillAlpha ?? null) : parsed.closed ? (paintStyle.fillAlpha ?? null) : null,
-                stroke: paintStyle.stroke ?? "#111827",
-                strokeAlpha: paintStyle.strokeAlpha ?? null,
-                strokeWidth: paintStyle.strokeWidth ?? 1,
-                ...strokeStyle(paintStyle),
+                fill: pathPaintStyle.fill ?? (parsed.closed ? "#000000" : null),
+                fillAlpha: pathPaintStyle.fill ? (pathPaintStyle.fillAlpha ?? null) : parsed.closed ? (pathPaintStyle.fillAlpha ?? null) : null,
+                stroke: pathPaintStyle.stroke ?? "#111827",
+                strokeAlpha: pathPaintStyle.strokeAlpha ?? null,
+                strokeWidth: pathPaintStyle.strokeWidth ?? 1,
+                ...strokeStyle(pathPaintStyle),
                 markerStart: style.markerStart ?? false,
                 markerEnd: style.markerEnd ?? false,
             };
@@ -2530,6 +2536,7 @@ function computedStyle(element, inherited, css = [], refs = new Map(), viewport 
     const lengthAdjust = declarations.lengthAdjust ?? null;
     const rotate = value("rotate");
     const direction = value("direction");
+    const pathLength = declarations.pathLength ?? null;
     const clipPath = value("clip-path");
     const transform = value("transform");
     const transformOrigin = value("transform-origin");
@@ -2624,6 +2631,8 @@ function computedStyle(element, inherited, css = [], refs = new Map(), viewport 
         next.rotate = singleTextRotation(rotate, element.textContent || null);
     if (direction != null)
         next.direction = normalizeTextDirection(direction);
+    if (pathLength != null)
+        next.pathLength = normalizePathLength(pathLength);
     if (clipPath != null)
         next.clipPath = clipPath.trim();
     if (transform != null)
@@ -2858,6 +2867,8 @@ function cssValueFromStyle(style, name) {
             return style.wordSpacing == null ? null : String(style.wordSpacing);
         case "direction":
             return style.direction ?? null;
+        case "pathLength":
+            return style.pathLength == null ? null : String(style.pathLength);
         case "transform":
             return style.transform ?? null;
         case "transform-origin":
@@ -3335,6 +3346,51 @@ function scaledTextMetricsStyle(style, scale) {
     if (next.textDecorationThickness != null)
         next.textDecorationThickness *= scale;
     return next;
+}
+function scaledPathLengthDashStyle(style, scale) {
+    if (Math.abs(scale - 1) < 1e-9 || !style.strokeDasharray)
+        return style;
+    const next = { ...style };
+    next.strokeDasharray = scaleDasharray(style.strokeDasharray, scale);
+    if (next.strokeDashoffset != null)
+        next.strokeDashoffset *= scale;
+    return next;
+}
+function pathLengthScale(style, element, tag, viewport, points = null) {
+    const declared = style.pathLength ?? normalizePathLength(element.getAttribute("pathLength"));
+    if (!declared || declared <= 0)
+        return 1;
+    const actual = pathActualLength(element, tag, viewport, points);
+    return actual && actual > 0 ? actual / declared : 1;
+}
+function pathActualLength(element, tag, viewport, points) {
+    if (tag === "line") {
+        const x1 = geom(element, "x1", "x", viewport);
+        const y1 = geom(element, "y1", "y", viewport);
+        const x2 = geom(element, "x2", "x", viewport);
+        const y2 = geom(element, "y2", "y", viewport);
+        return Math.hypot(x2 - x1, y2 - y1);
+    }
+    if (points && points.length >= 2)
+        return polylineLength(points, tag === "polygon");
+    return null;
+}
+function polylineLength(points, closed) {
+    let total = 0;
+    for (let index = 1; index < points.length; index += 1)
+        total += pointDistance(points[index - 1], points[index]);
+    if (closed && points.length > 2)
+        total += pointDistance(points[points.length - 1], points[0]);
+    return total;
+}
+function pointDistance(a, b) {
+    return Math.hypot(b[0] - a[0], b[1] - a[1]);
+}
+function normalizePathLength(value) {
+    if (value == null)
+        return null;
+    const parsed = Number.parseFloat(value.trim());
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 function normalizeVectorEffect(value) {
     const normalized = value.trim().toLowerCase().split(/\s+/).join(" ");
