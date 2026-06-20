@@ -182,6 +182,7 @@ def test_project_urls_are_canonical_svgraph_locations() -> None:
     assert pyproject["project"]["urls"] == {
         "Homepage": "https://github.com/com-junkawasaki/svgraph",
         "Repository": "https://github.com/com-junkawasaki/svgraph",
+        "Documentation": "https://com-junkawasaki.github.io/svgraph/",
         "Issues": "https://github.com/com-junkawasaki/svgraph/issues",
     }
     assert package_metadata["homepage"] == "https://com-junkawasaki.github.io/svgraph/"
@@ -424,6 +425,7 @@ def test_release_and_ci_distribution_smoke_use_svgraph_artifact_names() -> None:
             "PresentationML/PPTX, and browser-only web editing."
         ) in source
         assert "Keywords: drawingml,svg,svgraph,presentationml,ooxml,pptx,web,converter" in source
+        assert "Project-URL: Documentation, https://com-junkawasaki.github.io/svgraph/" in source
         assert 'pyproject["project"]["name"] == "svgraph"' in source
         assert 'pyproject["project"]["description"] == "Small, dependency-free SVG presentation graph toolkit' in source
         assert '"presentationml", "pptx", "web"' in source

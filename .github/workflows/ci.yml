@@ -210,6 +210,7 @@ jobs:
           assert "Keywords: drawingml,svg,svgraph,presentationml,ooxml,pptx,web,converter" in wheel_metadata
           assert "Project-URL: Homepage, https://github.com/com-junkawasaki/svgraph" in wheel_metadata
           assert "Project-URL: Repository, https://github.com/com-junkawasaki/svgraph" in wheel_metadata
+          assert "Project-URL: Documentation, https://com-junkawasaki.github.io/svgraph/" in wheel_metadata
           assert "Project-URL: Issues, https://github.com/com-junkawasaki/svgraph/issues" in wheel_metadata
           assert "svgraph = svgraph.cli:main" in entry_points
           assert "drawingml-svg = svgraph.cli:main" in entry_points

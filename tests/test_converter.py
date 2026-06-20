@@ -98,6 +98,7 @@ def test_project_metadata_exposes_public_repository_links() -> None:
     assert project["urls"] == {
         "Homepage": "https://github.com/com-junkawasaki/svgraph",
         "Repository": "https://github.com/com-junkawasaki/svgraph",
+        "Documentation": "https://com-junkawasaki.github.io/svgraph/",
         "Issues": "https://github.com/com-junkawasaki/svgraph/issues",
     }
 

@@ -46,6 +46,7 @@ with zipfile.ZipFile(wheel_path) as wheel:
 assert "Name: svgraph" in wheel_metadata
 assert "Summary: Small, dependency-free SVG presentation graph toolkit for SVGraph, DrawingML, PresentationML/PPTX, and browser-only web editing." in wheel_metadata
 assert "Keywords: drawingml,svg,svgraph,presentationml,ooxml,pptx,web,converter" in wheel_metadata
+assert "Project-URL: Documentation, https://com-junkawasaki.github.io/svgraph/" in wheel_metadata
 with tarfile.open(sdist_path) as sdist:
     names = set(sdist.getnames())
     root = next(name for name in names if name.endswith("/pyproject.toml")).rsplit("/", 1)[0]
