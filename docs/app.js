@@ -77,6 +77,9 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
         <rect width="12" height="12" fill="#f97316"/>
         <circle cx="6" cy="6" r="4" fill="#22c55e"/>
       </pattern>
+      <symbol id="viewbox-icon" viewBox="-5 -5 10 10">
+        <circle cx="0" cy="0" r="5" fill="#2563eb"/>
+      </symbol>
     </defs>
     <style>
       :root { --browser-brand: #0ea5e9; --browser-line: #334155; }
@@ -90,6 +93,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
       .relative-font { font-size: 20px; }
       .relative-font .em-text { font-size: 1.5em; }
       .relative-font .calc-text { font-size: calc(8px + 4px); }
+      .font-short-title { font: italic small-caps 700 18px/1.2 "Aptos Display", Arial, sans-serif; fill: #111827; }
     </style>
     <rect width="1280" height="720" fill="#ffffff" stroke="none"/>
     <text x="90" y="90" style="font-size:40;font-family:Arial;font-weight:700;fill:#17202a">Browser SVG coverage</text>
@@ -114,6 +118,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <text id="anchored-text" x="680" y="660" style="font-size:24;font-family:Arial;fill:#0f172a;text-anchor:middle;dominant-baseline:middle">Centered</text>
     <text id="preserve-text" x="90" y="355" xml:space="preserve" style="font-size:22;font-family:Arial;fill:#64748b">  padded  <tspan style="fill:#0f766e"> kept </tspan></text>
     <text id="length-text" x="735" y="95" textLength="170" lengthAdjust="spacing" style="font-size:22;font-family:Arial;fill:#334155">Wide gap</text>
+    <text id="font-shorthand" class="font-short-title" x="760" y="135">Font short</text>
     <text id="rtl-text" x="560" y="95" direction="rtl" style="font-size:22;font-family:Arial;fill:#0f766e">RTL
 line</text>
     <text id="tspan-position" style="font-size:18;font-family:Arial;fill:#334155"><tspan x="900" y="455" dx="10" dy="5">From tspan</tspan><tspan x="900" dy="28">Next line</tspan></text>
@@ -124,6 +129,7 @@ line</text>
     <rect id="gradient-fill" x="900" y="615" width="120" height="50" style="fill:url(#linear-fallback);stroke:url(#radial-fallback)"/>
     <circle id="pattern-fill" cx="1080" cy="640" r="32" style="fill:url(#pattern-fallback);stroke:#334155"/>
     <use href="#reused-chip" class="accent-use" x="360" y="400"/>
+    <use id="symbol-viewbox-use" href="#viewbox-icon" x="500" y="385" width="80" height="40" preserveAspectRatio="xMaxYMax slice"/>
     <g transform="translate(90 390) scale(1.5)">
       <rect id="scaled" width="160" height="80" style="fill:#dbeafe;stroke:#2563eb"/>
     </g>
@@ -434,7 +440,10 @@ function extractShapes(root) {
             const refId = href.startsWith("#") ? href.slice(1) : "";
             const ref = refs.get(refId);
             if (ref && !refStack.has(refId)) {
-                const useMatrix = multiply(ownMatrix, [1, 0, 0, 1, geom(element, "x", "x", viewport), geom(element, "y", "y", viewport)]);
+                let useMatrix = multiply(ownMatrix, [1, 0, 0, 1, geom(element, "x", "x", viewport), geom(element, "y", "y", viewport)]);
+                if (["svg", "symbol"].includes(localName(ref))) {
+                    useMatrix = multiply(useMatrix, viewBoxMatrix(ref, useViewport(ref, element, viewport), element.getAttribute("preserveAspectRatio")));
+                }
                 walk(ref, useMatrix, ownStyle, new Set([...refStack, refId]));
             }
             return;
@@ -1043,7 +1052,7 @@ function htmlElementStyle(element, inheritedStyle, css) {
     if (fontTagSize != null)
         next.fontSize = fontTagSize;
     if (fontFamily != null)
-        next.fontFamily = fontFamily.replace(/^['"]|['"]$/g, "");
+        next.fontFamily = normalizeFontFamily(fontFamily);
     if (fontWeight != null)
         next.fontWeight = fontWeight;
     if (["strong", "b"].includes(tag))
@@ -2232,12 +2241,9 @@ function percentageBasis(axis, viewport) {
     return Math.hypot(viewport.width, viewport.height) / Math.SQRT2;
 }
 function svgViewport(root) {
-    const viewBox = root.getAttribute("viewBox");
-    if (viewBox) {
-        const values = viewBox.match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi)?.map(Number) ?? [];
-        if (values.length >= 4 && Number.isFinite(values[2]) && Number.isFinite(values[3]) && values[2] > 0 && values[3] > 0) {
-            return { width: values[2], height: values[3] };
-        }
+    const box = viewBoxValues(root);
+    if (box && box.width > 0 && box.height > 0) {
+        return { width: box.width, height: box.height };
     }
     const width = parseCssLength(root.getAttribute("width"), Number.NaN, 0);
     const height = parseCssLength(root.getAttribute("height"), Number.NaN, 0);
@@ -2245,6 +2251,63 @@ function svgViewport(root) {
 }
 function defaultViewport() {
     return { width: 1280, height: 720 };
+}
+function viewBoxValues(element) {
+    const values = element.getAttribute("viewBox")?.match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi)?.map(Number) ?? [];
+    if (values.length < 4)
+        return null;
+    const [minX, minY, width, height] = values;
+    return Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(width) && Number.isFinite(height) && width !== 0 && height !== 0
+        ? { minX, minY, width, height }
+        : null;
+}
+function useViewport(ref, useElement, viewport) {
+    const refBox = viewBoxValues(ref);
+    const widthFallback = refBox?.width ?? parseCssLength(ref.getAttribute("width"), Number.NaN, 0);
+    const heightFallback = refBox?.height ?? parseCssLength(ref.getAttribute("height"), Number.NaN, 0);
+    return {
+        width: optionalGeom(useElement, "width", "x", viewport) ?? widthFallback,
+        height: optionalGeom(useElement, "height", "y", viewport) ?? heightFallback,
+    };
+}
+function viewBoxMatrix(element, viewport, preserveAspectRatioOverride = null) {
+    const box = viewBoxValues(element);
+    if (!box || viewport.width === 0 || viewport.height === 0)
+        return [1, 0, 0, 1, 0, 0];
+    const sx = viewport.width / box.width;
+    const sy = viewport.height / box.height;
+    const [align, meetOrSlice] = parsePreserveAspectRatio(preserveAspectRatioOverride ?? element.getAttribute("preserveAspectRatio"));
+    if (align === "none")
+        return multiply([sx, 0, 0, sy, 0, 0], [1, 0, 0, 1, -box.minX, -box.minY]);
+    const scale = meetOrSlice === "slice" ? Math.max(sx, sy) : Math.min(sx, sy);
+    const extraX = viewport.width - box.width * scale;
+    const extraY = viewport.height - box.height * scale;
+    const offsetX = aspectAlignmentOffset(align.slice(1, 4), extraX);
+    const offsetY = aspectAlignmentOffset(align.slice(5, 8), extraY);
+    return multiply([1, 0, 0, 1, offsetX, offsetY], multiply([scale, 0, 0, scale, 0, 0], [1, 0, 0, 1, -box.minX, -box.minY]));
+}
+function parsePreserveAspectRatio(value) {
+    let parts = (value || "xMidYMid meet").trim().split(/\s+/).filter(Boolean);
+    if (parts[0]?.toLowerCase() === "defer")
+        parts = parts.slice(1);
+    const alignToken = parts[0] || "xMidYMid";
+    if (alignToken.toLowerCase() === "none")
+        return ["none", "meet"];
+    const alignments = new Map();
+    for (const x of ["Min", "Mid", "Max"]) {
+        for (const y of ["Min", "Mid", "Max"])
+            alignments.set(`x${x}Y${y}`.toLowerCase(), `x${x}Y${y}`);
+    }
+    const align = alignments.get(alignToken.toLowerCase()) ?? "xMidYMid";
+    const meetOrSlice = parts[1]?.toLowerCase() === "slice" ? "slice" : "meet";
+    return [align, meetOrSlice];
+}
+function aspectAlignmentOffset(part, extra) {
+    if (part === "Mid")
+        return extra / 2;
+    if (part === "Max")
+        return extra;
+    return 0;
 }
 function computedStyle(element, inherited, css = [], refs = new Map()) {
     const declarations = resolvedCascadedDeclarations(element, css, inherited);
@@ -2322,7 +2385,7 @@ function computedStyle(element, inherited, css = [], refs = new Map()) {
     if (fontSize != null)
         next.fontSize = parseFontSize(fontSize, next.fontSize ?? 18);
     if (fontFamily != null)
-        next.fontFamily = fontFamily.replace(/^['"]|['"]$/g, "");
+        next.fontFamily = normalizeFontFamily(fontFamily);
     if (fontWeight != null)
         next.fontWeight = fontWeight;
     if (fontStyle != null)
@@ -2603,6 +2666,11 @@ function cascadedDeclarations(element, css, aliases = {}, includePresentation = 
     const apply = (name, declaration, specificity, order) => {
         if (!name)
             return;
+        if (name.toLowerCase() === "font") {
+            for (const [fontName, fontValue] of Object.entries(parseFontShorthand(declaration.value))) {
+                apply(fontName, { value: fontValue, important: declaration.important }, specificity, order);
+            }
+        }
         const priority = [declaration.important ? 1 : 0, specificity[0], specificity[1], specificity[2], order];
         const current = priorities.get(name) ?? [-1, -1, -1, -1, -1];
         if (comparePriority(priority, current) < 0)
@@ -2886,12 +2954,113 @@ function parseStyleDeclarations(style) {
         if (!name || !rawValue)
             continue;
         const important = /\s*!important\s*$/i.test(rawValue);
-        declarations[name] = {
+        const declaration = {
             value: important ? rawValue.replace(/\s*!important\s*$/i, "").trim() : rawValue,
             important,
         };
+        addStyleDeclaration(declarations, name, declaration);
     }
     return declarations;
+}
+function addStyleDeclaration(declarations, name, declaration) {
+    if (name.toLowerCase() === "font") {
+        for (const [fontName, fontValue] of Object.entries(parseFontShorthand(declaration.value))) {
+            declarations[fontName] = { value: fontValue, important: declaration.important };
+        }
+    }
+    declarations[name] = declaration;
+}
+function parseFontShorthand(value) {
+    const tokens = cssValueTokens(value);
+    const result = {};
+    let sizeIndex = -1;
+    let skipNextObliqueAngle = false;
+    for (let index = 0; index < tokens.length; index += 1) {
+        const token = tokens[index];
+        if (skipNextObliqueAngle) {
+            skipNextObliqueAngle = false;
+            if (fontAngleTokenIsSupported(token))
+                continue;
+        }
+        const size = token.split("/", 1)[0].trim();
+        if (fontSizeTokenIsSupported(size)) {
+            sizeIndex = index;
+            result["font-size"] = size;
+            break;
+        }
+        const normalized = token.trim().toLowerCase();
+        if (normalized === "italic" || normalized === "oblique" || normalized.startsWith("oblique ")) {
+            result["font-style"] = normalized.startsWith("oblique") ? "oblique" : normalized;
+            skipNextObliqueAngle = normalized === "oblique";
+        }
+        else if (normalized === "small-caps" || normalized === "all-small-caps") {
+            result["font-variant"] = normalized;
+        }
+        else if (fontWeightTokenIsSupported(normalized)) {
+            result["font-weight"] = normalized;
+        }
+    }
+    if (sizeIndex < 0)
+        return {};
+    result["font-style"] ??= "normal";
+    result["font-variant"] ??= "normal";
+    result["font-weight"] ??= "normal";
+    const family = tokens.slice(sizeIndex + 1).join(" ").trim();
+    if (family)
+        result["font-family"] = family;
+    return result;
+}
+function cssValueTokens(value) {
+    const tokens = [];
+    let current = "";
+    let quote = null;
+    let parenDepth = 0;
+    for (const char of value) {
+        if (quote) {
+            current += char;
+            if (char === quote)
+                quote = null;
+            continue;
+        }
+        if (char === "\"" || char === "'") {
+            quote = char;
+            current += char;
+            continue;
+        }
+        if (char === "(")
+            parenDepth += 1;
+        if (char === ")" && parenDepth > 0)
+            parenDepth -= 1;
+        if (parenDepth === 0 && /\s/.test(char)) {
+            if (current.trim()) {
+                tokens.push(current.trim());
+                current = "";
+            }
+            continue;
+        }
+        current += char;
+    }
+    if (current.trim())
+        tokens.push(current.trim());
+    return tokens;
+}
+function fontSizeTokenIsSupported(value) {
+    const normalized = value.trim().toLowerCase();
+    if (["xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large"].includes(normalized))
+        return true;
+    if (!/[a-z%]/.test(normalized))
+        return normalized === "0";
+    return Number.isFinite(parseCssLength(value, Number.NaN, Number.NaN));
+}
+function fontAngleTokenIsSupported(value) {
+    const normalized = value.trim().toLowerCase();
+    return parseTransformAngleArg(value) != null && ["deg", "rad", "grad", "turn"].some((unit) => normalized.endsWith(unit));
+}
+function fontWeightTokenIsSupported(value) {
+    if (["normal", "bold", "bolder", "lighter"].includes(value))
+        return true;
+    const weight = Number.parseInt(value, 10);
+    return /^\d+$/.test(value) && weight >= 1 && weight <= 1000;
 }
 function strokeStyle(style) {
     return {
@@ -3229,6 +3398,10 @@ function parseFontSize(value, inherited = rootFontSize) {
         "xx-large": 32,
     };
     return keywords[normalized] ?? parseCssLength(value, inherited, inherited);
+}
+function normalizeFontFamily(value) {
+    const first = splitCssTopLevel(value, ",")[0]?.trim() || value.trim();
+    return first.replace(/^['"]|['"]$/g, "");
 }
 function parseCssLength(value, basis = Number.NaN, fallback = 0) {
     if (!value)
