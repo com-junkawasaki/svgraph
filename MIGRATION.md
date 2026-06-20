@@ -69,8 +69,11 @@ Run the migration guard tests before publishing:
 
 ```bash
 ruff check .
-PYTHONPATH=src pytest -q tests/test_migration.py tests/test_svgraph.py
+npm ci
+npm run check:web
 npm run build:web
+git diff --exit-code docs/app.js
+PYTHONPATH=src python -m pytest -q tests/test_migration.py tests/test_svgraph.py
 ```
 
-The full test suite also validates that public links, package metadata, wheel and sdist artifact names, CLI smoke checks, and packaged documentation stay on SVGraph naming.
+The full test suite also validates that public links, package metadata, wheel and sdist artifact names, CLI smoke checks, browser editor artifacts, and packaged documentation stay on SVGraph naming.

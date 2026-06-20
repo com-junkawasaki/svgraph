@@ -19,6 +19,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added release checklist coverage for verifying the public `com-junkawasaki/svgraph` repository identity and Pages URL before publishing.
 - Added a packaged migration guide that maps old repository, distribution, import, CLI, and IR surfaces to canonical SVGraph surfaces.
 - Added release checklist cleanup for stale local `*.egg-info` metadata before building `svgraph` wheel and sdist artifacts.
+- Added migration guide verification commands for browser type checking and committed Pages artifact freshness.
 - Strengthened release and CI smoke checks so SVGraph JSON, presentation JSON, top-level wheel metadata, and sample XML generation use or verify canonical `svgraph` surfaces first.
 - Added the canonical `svgraph` console script, with `svgraph input.svg` emitting SVGraph JSON directly while keeping `drawingml-svg` as a compatibility entry point.
 - Added deprecated compatibility aliases for the pre-SVGraph `drawingml_svg.ir` APIs and hidden CLI aliases, with warnings that point to `svgraph.model`, `svgraph`, and `svgraph-presentation`.

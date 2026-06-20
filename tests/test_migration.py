@@ -779,6 +779,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "release and CI smoke checks",
         "public `com-junkawasaki/svgraph` repository identity and Pages URL",
         "stale local `*.egg-info` metadata",
+        "browser type checking and committed Pages artifact freshness",
         "wheel metadata",
         "canonical `svgraph` surfaces",
         "canonical typed Python import package",
@@ -978,6 +979,24 @@ def test_migration_guide_cli_examples_use_canonical_svgraph_entry_points() -> No
     assert "drawingml-svg" not in cli_section
     assert "pptxsvg" not in cli_section
     assert "\nir " not in cli_section
+
+
+def test_migration_guide_verification_matches_svgraph_web_and_python_guards() -> None:
+    migration = (Path(__file__).resolve().parents[1] / "MIGRATION.md").read_text(encoding="utf-8")
+    verification = migration.split("## Verification", maxsplit=1)[1]
+
+    for command in [
+        "ruff check .",
+        "npm ci",
+        "npm run check:web",
+        "npm run build:web",
+        "git diff --exit-code docs/app.js",
+        "PYTHONPATH=src python -m pytest -q tests/test_migration.py tests/test_svgraph.py",
+    ]:
+        assert command in verification
+
+    assert "browser editor artifacts" in verification
+    assert "PYTHONPATH=src pytest " not in verification
 
 
 def _text_files(root: Path) -> list[Path]:
