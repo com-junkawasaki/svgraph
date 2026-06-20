@@ -891,12 +891,21 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert 'id="downloadSVGraphBtn"' in html
     assert 'id="downloadSidecarBtn"' in html
     assert 'id="downloadDrawingMlBtn"' in html
+    assert 'id="undoBtn"' in html
+    assert 'id="redoBtn"' in html
     assert 'mustElement<HTMLButtonElement>("downloadSvgBtn")' in source
     assert 'mustElement<HTMLButtonElement>("downloadSVGraphBtn")' in source
     assert 'mustElement<HTMLButtonElement>("downloadSidecarBtn")' in source
     assert 'mustElement<HTMLButtonElement>("downloadDrawingMlBtn")' in source
+    assert 'mustElement<HTMLButtonElement>("undoBtn")' in source
+    assert 'mustElement<HTMLButtonElement>("redoBtn")' in source
     for generated in [source, app_js]:
         assert 'downloadBlob("svgraph-source.svg"' in generated
+        assert "function setSourceValue" in generated
+        assert "function recordManualSourceEdit" in generated
+        assert "function undoSourceEdit" in generated
+        assert "function redoSourceEdit" in generated
+        assert "function updateHistoryButtons" in generated
         assert 'downloadText("svgraph.json"' in generated
         assert 'downloadText("svgraph-sidecar.json"' in generated
         assert 'kind: "svgraph-sidecar"' in generated
@@ -1077,6 +1086,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser assistant patch proposal validation",
         "browser assistant patch diff preview",
         "browser assistant patch apply support",
+        "browser SVG source undo/redo history",
         "web editor design package part schema documentation",
     ]:
         assert expected in changelog
@@ -1272,6 +1282,7 @@ def test_web_editor_design_uses_browser_only_svgraph_contract() -> None:
         "deterministic patch proposal/validation preview",
         "deterministic patch diff preview rows",
         "apply validated SVGraph patch operations back into the canonical SVG source",
+        "SVG source undo/redo history",
         "`SVGraphDocument`",
         "`SVGraphPresentation` projection",
         "`svgraph-presentation` view",

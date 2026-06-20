@@ -666,22 +666,75 @@ const state: {
   svgraph: SVGraphDocument | null;
   presentation: SVGraphPresentationProjection | null;
   webgpu: boolean;
+  undoStack: string[];
+  redoStack: string[];
+  lastSourceValue: string;
 } = {
   tab: "summary",
   svgraph: null,
   presentation: null,
   webgpu: false,
+  undoStack: [],
+  redoStack: [],
+  lastSourceValue: "",
 };
 
 const source = mustElement<HTMLTextAreaElement>("source");
 const preview = mustElement<HTMLElement>("preview");
 const panel = mustElement<HTMLElement>("panel");
 const fileInput = mustElement<HTMLInputElement>("fileInput");
+const undoButton = mustElement<HTMLButtonElement>("undoBtn");
+const redoButton = mustElement<HTMLButtonElement>("redoBtn");
 
 function mustElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
   if (!element) throw new Error(`missing #${id}`);
   return element as T;
+}
+
+function setSourceValue(value: string, options: { record: boolean } = { record: true }): void {
+  if (options.record && source.value !== value) {
+    state.undoStack.push(source.value);
+    state.redoStack = [];
+  }
+  source.value = value;
+  state.lastSourceValue = value;
+  updateHistoryButtons();
+  render();
+}
+
+function recordManualSourceEdit(): void {
+  if (source.value === state.lastSourceValue) return;
+  state.undoStack.push(state.lastSourceValue);
+  state.redoStack = [];
+  state.lastSourceValue = source.value;
+  updateHistoryButtons();
+  render();
+}
+
+function undoSourceEdit(): void {
+  const previous = state.undoStack.pop();
+  if (previous == null) return;
+  state.redoStack.push(source.value);
+  source.value = previous;
+  state.lastSourceValue = previous;
+  updateHistoryButtons();
+  render();
+}
+
+function redoSourceEdit(): void {
+  const next = state.redoStack.pop();
+  if (next == null) return;
+  state.undoStack.push(source.value);
+  source.value = next;
+  state.lastSourceValue = next;
+  updateHistoryButtons();
+  render();
+}
+
+function updateHistoryButtons(): void {
+  undoButton.disabled = state.undoStack.length === 0;
+  redoButton.disabled = state.redoStack.length === 0;
 }
 
 function localName(node: Element): string {
@@ -3900,8 +3953,7 @@ function renderPanel(): void {
     const applyButton = document.getElementById("applyAssistantPatchBtn") as HTMLButtonElement | null;
     applyButton?.addEventListener("click", () => {
       if (!state.svgraph) return;
-      source.value = applyAssistantPatch(source.value, proposal, state.svgraph);
-      render();
+      setSourceValue(applyAssistantPatch(source.value, proposal, state.svgraph));
     });
   } else {
     panel.innerHTML = `<pre>${escapeHtml(JSON.stringify(state.svgraph, null, 2))}</pre>`;
@@ -3950,9 +4002,10 @@ document.querySelectorAll<HTMLButtonElement>(".tab").forEach((tab) => {
 
 mustElement<HTMLButtonElement>("openBtn").addEventListener("click", () => fileInput.click());
 mustElement<HTMLButtonElement>("sampleBtn").addEventListener("click", () => {
-  source.value = sampleSvg;
-  render();
+  setSourceValue(sampleSvg);
 });
+undoButton.addEventListener("click", undoSourceEdit);
+redoButton.addEventListener("click", redoSourceEdit);
 mustElement<HTMLButtonElement>("downloadSvgBtn").addEventListener("click", () => {
   downloadBlob("svgraph-source.svg", new Blob([source.value], { type: "image/svg+xml;charset=utf-8" }));
 });
@@ -3977,10 +4030,9 @@ mustElement<HTMLButtonElement>("downloadPptxBtn").addEventListener("click", () =
 fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0];
   if (!file) return;
-  source.value = await file.text();
-  render();
+  setSourceValue(await file.text());
 });
-source.addEventListener("input", render);
+source.addEventListener("input", recordManualSourceEdit);
 
 async function checkWebGpu(): Promise<void> {
   const nav = navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown> } };
@@ -3997,8 +4049,7 @@ async function checkWebGpu(): Promise<void> {
   renderPanel();
 }
 
-source.value = sampleSvg;
-render();
+setSourceValue(sampleSvg, { record: false });
 void checkWebGpu();
 
 function asObject(value: JsonValue | undefined): Record<string, JsonValue> {

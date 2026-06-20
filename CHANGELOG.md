@@ -53,6 +53,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added browser assistant patch proposal validation for SVGraph-level edit operations before applying LLM suggestions.
 - Added browser assistant patch diff preview rows for SVGraph data and metadata edits before applying LLM suggestions.
 - Added browser assistant patch apply support for validated SVGraph data and metadata edits back into the canonical SVG source.
+- Added browser SVG source undo/redo history for manual edits, file/sample loads, and assistant patch application.
 - Added web editor design package part schema documentation for `part_name`, `content_type`, `kind`, and `source_node_id`.
 - Accepted canonical snake_case SVGraph presentation metadata keys such as `slide_size` and `text_styles` in both Python and browser runtimes, while continuing to read SVG-authored `slideSize` and `textStyles`.
 - Switched direct Python CLI entry calls to use `svgraph` as the program name, while preserving legacy executable names for compatibility aliases.

@@ -215,16 +215,64 @@ const state = {
     svgraph: null,
     presentation: null,
     webgpu: false,
+    undoStack: [],
+    redoStack: [],
+    lastSourceValue: "",
 };
 const source = mustElement("source");
 const preview = mustElement("preview");
 const panel = mustElement("panel");
 const fileInput = mustElement("fileInput");
+const undoButton = mustElement("undoBtn");
+const redoButton = mustElement("redoBtn");
 function mustElement(id) {
     const element = document.getElementById(id);
     if (!element)
         throw new Error(`missing #${id}`);
     return element;
+}
+function setSourceValue(value, options = { record: true }) {
+    if (options.record && source.value !== value) {
+        state.undoStack.push(source.value);
+        state.redoStack = [];
+    }
+    source.value = value;
+    state.lastSourceValue = value;
+    updateHistoryButtons();
+    render();
+}
+function recordManualSourceEdit() {
+    if (source.value === state.lastSourceValue)
+        return;
+    state.undoStack.push(state.lastSourceValue);
+    state.redoStack = [];
+    state.lastSourceValue = source.value;
+    updateHistoryButtons();
+    render();
+}
+function undoSourceEdit() {
+    const previous = state.undoStack.pop();
+    if (previous == null)
+        return;
+    state.redoStack.push(source.value);
+    source.value = previous;
+    state.lastSourceValue = previous;
+    updateHistoryButtons();
+    render();
+}
+function redoSourceEdit() {
+    const next = state.redoStack.pop();
+    if (next == null)
+        return;
+    state.undoStack.push(source.value);
+    source.value = next;
+    state.lastSourceValue = next;
+    updateHistoryButtons();
+    render();
+}
+function updateHistoryButtons() {
+    undoButton.disabled = state.undoStack.length === 0;
+    redoButton.disabled = state.redoStack.length === 0;
 }
 function localName(node) {
     return node.localName || node.nodeName.replace(/^.*:/, "");
@@ -3566,8 +3614,7 @@ function renderPanel() {
         applyButton?.addEventListener("click", () => {
             if (!state.svgraph)
                 return;
-            source.value = applyAssistantPatch(source.value, proposal, state.svgraph);
-            render();
+            setSourceValue(applyAssistantPatch(source.value, proposal, state.svgraph));
         });
     }
     else {
@@ -3611,9 +3658,10 @@ document.querySelectorAll(".tab").forEach((tab) => {
 });
 mustElement("openBtn").addEventListener("click", () => fileInput.click());
 mustElement("sampleBtn").addEventListener("click", () => {
-    source.value = sampleSvg;
-    render();
+    setSourceValue(sampleSvg);
 });
+undoButton.addEventListener("click", undoSourceEdit);
+redoButton.addEventListener("click", redoSourceEdit);
 mustElement("downloadSvgBtn").addEventListener("click", () => {
     downloadBlob("svgraph-source.svg", new Blob([source.value], { type: "image/svg+xml;charset=utf-8" }));
 });
@@ -3642,10 +3690,9 @@ fileInput.addEventListener("change", async () => {
     const file = fileInput.files?.[0];
     if (!file)
         return;
-    source.value = await file.text();
-    render();
+    setSourceValue(await file.text());
 });
-source.addEventListener("input", render);
+source.addEventListener("input", recordManualSourceEdit);
 async function checkWebGpu() {
     const nav = navigator;
     if (!nav.gpu) {
@@ -3661,8 +3708,7 @@ async function checkWebGpu() {
     }
     renderPanel();
 }
-source.value = sampleSvg;
-render();
+setSourceValue(sampleSvg, { record: false });
 void checkWebGpu();
 function asObject(value) {
     if (!value || typeof value !== "object" || Array.isArray(value))
