@@ -332,6 +332,7 @@ type SvgStyle = {
   strokeMiterlimit?: number | null;
   strokeDasharray?: string | null;
   strokeDashoffset?: number | null;
+  tableBorderCompound?: string | null;
   imageAlpha?: number | null;
   display?: string | null;
   visibility?: string | null;
@@ -490,7 +491,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
         <table>
           <tr>
             <td style="background-color:rgba(37,99,235,0.5);color:rgba(37,99,235,0.5)">RGBA <span style="color:#dc262680">Run</span></td>
-            <td style="background:#dc262680;color:#111827">Hex alpha</td>
+            <td style="background:#dc262680;color:#111827;border-style:dotted;border-width:3px;border-color:#dc262680">Hex alpha</td>
           </tr>
         </table>
       </body>
@@ -1353,7 +1354,7 @@ function tableBorderFromStyle(style: SvgStyle): TableBorder {
     strokeAlpha: style.strokeAlpha ?? null,
     strokeWidth: style.strokeWidth ?? 1,
     ...strokeStyle(style),
-    compound: null,
+    compound: style.tableBorderCompound ?? null,
   };
 }
 
@@ -1628,6 +1629,7 @@ function htmlElementStyle(element: Element, inheritedStyle: SvgStyle, css: CssRu
   const border = value("border") ?? (element.hasAttribute("border") ? `${element.getAttribute("border") || "1"} solid` : null);
   const borderColor = value("border-color") ?? element.getAttribute("bordercolor");
   const borderWidth = value("border-width") ?? element.getAttribute("border");
+  const borderStyle = value("border-style");
   const padding = value("padding") ?? element.getAttribute("cellpadding");
   const paddingLeft = value("padding-left");
   const paddingRight = value("padding-right");
@@ -1660,12 +1662,14 @@ function htmlElementStyle(element: Element, inheritedStyle: SvgStyle, css: CssRu
     next.strokeAlpha = parsedBorder.strokeAlpha;
     next.strokeWidth = parsedBorder.strokeWidth;
     next.strokeDasharray = parsedBorder.strokeDasharray;
+    next.tableBorderCompound = parsedBorder.compound;
   }
   if (borderColor != null) {
     next.stroke = parseCssColor(borderColor, next);
     next.strokeAlpha = cssColorAlpha(borderColor);
   }
   if (borderWidth != null) next.strokeWidth = htmlCssLength(borderWidth, 1) ?? next.strokeWidth ?? 1;
+  if (borderStyle != null) applyHtmlBorderStyle(next, borderStyle);
   if (padding != null) {
     const sides = htmlPaddingSides(padding);
     if (sides) {
@@ -1764,7 +1768,7 @@ function parseHtmlBorder(value: string | null, style: SvgStyle): TableBorder {
   const colorPart = parts.find((part) => parseCssColor(part, style));
   const stylePart = parts.find((part) => ["dashed", "dotted", "double"].includes(part.toLowerCase()))?.toLowerCase() || null;
   const borderWidth = width ?? 1;
-  const dasharray = stylePart === "dashed" ? `${borderWidth * 3} ${borderWidth * 3}` : stylePart === "dotted" ? `${borderWidth} ${borderWidth}` : null;
+  const dasharray = htmlBorderDasharray(stylePart, borderWidth);
   return {
     stroke: colorPart ? parseCssColor(colorPart, style) : (style.stroke ?? "#000000"),
     strokeAlpha: colorPart ? cssColorAlpha(colorPart) : (style.strokeAlpha ?? null),
@@ -1773,6 +1777,28 @@ function parseHtmlBorder(value: string | null, style: SvgStyle): TableBorder {
     strokeDasharray: dasharray,
     compound: stylePart === "double" ? "dbl" : null,
   };
+}
+
+function applyHtmlBorderStyle(style: SvgStyle, value: string): void {
+  const stylePart = value.trim().toLowerCase().split(/\s+/).find((part) => ["none", "hidden", "solid", "dashed", "dotted", "double"].includes(part));
+  if (!stylePart) return;
+  if (["none", "hidden"].includes(stylePart)) {
+    style.stroke = null;
+    style.strokeAlpha = null;
+    style.strokeWidth = 0;
+    style.strokeDasharray = null;
+    style.tableBorderCompound = null;
+    return;
+  }
+  const width = style.strokeWidth ?? 1;
+  style.strokeDasharray = htmlBorderDasharray(stylePart, width);
+  style.tableBorderCompound = stylePart === "double" ? "dbl" : null;
+}
+
+function htmlBorderDasharray(stylePart: string | null, width: number): string | null {
+  if (stylePart === "dashed") return `${width * 1.5} ${width * 1.5}`;
+  if (stylePart === "dotted") return `${width / 3} ${width / 3}`;
+  return null;
 }
 
 function normalizeHtmlTextAlign(value: string): string | null {
