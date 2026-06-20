@@ -1,5 +1,6 @@
 include CODE_OF_CONDUCT.md
 include CHANGELOG.md
 include CONTRIBUTING.md
+include MIGRATION.md
 include RELEASE.md
 include SECURITY.md

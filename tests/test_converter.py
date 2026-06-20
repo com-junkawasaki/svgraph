@@ -151,7 +151,14 @@ def test_readme_project_links_point_to_packaged_docs() -> None:
     section = readme.split("## Project links\n", 1)[1].split("\n## ", 1)[0]
     linked_docs = set(re.findall(r"\[([A-Z_]+\.md)\]\([A-Z_]+\.md\)", section))
 
-    assert linked_docs == {"CHANGELOG.md", "CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "RELEASE.md", "SECURITY.md"}
+    assert linked_docs == {
+        "CHANGELOG.md",
+        "CODE_OF_CONDUCT.md",
+        "CONTRIBUTING.md",
+        "MIGRATION.md",
+        "RELEASE.md",
+        "SECURITY.md",
+    }
     for doc in linked_docs:
         assert (root / doc).is_file(), doc
         assert f"include {doc}" in manifest
@@ -191,11 +198,27 @@ def test_docs_point_legacy_ir_to_svgraph_model() -> None:
     root = _project_root()
     readme = (root / "README.md").read_text(encoding="utf-8")
     adr = (root / "docs" / "adr" / "0001-svgraph.md").read_text(encoding="utf-8")
+    migration = (root / "MIGRATION.md").read_text(encoding="utf-8")
 
     assert "python -m svgraph --version" in readme
     assert "compatibility aliases that point to `svgraph.model`" in readme
     assert "svgraph.model.svg_to_svgraph()" in adr
     assert "warns toward `svgraph.model`" in adr
+    assert "`drawingml_svg.ir.svg_to_ir()` | `svgraph.model.svg_to_svgraph()`" in migration
+    assert "`drawingml_svg.ir.svg_to_pptx_ir()` | `svgraph.model.svg_to_svgraph_presentation()`" in migration
+
+
+def test_migration_guide_covers_public_rename_surfaces() -> None:
+    migration = (_project_root() / "MIGRATION.md").read_text(encoding="utf-8")
+
+    for legacy, canonical in [
+        ("`com-junkawasaki/" + "drawingml-svg`", "`com-junkawasaki/svgraph`"),
+        ("`drawingml-svg` Python distribution", "`svgraph` Python distribution"),
+        ("`drawingml_svg` import package", "`svgraph` import package"),
+        ("`drawingml-svg` executable", "`svgraph` executable"),
+        ("`pptxsvg` CLI command", "`svgraph-presentation` CLI command"),
+    ]:
+        assert f"{legacy} | {canonical}" in migration
 
 
 def test_dependabot_tracks_actions_and_python_dependencies() -> None:

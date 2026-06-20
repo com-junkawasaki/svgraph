@@ -21,6 +21,7 @@ LEGACY_TERMS = (
 )
 
 ALLOWED_LEGACY_TERMS = {
+    "MIGRATION.md": {"pptxsvg", "SvgIR", "svg_to_ir", "svg_to_pptx_ir", "svg_ir", "pptx_ir"},
     "README.md": {"pptxsvg", "svg_to_ir", "svg_to_pptx_ir", "pptx_ir"},
     "docs/adr/0001-svgraph.md": {"svg_to_ir"},
     "src/drawingml_svg/cli.py": {"pptxsvg"},
@@ -30,7 +31,10 @@ ALLOWED_LEGACY_TERMS = {
         "PPTXSVG",
         "pptxsvg",
         "_pptxsvg",
+        "svg_to_ir",
+        "svg_to_pptx_ir",
         "presentation IR",
+        "pptx_ir",
         "downloadIrBtn",
         "downloadSvgraphBtn",
         "downloadPptxsvg",
@@ -107,7 +111,7 @@ def test_public_surfaces_use_svgraph_repo_and_artifact_names() -> None:
     unexpected: list[str] = []
     for path in _text_files(root):
         relative = path.relative_to(root).as_posix()
-        if relative == "tests/test_migration.py":
+        if relative in {"MIGRATION.md", "tests/test_migration.py"}:
             continue
         text = path.read_text(encoding="utf-8")
         for term in FORBIDDEN_PUBLIC_LEGACY_STRINGS:

@@ -42,6 +42,7 @@ npm run build:web
 
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Migration guide: [MIGRATION.md](MIGRATION.md)
 - Release checklist: [RELEASE.md](RELEASE.md)
 - Security policy: [SECURITY.md](SECURITY.md)
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
@@ -140,6 +141,7 @@ presentation = svg_to_svgraph_presentation(svg_text)
 ```
 
 `drawingml_svg` remains available as a compatibility import path.
+See [MIGRATION.md](MIGRATION.md) for the old-to-new surface mapping.
 
 ## SVGraph
 
