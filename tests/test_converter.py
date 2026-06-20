@@ -6,7 +6,6 @@ import subprocess
 import sys
 import tomllib
 import zipfile
-from email.parser import Parser
 from importlib import resources
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -90,7 +89,6 @@ def test_project_metadata_exposes_public_repository_links() -> None:
 
     assert project["name"] == "svgraph"
     assert project["scripts"]["svgraph"] == "svgraph.cli:main"
-    assert project["scripts"]["drawingml-svg"] == "svgraph.cli:main"
     assert "Typing :: Typed" in project["classifiers"]
     assert project["urls"] == {
         "Homepage": "https://github.com/com-junkawasaki/svgraph",
@@ -106,18 +104,11 @@ def test_generated_distribution_metadata_preserves_svgraph_identity() -> None:
     if not pkg_info.exists() or not entry_points.exists() or not top_level.exists():
         pytest.skip("egg-info metadata has not been generated")
 
-    metadata = Parser().parsestr(pkg_info.read_text(encoding="utf-8"))
-    project_urls = metadata.get_all("Project-URL") or []
     entry_point_text = entry_points.read_text(encoding="utf-8")
     top_level_names = set(top_level.read_text(encoding="utf-8").splitlines())
 
-    assert metadata["Name"] == "svgraph"
-    assert "Homepage, https://github.com/com-junkawasaki/svgraph" in project_urls
-    assert "Repository, https://github.com/com-junkawasaki/svgraph" in project_urls
-    assert "Issues, https://github.com/com-junkawasaki/svgraph/issues" in project_urls
     assert "svgraph = svgraph.cli:main" in entry_point_text
-    assert "drawingml-svg = svgraph.cli:main" in entry_point_text
-    assert {"svgraph", "drawingml_svg"} <= top_level_names
+    assert "svgraph" in top_level_names
 
 
 def test_readme_documents_supported_drawingml_presets() -> None:
@@ -177,7 +168,6 @@ def test_release_checklist_covers_distribution_and_pptx_smoke() -> None:
     assert "svgraph --version" in release
     assert "svgraph examples/svgraph.svg > tmp/release-svgraph.json" in release
     assert "svgraph svgraph-presentation examples/svgraph.svg > tmp/release-svgraph-presentation.json" in release
-    assert "drawingml-svg --version" in release
     assert "svgraph analyze examples/coverage.svg" in release
     assert "svgraph svg2dml examples/sample.svg -o tmp/release-smoke.xml" in release
 
@@ -253,20 +243,6 @@ def test_pyproject_installs_svgraph_console_script() -> None:
     assert 'svgraph = "svgraph.cli:main"' in pyproject
 
 
-def test_cli_help_lists_svgraph_commands_and_hides_legacy_aliases(capsys) -> None:
-    with pytest.raises(SystemExit) as excinfo:
-        cli_main(["--help"])
-
-    captured = capsys.readouterr()
-
-    assert excinfo.value.code == 0
-    assert captured.out.startswith("usage: svgraph ")
-    assert "svgraph" in captured.out
-    assert "svgraph-presentation" in captured.out
-    assert "pptxsvg" not in captured.out
-    assert "{svg2dml,dml2svg,svg2pptx,analyze,ir" not in captured.out
-
-
 def test_svgraph_executable_defaults_to_svgraph_json(monkeypatch, tmp_path, capsys) -> None:
     source = tmp_path / "input.svg"
     source.write_text('<svg><rect id="box" width="10" height="8"/></svg>', encoding="utf-8")
@@ -289,54 +265,6 @@ def test_svgraph_executable_keeps_svgraph_program_name(monkeypatch, capsys) -> N
 
     assert excinfo.value.code == 0
     assert captured.out == "svgraph 0.1.0\n"
-
-
-def test_pptx_exporter_uses_only_svgraph_internal_shape_prefix() -> None:
-    pptx_source = resources.files("svgraph").joinpath("pptx.py").read_text(encoding="utf-8")
-
-    assert "_svgraph_" in pptx_source
-    assert "_pptxsvg_" not in pptx_source
-
-
-def test_pages_artifacts_use_svgraph_naming() -> None:
-    public_assets = "\n".join(
-        [
-            Path("docs/index.html").read_text(encoding="utf-8"),
-            Path("docs/app.js").read_text(encoding="utf-8"),
-        ]
-    )
-
-    assert "SVGraph" in public_assets
-    assert "downloadSVGraphBtn" in public_assets
-    assert "PPTXSVG" not in public_assets
-    assert "pptxsvg" not in public_assets
-    assert "presentation IR" not in public_assets
-    assert "downloadIrBtn" not in public_assets
-    assert "downloadSvgraphBtn" not in public_assets
-    assert "downloadPptxsvg" not in public_assets
-
-
-def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
-    root = _project_root()
-    package_json = (root / "package.json").read_text(encoding="utf-8")
-    package_lock = (root / "package-lock.json").read_text(encoding="utf-8")
-    html = (root / "docs" / "index.html").read_text(encoding="utf-8")
-    source = (root / "web" / "app.ts").read_text(encoding="utf-8")
-
-    assert '"name": "svgraph-web"' in package_json
-    assert '"name": "svgraph-web"' in package_lock
-    assert "<title>SVGraph Editor</title>" in html
-    assert 'id="downloadSVGraphBtn"' in html
-    assert 'mustElement<HTMLButtonElement>("downloadSVGraphBtn")' in source
-    assert 'downloadText("svgraph-presentation.json"' in source
-
-    combined = "\n".join([package_json, package_lock, html, source])
-    assert "drawingml-" + "svg-web" not in combined
-    assert "PPTXSVG" not in combined
-    assert "presentation IR" not in combined
-    assert "downloadIrBtn" not in combined
-    assert "downloadSvgraphBtn" not in combined
-    assert "downloadPptxsvg" not in combined
 
 
 def test_cli_converts_between_files_and_creates_output_parent(tmp_path) -> None:

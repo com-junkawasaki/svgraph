@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from email.parser import Parser
 from pathlib import Path
+import tomllib
 
 
 LEGACY_TERMS = (
@@ -27,16 +29,6 @@ ALLOWED_LEGACY_TERMS = {
     "src/drawingml_svg/cli.py": {"pptxsvg"},
     "src/drawingml_svg/ir.py": {"SvgIR", "svg_to_ir", "svg_to_pptx_ir", "svg_ir", "pptx_ir"},
     "src/svgraph/cli.py": {"pptxsvg"},
-    "tests/test_converter.py": {
-        "PPTXSVG",
-        "pptxsvg",
-        "_pptxsvg",
-        "presentation IR",
-        "downloadIrBtn",
-        "downloadSvgraphBtn",
-        "downloadPptxsvg",
-        "Svgraph",
-    },
     "tests/test_migration.py": set(LEGACY_TERMS),
     "tests/test_svgraph.py": {"SvgIR", "pptxsvg", "svg_to_ir", "svg_to_pptx_ir", "svg_ir", "pptx_ir", "Svgraph"},
 }
@@ -132,6 +124,49 @@ def test_distribution_metadata_uses_svgraph_name() -> None:
     assert unexpected == []
 
 
+def test_pyproject_keeps_legacy_console_scripts_as_svgraph_compatibility_aliases() -> None:
+    project = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]
+
+    assert project["scripts"]["drawingml-svg"] == "svgraph.cli:main"
+    assert project["scripts"]["drawingml-svg-analyze"] == "svgraph.cli:main"
+    assert project["scripts"]["dml2svg"] == "svgraph.cli:main"
+    assert project["scripts"]["svg2dml"] == "svgraph.cli:main"
+    assert project["scripts"]["svg2pptx"] == "svgraph.cli:main"
+
+
+def test_generated_distribution_metadata_preserves_legacy_compatibility_entry_points() -> None:
+    root = Path(__file__).resolve().parents[1]
+    pkg_info = root / "src" / "svgraph.egg-info" / "PKG-INFO"
+    entry_points = root / "src" / "svgraph.egg-info" / "entry_points.txt"
+    top_level = root / "src" / "svgraph.egg-info" / "top_level.txt"
+    if not pkg_info.exists() or not entry_points.exists() or not top_level.exists():
+        return
+
+    metadata = Parser().parsestr(pkg_info.read_text(encoding="utf-8"))
+    entry_point_text = entry_points.read_text(encoding="utf-8")
+    top_level_names = set(top_level.read_text(encoding="utf-8").splitlines())
+
+    assert metadata["Name"] == "svgraph"
+    assert "drawingml-svg = svgraph.cli:main" in entry_point_text
+    assert "drawingml-svg-analyze = svgraph.cli:main" in entry_point_text
+    assert {"svgraph", "drawingml_svg"} <= top_level_names
+
+
+def test_release_checklist_keeps_legacy_console_alias_smoke() -> None:
+    release = (Path(__file__).resolve().parents[1] / "RELEASE.md").read_text(encoding="utf-8")
+
+    assert "drawingml-svg --version" in release
+
+
+def test_pptx_exporter_uses_only_svgraph_internal_shape_prefix() -> None:
+    pptx_source = (Path(__file__).resolve().parents[1] / "src" / "svgraph" / "pptx.py").read_text(encoding="utf-8")
+
+    assert "_svgraph_" in pptx_source
+    assert "_pptxsvg_" not in pptx_source
+
+
 def test_canonical_code_paths_import_svgraph_package() -> None:
     root = Path(__file__).resolve().parents[1]
     unexpected: list[str] = []
@@ -145,6 +180,48 @@ def test_canonical_code_paths_import_svgraph_package() -> None:
                 unexpected.append(f"{relative}: {pattern}")
 
     assert unexpected == []
+
+
+def test_pages_artifacts_use_svgraph_naming() -> None:
+    root = Path(__file__).resolve().parents[1]
+    public_assets = "\n".join(
+        [
+            (root / "docs" / "index.html").read_text(encoding="utf-8"),
+            (root / "docs" / "app.js").read_text(encoding="utf-8"),
+        ]
+    )
+
+    assert "SVGraph" in public_assets
+    assert "downloadSVGraphBtn" in public_assets
+    assert "PPTXSVG" not in public_assets
+    assert "pptxsvg" not in public_assets
+    assert "presentation IR" not in public_assets
+    assert "downloadIrBtn" not in public_assets
+    assert "downloadSvgraphBtn" not in public_assets
+    assert "downloadPptxsvg" not in public_assets
+
+
+def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
+    root = Path(__file__).resolve().parents[1]
+    package_json = (root / "package.json").read_text(encoding="utf-8")
+    package_lock = (root / "package-lock.json").read_text(encoding="utf-8")
+    html = (root / "docs" / "index.html").read_text(encoding="utf-8")
+    source = (root / "web" / "app.ts").read_text(encoding="utf-8")
+
+    assert '"name": "svgraph-web"' in package_json
+    assert '"name": "svgraph-web"' in package_lock
+    assert "<title>SVGraph Editor</title>" in html
+    assert 'id="downloadSVGraphBtn"' in html
+    assert 'mustElement<HTMLButtonElement>("downloadSVGraphBtn")' in source
+    assert 'downloadText("svgraph-presentation.json"' in source
+
+    combined = "\n".join([package_json, package_lock, html, source])
+    assert "drawingml-" + "svg-web" not in combined
+    assert "PPTXSVG" not in combined
+    assert "presentation IR" not in combined
+    assert "downloadIrBtn" not in combined
+    assert "downloadSvgraphBtn" not in combined
+    assert "downloadPptxsvg" not in combined
 
 
 def test_drawingml_svg_modules_are_compatibility_wrappers() -> None:

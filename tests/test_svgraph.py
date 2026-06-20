@@ -57,6 +57,20 @@ def test_cli_alias_help_writes_command_help(monkeypatch, capsys, executable: str
     assert "Input file. Reads stdin when omitted." in captured.out
 
 
+def test_cli_help_lists_svgraph_commands_and_hides_legacy_aliases(capsys) -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        cli_main(["--help"])
+
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 0
+    assert captured.out.startswith("usage: svgraph ")
+    assert "svgraph" in captured.out
+    assert "svgraph-presentation" in captured.out
+    assert "pptxsvg" not in captured.out
+    assert "{svg2dml,dml2svg,svg2pptx,analyze,ir" not in captured.out
+
+
 def test_svgraph_preserves_metadata_data_attributes_and_dependencies() -> None:
     svg = """\
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50">
