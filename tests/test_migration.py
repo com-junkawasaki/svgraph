@@ -1126,6 +1126,9 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function normalizeStrokeWidth" in generated
         assert "normalizeStrokeWidth(strokeWidth, next.fontSize ?? rootFontSize, next.strokeWidth ?? 1)" in generated
         assert "stroke-width:-2" in generated
+        assert "function rectRadius" in generated
+        assert "optionalNonnegativeCascadedGeom" in generated
+        assert 'rx="-3" ry="8"' in generated
         assert "css-use-frame" in generated
         assert "css-nested-frame" in generated
         assert "svgTextPosition(element, viewport, css, paintStyle)" in generated
@@ -1386,6 +1389,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser line direction with DrawingML `flipH`/`flipV` transforms",
         "browser `clipPathUnits` values",
         "browser negative `stroke-width` fallback",
+        "browser negative SVG rect radius fallback",
         "web editor design package part schema documentation",
         "compatibility submodule public-surface guards",
         "installed compatibility submodules prove their canonical `__all__` and callable parity",

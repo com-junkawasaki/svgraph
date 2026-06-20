@@ -622,6 +622,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <path id="curve-path" d="M 120 520 C 190 430 260 610 330 520 Q 390 445 450 520 T 570 520" style="fill:none;stroke:#ea580c;stroke-width:6"/>
     <path id="arc-path" d="M 640 520 A 90 55 0 0 1 820 520 A 90 55 0 0 1 640 520" style="fill:#fef3c7;stroke:#a16207;stroke-width:5"/>
     <rect id="geometry-lengths" x="calc(50% - 80px)" y="42%" width="10%" height="8%" style="fill:#ecfccb;stroke:#4d7c0f;stroke-width:2pt"/>
+    <rect id="negative-radius-fallback" x="900" y="340" width="90" height="44" rx="-3" ry="8" style="fill:#fef9c3;stroke:#854d0e"/>
     <line id="marked-line" x1="980" y1="185" x2="1130" y2="260" style="stroke:#7c3aed;stroke-width:8;marker-end:url(#arrow)"/>
     <image id="pixel" class="css-image-frame" preserveAspectRatio="xMidYMid slice" opacity="35%" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzQnAAAAABJRU5ErkJggg=="/>
     <circle class="css-circle" cx="1130" cy="388" r="48"/>
@@ -2041,7 +2042,7 @@ function elementToShape(element: Element, matrix: Matrix, style: SvgStyle, id: n
       y: box.y,
       width: box.width,
       height: box.height,
-      rx: cascadedGeom(element, declarations, "rx", "x", viewport),
+      rx: rectRadius(element, declarations, viewport),
       fill: paintStyle.fill ?? "#000000",
       fillAlpha: paintStyle.fillAlpha ?? null,
       stroke: paintStyle.stroke ?? null,
@@ -4500,6 +4501,20 @@ function optionalCascadedGeom(element: Element, declarations: Record<string, str
   if (value == null) return null;
   const parsed = parseCssLength(value, percentageBasis(axis, viewport), Number.NaN);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function optionalNonnegativeCascadedGeom(element: Element, declarations: Record<string, string>, name: string, axis: "x" | "y" | "diag", viewport: Viewport): number | null {
+  const parsed = optionalCascadedGeom(element, declarations, name, axis, viewport);
+  return parsed != null && parsed >= 0 ? parsed : null;
+}
+
+function rectRadius(element: Element, declarations: Record<string, string>, viewport: Viewport): number {
+  const rx = optionalNonnegativeCascadedGeom(element, declarations, "rx", "x", viewport);
+  const ry = optionalNonnegativeCascadedGeom(element, declarations, "ry", "y", viewport);
+  if (rx == null && ry == null) return 0;
+  if (rx == null) return ry ?? 0;
+  if (ry == null) return rx;
+  return Math.max(rx, ry);
 }
 
 function firstOptionalCascadedGeom(element: Element, declarations: Record<string, string>, name: string, axis: "x" | "y" | "diag", viewport: Viewport): number | null {

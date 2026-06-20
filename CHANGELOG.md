@@ -60,6 +60,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added browser SVG source download so the editor can export the canonical source document directly.
 - Added browser SVGraph sidecar JSON download for metadata, dependencies, coverage, and presentation package state.
 - Aligned browser negative `stroke-width` fallback with SVG defaults.
+- Aligned browser negative SVG rect radius fallback with SVG defaults.
 - Added browser assistant patch proposal validation for SVGraph-level edit operations before applying LLM suggestions.
 - Added browser assistant patch diff preview rows for SVGraph data and metadata edits before applying LLM suggestions.
 - Added browser assistant patch apply support for validated SVGraph data and metadata edits back into the canonical SVG source.
