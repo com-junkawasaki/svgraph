@@ -24,7 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     invoked_as = None if argv_was_provided else Path(sys.argv[0]).name
     argv = _normalize_argv(argv)
     parser = argparse.ArgumentParser(prog=_program_name(argv_was_provided))
-    parser.add_argument("--version", action="version", version=f"%(prog)s {_package_version()}")
+    parser.add_argument("--version", action="version", version=f"svgraph {_package_version()}")
     subparsers = parser.add_subparsers(dest="command", metavar="{" + ",".join(VISIBLE_COMMANDS) + "}")
     subparsers.required = True
 

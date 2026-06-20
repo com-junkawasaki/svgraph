@@ -83,8 +83,8 @@ def test_compatibility_submodules_export_canonical_svgraph_callables() -> None:
     assert drawingml_svg.svgraph.svg_to_svgraph_presentation is svgraph.model.svg_to_svgraph_presentation
 
 
-@pytest.mark.parametrize("executable", ["svg2dml", "dml2svg", "svg2pptx", "drawingml-svg-analyze"])
-def test_cli_alias_version_writes_installed_package_version(monkeypatch, capsys, executable: str) -> None:
+@pytest.mark.parametrize("executable", ["drawingml-svg", "svg2dml", "dml2svg", "svg2pptx", "drawingml-svg-analyze"])
+def test_cli_alias_version_writes_canonical_package_identity(monkeypatch, capsys, executable: str) -> None:
     monkeypatch.setattr("sys.argv", [executable, "--version"])
 
     with pytest.raises(SystemExit) as excinfo:
@@ -93,7 +93,7 @@ def test_cli_alias_version_writes_installed_package_version(monkeypatch, capsys,
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "drawingml-svg 0.1.0\n"
+    assert captured.out == "svgraph 0.1.0\n"
 
 
 @pytest.mark.parametrize(

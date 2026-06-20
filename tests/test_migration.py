@@ -402,6 +402,8 @@ def test_module_execution_is_canonical_svgraph_entry_point() -> None:
     assert "tmp/wheel-venv/bin/python -m svgraph analyze examples/coverage.svg" in workflow
     assert "python -m svgraph --version" in readme
     assert "python -m svgraph --version" in migration
+    assert 'version=f"svgraph {_package_version()}"' in cli_source
+    assert 'version=f"%(prog)s {_package_version()}"' not in cli_source
     assert 'version("svgraph")' in cli_source
     assert 'version("drawingml-svg")' not in cli_source
     assert 'project.get("name") != "svgraph"' in cli_source
@@ -1083,6 +1085,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "wheel license expression and license file metadata",
         "canonical `svgraph.model` explicit exports",
         "canonical `svgraph` distribution version lookup",
+        "canonical `svgraph` version identity for retained compatibility console scripts",
         "browser SVGraph presentation package part content types",
         "SVGraph presentation package part schema documentation",
         "release and CI generated presentation JSON package part content types",
