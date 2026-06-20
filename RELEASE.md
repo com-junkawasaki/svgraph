@@ -240,6 +240,15 @@ do
 done
 tmp/release-venv/bin/python - <<'PY'
 import svgraph
+import drawingml_svg
+import drawingml_svg.converter
+import drawingml_svg.coverage
+import drawingml_svg.pptx
+import drawingml_svg.svgraph
+import svgraph.converter
+import svgraph.coverage
+import svgraph.model
+import svgraph.pptx
 from svgraph import svg_to_svgraph, svg_to_svgraph_presentation
 
 assert svgraph.svg_to_svgraph is svg_to_svgraph
@@ -247,6 +256,15 @@ assert svgraph.svg_to_svgraph_presentation is svg_to_svgraph_presentation
 assert "svg_to_svgraph" in svgraph.__all__
 assert "svg_to_" + "ir" not in svgraph.__all__
 assert svg_to_svgraph("<svg><rect data-kind='table'/></svg>").kind == "svgraph"
+assert drawingml_svg.__all__ == svgraph.__all__
+assert drawingml_svg.converter.__all__ == svgraph.converter.__all__
+assert drawingml_svg.coverage.__all__ == svgraph.coverage.__all__
+assert drawingml_svg.pptx.__all__ == svgraph.pptx.__all__
+assert drawingml_svg.svgraph.__all__ == svgraph.model.__all__
+assert drawingml_svg.converter.svg_to_drawingml is svgraph.converter.svg_to_drawingml
+assert drawingml_svg.coverage.analyze_svg is svgraph.coverage.analyze_svg
+assert drawingml_svg.pptx.svg_to_pptx_bytes is svgraph.pptx.svg_to_pptx_bytes
+assert drawingml_svg.svgraph.svg_to_svgraph is svgraph.model.svg_to_svgraph
 PY
 tmp/release-venv/bin/svgraph analyze examples/coverage.svg
 tmp/release-venv/bin/drawingml-svg-analyze examples/coverage.svg > tmp/release-legacy-analyze.json 2> tmp/release-legacy-analyze.err

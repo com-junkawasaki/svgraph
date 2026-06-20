@@ -74,6 +74,8 @@ LEGACY_IMPORT_PATTERNS = (
 )
 
 ALLOWED_LEGACY_IMPORT_SURFACES = {
+    ".github/workflows/ci.yml",
+    "RELEASE.md",
     "tests/test_migration.py",
     "tests/test_svgraph.py",
 }
@@ -565,6 +567,10 @@ def test_release_checklist_keeps_legacy_console_alias_smoke() -> None:
     assert 'print(version("svgraph"))' in release
     assert 'actual_version="$($command --version)"' in release
     assert 'test "$actual_version" = "$expected_version"' in release
+    assert "assert drawingml_svg.converter.__all__ == svgraph.converter.__all__" in release
+    assert "assert drawingml_svg.coverage.__all__ == svgraph.coverage.__all__" in release
+    assert "assert drawingml_svg.pptx.__all__ == svgraph.pptx.__all__" in release
+    assert "assert drawingml_svg.svgraph.__all__ == svgraph.model.__all__" in release
     assert '"tmp/release-venv/bin/python -m svgraph"' in release
     for executable in sorted(set(scripts) - {"svgraph"}):
         assert f'"tmp/release-venv/bin/{executable}"' in release
@@ -726,6 +732,10 @@ def test_release_and_ci_distribution_smoke_use_svgraph_artifact_names() -> None:
     assert 'expected_version="svgraph $(tmp/wheel-venv/bin/python' in workflow
     assert 'from importlib.metadata import version' in workflow
     assert 'print(version("svgraph"))' in workflow
+    assert "assert drawingml_svg.converter.__all__ == svgraph.converter.__all__" in workflow
+    assert "assert drawingml_svg.coverage.__all__ == svgraph.coverage.__all__" in workflow
+    assert "assert drawingml_svg.pptx.__all__ == svgraph.pptx.__all__" in workflow
+    assert "assert drawingml_svg.svgraph.__all__ == svgraph.model.__all__" in workflow
     assert '"tmp/wheel-venv/bin/python -m svgraph"' in workflow
     for executable in ["svgraph", "drawingml-svg", "svg2dml", "svg2pptx", "dml2svg", "drawingml-svg-analyze"]:
         assert f'"tmp/wheel-venv/bin/{executable}"' in workflow
@@ -884,8 +894,10 @@ def test_canonical_code_paths_import_svgraph_package() -> None:
     assert unexpected == []
 
 
-def test_legacy_import_allowlist_is_limited_to_migration_tests() -> None:
+def test_legacy_import_allowlist_is_limited_to_migration_and_distribution_smoke() -> None:
     assert ALLOWED_LEGACY_IMPORT_SURFACES == {
+        ".github/workflows/ci.yml",
+        "RELEASE.md",
         "tests/test_migration.py",
         "tests/test_svgraph.py",
     }
