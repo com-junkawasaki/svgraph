@@ -1775,15 +1775,23 @@ function dmlCropAlignment(before, after, axis) {
 }
 function dmlBlipAlpha(blip) {
     const alphaModFix = childByLocal(blip, "alphaModFix");
-    if (alphaModFix?.getAttribute("amt") != null)
-        return optionalInt(alphaModFix.getAttribute("amt")) / 100000;
+    if (alphaModFix?.getAttribute("amt") != null) {
+        const value = dmlInt(alphaModFix.getAttribute("amt"), Number.NaN);
+        return Number.isFinite(value) ? value / 100000 : null;
+    }
     let result = null;
     const alpha = descendantsByLocal(blip, "alpha")[0];
-    if (alpha?.getAttribute("val") != null)
-        result = optionalInt(alpha.getAttribute("val")) / 100000;
+    if (alpha?.getAttribute("val") != null) {
+        const value = dmlInt(alpha.getAttribute("val"), Number.NaN);
+        if (Number.isFinite(value))
+            result = value / 100000;
+    }
     const alphaMod = descendantsByLocal(blip, "alphaMod")[0];
-    if (alphaMod?.getAttribute("amt") != null)
-        result = (result ?? 1) * (optionalInt(alphaMod.getAttribute("amt")) / 100000);
+    if (alphaMod?.getAttribute("amt") != null) {
+        const value = dmlInt(alphaMod.getAttribute("amt"), Number.NaN);
+        if (Number.isFinite(value))
+            result = (result ?? 1) * (value / 100000);
+    }
     return result;
 }
 function dmlTableFrameToSvg(element) {
@@ -2039,7 +2047,8 @@ function dmlMiterlimit(ln) {
     const miter = childByLocal(ln, "miter");
     if (!miter?.getAttribute("lim"))
         return null;
-    return optionalInt(miter.getAttribute("lim")) / 100000;
+    const value = dmlInt(miter.getAttribute("lim"), Number.NaN);
+    return Number.isFinite(value) ? value / 100000 : null;
 }
 function dmlDasharray(ln, strokeWidth) {
     const custom = childByLocal(ln, "custDash");
