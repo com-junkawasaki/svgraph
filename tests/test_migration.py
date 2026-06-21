@@ -1052,6 +1052,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert "examples/color.dml" in package_metadata["files"]
     assert "examples/connector-style-ref.dml" in package_metadata["files"]
     assert "examples/fill-effects.dml" in package_metadata["files"]
+    assert "examples/freeform-closed-duplicate.dml" in package_metadata["files"]
     assert "examples/freeform.dml" in package_metadata["files"]
     assert "examples/group.dml" in package_metadata["files"]
     assert "examples/line-arrow.dml" in package_metadata["files"]
@@ -1166,6 +1167,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function ellipseArcPoints" in generated
         assert "function dmlCustomGeometryToSvg" in generated
         assert "function dmlCustomPoints" in generated
+        assert "function pointsClose" not in generated
         assert "function dmlConnectorToSvg" in generated
         assert "function dmlPictureToSvg" in generated
         assert "function dmlBlipAlpha" in generated
@@ -1611,6 +1613,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "node ./bin/svgraph.mjs svg2dml examples/sample.svg" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg tmp/package-smoke.xml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/group.dml" in package_metadata["scripts"]["check:package"]
+    assert "node ./bin/svgraph.mjs dml2svg examples/freeform-closed-duplicate.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/freeform.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/picture.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/preset.dml" in package_metadata["scripts"]["check:package"]
@@ -1641,6 +1644,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert 'points=\\\"550,20 551.2,27.2 555.8,22 553.6,28.6' in package_metadata["scripts"]["check:package"]
     assert '<rect x=\\\"570\\\" y=\\\"20\\\" width=\\\"40\\\" height=\\\"20\\\" rx=\\\"3.3333\\\" ry=\\\"3.3333\\\" fill=\\\"#fde2e2\\\"' in package_metadata["scripts"]["check:package"]
     assert '<ellipse cx=\\\"630\\\" cy=\\\"30\\\" rx=\\\"10\\\" ry=\\\"10\\\" fill=\\\"#cffafe\\\"' in package_metadata["scripts"]["check:package"]
+    assert "package-freeform-closed-duplicate.svg" in package_metadata["scripts"]["check:package"]
     assert "package-freeform.svg" in package_metadata["scripts"]["check:package"]
     assert "package-picture.svg" in package_metadata["scripts"]["check:package"]
     assert "package-preset.svg" in package_metadata["scripts"]["check:package"]
@@ -1667,6 +1671,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert 'marker-end=\\\"url(#svgraph-arrow)\\\"' in package_metadata["scripts"]["check:package"]
     assert 'fill=\\\"#339999\\\"' in package_metadata["scripts"]["check:package"]
     assert 'stroke=\\\"#004000\\\"' in package_metadata["scripts"]["check:package"]
+    assert 'points=\\\"0,0 20,0 20,20 0,0\\\"' in package_metadata["scripts"]["check:package"]
     assert 'data-kind=\\\"relation\\\"' in package_metadata["scripts"]["check:package"]
     assert 'stroke-opacity=\\\"0.6\\\"' in package_metadata["scripts"]["check:package"]
     assert 'stroke-linecap=\\\"round\\\"' in package_metadata["scripts"]["check:package"]
@@ -1845,6 +1850,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser TypeScript `drawingMlToSvg` import support",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML grouped shapes",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML custom geometry/freeform paths",
+        "browser TypeScript `drawingMlToSvg` import support for Python-compatible closed custom geometry point preservation",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML pictures as SVG images",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML rotation/flip transforms",
         "browser TypeScript `drawingMlToSvg` import support for common DrawingML preset polygon",

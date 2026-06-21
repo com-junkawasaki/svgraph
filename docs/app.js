@@ -1671,8 +1671,6 @@ function dmlCustomPoints(custom, x, y) {
             closed = true;
         }
     }
-    if (closed && result.length > 1 && pointsClose(result[0], result[result.length - 1]))
-        result.pop();
     return { points: result, closed };
 }
 function dmlCustomCommands(element) {
@@ -1705,9 +1703,6 @@ function pointsBox(points) {
     const x = Math.min(...xs);
     const y = Math.min(...ys);
     return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
-}
-function pointsClose(a, b) {
-    return Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 }
 function dmlConnectorToSvg(element) {
     const spPr = childByLocal(element, "spPr");

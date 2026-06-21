@@ -2079,7 +2079,6 @@ function dmlCustomPoints(custom: Element, x: number, y: number): { points: [numb
       closed = true;
     }
   }
-  if (closed && result.length > 1 && pointsClose(result[0]!, result[result.length - 1]!)) result.pop();
   return { points: result, closed };
 }
 
@@ -2112,10 +2111,6 @@ function pointsBox(points: [number, number][]): Box {
   const x = Math.min(...xs);
   const y = Math.min(...ys);
   return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
-}
-
-function pointsClose(a: [number, number], b: [number, number]): boolean {
-  return Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 }
 
 function dmlConnectorToSvg(element: Element): DmlSvgItem | null {

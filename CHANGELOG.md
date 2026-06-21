@@ -59,6 +59,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Added an npm package CLI backed by the TypeScript/browser converter with a Node XML DOM shim for SVG to DrawingML, DrawingML to SVG, PPTX, SVGraph, presentation, and coverage commands.
 - Added browser TypeScript `drawingMlToSvg` import support for DrawingML grouped shapes using group transform metadata.
 - Added browser TypeScript `drawingMlToSvg` import support for DrawingML custom geometry/freeform paths, including quadratic and cubic curve approximation.
+- Added browser TypeScript `drawingMlToSvg` import support for Python-compatible closed custom geometry point preservation.
 - Added browser TypeScript `drawingMlToSvg` import support for DrawingML pictures as SVG images, including alpha and crop-derived `preserveAspectRatio`.
 - Added browser TypeScript `drawingMlToSvg` import support for DrawingML rotation/flip transforms on imported shapes, connectors, freeforms, and pictures.
 - Added browser TypeScript `drawingMlToSvg` import support for common DrawingML preset polygon and flowchart geometries.
