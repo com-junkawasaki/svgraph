@@ -361,7 +361,7 @@ def test_cli_version_writes_installed_package_version(capsys) -> None:
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "svgraph 0.1.38\n"
+    assert captured.out == "svgraph 0.1.39\n"
 
 
 def test_svgraph_module_cli_uses_canonical_program_name() -> None:
@@ -372,7 +372,7 @@ def test_svgraph_module_cli_uses_canonical_program_name() -> None:
         text=True,
     )
 
-    assert result.stdout == "svgraph 0.1.38\n"
+    assert result.stdout == "svgraph 0.1.39\n"
 
 
 def test_svgraph_cli_module_keeps_canonical_program_name() -> None:
@@ -383,7 +383,7 @@ def test_svgraph_cli_module_keeps_canonical_program_name() -> None:
         text=True,
     )
 
-    assert result.stdout == "svgraph 0.1.38\n"
+    assert result.stdout == "svgraph 0.1.39\n"
 
 
 def test_svgraph_module_cli_emits_canonical_svgraph_json_reports() -> None:
@@ -439,7 +439,7 @@ def test_svgraph_executable_keeps_svgraph_program_name(monkeypatch, capsys) -> N
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "svgraph 0.1.38\n"
+    assert captured.out == "svgraph 0.1.39\n"
 
 
 def test_cli_converts_between_files_and_creates_output_parent(tmp_path) -> None:
@@ -9552,6 +9552,15 @@ def test_drawingml_native_table_scaled_grid_scales_text_insets() -> None:
     assert '<rect fill="#ffffff" stroke="none" x="0" y="0" width="40" height="80"/>' in svg
     assert '<text fill="#000000" stroke="none" x="10" y="50" dominant-baseline="middle">Inset</text>' in svg
     assert 'x="20" y="45"' not in svg
+
+
+def test_drawingml_native_table_cell_fill_effects_fallback_to_svg_cell_fills() -> None:
+    svg = drawingml_to_svg(Path("examples/table-fill-effects.dml").read_text(encoding="utf-8"))
+
+    assert '<rect fill="#800080" stroke="none" fill-opacity="0.75" x="0" y="0" width="40" height="40"/>' in svg
+    assert '<rect fill="#008000" stroke="none" fill-opacity="0.75" x="40" y="0" width="40" height="40"/>' in svg
+    assert "Gradient" in svg
+    assert "Pattern" in svg
 
 
 def test_drawingml_native_table_truthy_merge_attrs_are_continuations() -> None:

@@ -1740,10 +1740,19 @@ def _dml_table_cell_text_runs(cell: ET.Element) -> tuple[TextRun, ...]:
 
 
 def _dml_table_cell_fill(cell: ET.Element) -> tuple[str | None, float | None]:
-    fill = cell.find(f"{qn(NS_A, 'tcPr')}/{qn(NS_A, 'solidFill')}")
-    if fill is None:
+    tc_pr = cell.find(qn(NS_A, "tcPr"))
+    if tc_pr is None:
         return "none", None
-    return _dml_color(fill), _dml_alpha(fill)
+    solid_fill = tc_pr.find(qn(NS_A, "solidFill"))
+    if solid_fill is not None:
+        return _dml_color(solid_fill), _dml_alpha(solid_fill)
+    grad_fill = tc_pr.find(qn(NS_A, "gradFill"))
+    if grad_fill is not None:
+        return _dml_gradient_fill(grad_fill)
+    pattern_fill = tc_pr.find(qn(NS_A, "pattFill"))
+    if pattern_fill is not None:
+        return _dml_pattern_fill(pattern_fill)
+    return "none", None
 
 
 def _dml_table_cell_border_shapes(
