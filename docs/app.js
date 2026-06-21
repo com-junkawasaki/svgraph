@@ -193,6 +193,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
       <text id="unset-reset-text" x="1070" y="225" fill="unset" text-anchor="unset">Unset</text>
     </g>
     <rect id="css-transform-origin" class="css-transform-origin" x="1035" y="88" width="105" height="52" style="fill:#f0fdf4;stroke:#16a34a"/>
+    <g id="ignored-transform-origin" transform="rotate(10)" transform-origin="left right"><rect x="1160" y="130" width="10" height="10" fill="none" stroke="none"/></g>
     <rect id="media-rule" class="media-rule" x="1160" y="88" width="70" height="52"/>
     <switch>
       <rect id="switch-unsupported" requiredExtensions="https://example.test/ext" x="1160" y="155" width="70" height="40" fill="#dc2626"/>
@@ -1377,7 +1378,7 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
     if (name === "text-transform")
         return normalizeTextTransform(value) != null;
     if (name === "transform-origin")
-        return transformOriginPoint(element, value, viewport, css, style) != null;
+        return transformOriginIsSupportedOrNoop(element, value, style, refs, css, viewport);
     if (name === "unicode-bidi")
         return normalized === "normal";
     if (name === "vector-effect")
@@ -1909,6 +1910,14 @@ function textDecorationStyleToken(value) {
             return normalized;
     }
     return null;
+}
+function transformOriginIsSupportedOrNoop(element, value, style, refs, css, viewport) {
+    const transform = style.transform;
+    if (!transform || transform.trim().toLowerCase() === "none")
+        return true;
+    if (!coverageSubtreeHasVisibleRendering(element, style, refs, css, viewport, new Set()))
+        return true;
+    return transformOriginPoint(element, value, viewport, css, style) != null;
 }
 function textLengthIsSupported(element, tag, value, style, lengthAdjustValue = style.lengthAdjust ?? null) {
     if (tag !== "text" && tag !== "tspan")

@@ -1167,6 +1167,8 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function textDecorationColorHasNoEffect" in generated
         assert "function textDecorationThicknessHasNoEffect" in generated
         assert "function hasOnlyVisibleUnderline" in generated
+        assert "function transformOriginIsSupportedOrNoop" in generated
+        assert 'id="ignored-transform-origin"' in generated
         assert "function textLengthIsSupported" in generated
         assert 'value.includes("%") || style.letterSpacing != null' in generated
         assert 'normalizeLengthAdjust(lengthAdjustValue) == null' in generated
