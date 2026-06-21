@@ -183,6 +183,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <g id="visibility-hidden" visibility="hidden"><rect id="visibility-visible" x="910" y="615" width="34" height="50" visibility="visible" style="fill:#ffffff;stroke:#0f766e;stroke-width:3"/></g>
     <g id="blend-isolation-dedupe" isolation="isolate"><rect x="955" y="615" width="34" height="50" mix-blend-mode="multiply" style="fill:#f8fafc;stroke:#64748b"/></g>
     <g id="hidden-blend-effect" mix-blend-mode="multiply"><rect x="995" y="615" width="34" height="50" opacity="0" style="fill:#111827"/></g>
+    <g id="ignored-group-opacity" opacity=".5"><rect x="1075" y="615" width="10" height="10" opacity="0"/><rect x="1090" y="615" width="10" height="10" fill="none" stroke="none"/></g>
     <path id="ignored-clip-rule" d="M 1000 615 H 1029 V 665 H 1000 Z" clip-rule="evenodd" fill="#f8fafc" stroke="#94a3b8"/>
     <g id="ignored-fill-rule" fill-rule="evenodd"><path d="M 1035 615 H 1069 V 665 H 1035 Z" fill="none" stroke="#475569"/></g>
     <g class="var-theme"><rect class="inherit-box" x="910" y="88" width="105" height="52"/></g>
@@ -1344,7 +1345,7 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
     if (name === "overflow")
         return overflowIsSupportedOrNoop(element, tag, value, style, refs, css, viewport);
     if (name === "opacity")
-        return parseAlpha(value) != null && visibleRenderingDescendantCount(element, refs, 2) < 2;
+        return opacityIsSupportedOrNoop(element, tag, value, style, refs, css, viewport);
     if (name === "paint-order")
         return paintOrderHasNoEffect(tag, value, style);
     if (name === "pathLength")
@@ -1694,30 +1695,40 @@ function unsupportedPathCommands(value) {
     }
     return [...unsupported].sort();
 }
-function visibleRenderingDescendantCount(element, refs, limit) {
+function opacityIsSupportedOrNoop(element, tag, value, style, refs, css, viewport) {
+    const alpha = parseAlpha(value);
+    if (alpha == null || alpha >= 1)
+        return true;
+    if (["circle", "ellipse", "image", "line", "path", "polygon", "polyline", "rect", "text", "tspan", "use"].includes(tag))
+        return true;
+    return visibleRenderingDescendantCount(element, style, refs, css, viewport, 2) < 2;
+}
+function visibleRenderingDescendantCount(element, style, refs, css, viewport, limit, refStack = new Set()) {
+    if (limit <= 0 || style.display === "none")
+        return 0;
+    const tag = localName(element);
+    if (tag === "use") {
+        const href = hrefValue(element);
+        const refId = href.startsWith("#") ? href.slice(1) : "";
+        const ref = refId ? refs.get(refId) : null;
+        if (!ref || refStack.has(refId))
+            return 0;
+        const refViewport = ["svg", "symbol"].includes(localName(ref)) ? useViewport(ref, element, viewport, css, style) : viewport;
+        return visibleRenderingDescendantCount(ref, style, refs, css, refViewport, limit, new Set([...refStack, refId]));
+    }
+    if (style.visibility !== "hidden" && style.visibility !== "collapse" && ["circle", "ellipse", "image", "line", "path", "polygon", "polyline", "rect", "text", "tspan"].includes(tag) && !coverageHasNonRenderingGeometry(element, tag, style, css, viewport) && !coverageHasNoVisiblePaint(element, tag, style, refs, css, viewport))
+        return 1;
+    const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport, css, style) : viewport;
+    if (tag === "switch") {
+        const selected = switchSelectedChild(element);
+        return selected ? visibleRenderingDescendantCount(selected, computedStyle(selected, style, css, refs, childViewport), refs, css, childViewport, limit, refStack) : 0;
+    }
     let total = 0;
-    const walk = (node) => {
+    for (const child of Array.from(element.children)) {
+        total += visibleRenderingDescendantCount(child, computedStyle(child, style, css, refs, childViewport), refs, css, childViewport, limit - total, refStack);
         if (total >= limit)
-            return;
-        const tag = localName(node);
-        if (["circle", "ellipse", "image", "line", "path", "polygon", "polyline", "rect", "text", "tspan"].includes(tag)) {
-            total += 1;
-            return;
-        }
-        if (tag === "use") {
-            const href = hrefValue(node);
-            const ref = href.startsWith("#") ? refs.get(href.slice(1)) : null;
-            if (ref)
-                walk(ref);
-            else
-                total += 1;
-            return;
-        }
-        for (const child of Array.from(node.children))
-            walk(child);
-    };
-    for (const child of Array.from(element.children))
-        walk(child);
+            return total;
+    }
     return total;
 }
 function markerRefIsArrowLike(value, refs) {

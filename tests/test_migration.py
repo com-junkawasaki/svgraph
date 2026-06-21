@@ -1192,6 +1192,9 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function pathLengthIsSupportedOrNoop" in generated
         assert 'id="ignored-path-length"' in generated
         assert "function overflowIsSupportedOrNoop" in generated
+        assert "function opacityIsSupportedOrNoop" in generated
+        assert 'id="ignored-group-opacity"' in generated
+        assert "visibleRenderingDescendantCount(element, style, refs, css, viewport, 2) < 2" in generated
         assert "function preserveAspectRatioIsSupportedOrNoop" in generated
         assert 'localName(ref) === "svg" || localName(ref) === "symbol"' in generated
         assert "dataImageDimensions(hrefValue(element)) != null" in generated
