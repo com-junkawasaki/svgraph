@@ -1207,6 +1207,12 @@ function dmlShapeToSvg(element) {
     const textAttrs = text ? ` data-text="${xml(text)}"` : "";
     const idAttr = name ? ` id="${xml(dmlSvgId(name))}"` : "";
     const body = text ? `<text x="${formatNumber(box.x + box.width / 2)}" y="${formatNumber(box.y + box.height / 2)}" text-anchor="middle" dominant-baseline="middle">${xml(text)}</text>` : "";
+    const custom = childByLocal(spPr, "custGeom");
+    if (custom) {
+        const customShape = dmlCustomGeometryToSvg(custom, box, idAttr, textAttrs, style, body);
+        if (customShape)
+            return customShape;
+    }
     if (preset === "ellipse" || preset === "oval") {
         return {
             bounds: box,
@@ -1223,6 +1229,83 @@ function dmlShapeToSvg(element) {
         bounds: box,
         svg: `<g${idAttr}${textAttrs}><rect x="${formatNumber(box.x)}" y="${formatNumber(box.y)}" width="${formatNumber(box.width)}" height="${formatNumber(box.height)}"${rx ? ` rx="${formatNumber(rx)}" ry="${formatNumber(rx)}"` : ""}${style}/>${body}</g>`,
     };
+}
+function dmlCustomGeometryToSvg(custom, box, idAttr, textAttrs, style, body) {
+    const points = dmlCustomPoints(custom, box.x, box.y);
+    if (points.points.length < 2)
+        return null;
+    const tag = points.closed ? "polygon" : "polyline";
+    const pointsAttr = points.points.map(([x, y]) => `${formatNumber(x)},${formatNumber(y)}`).join(" ");
+    const bounds = pointsBox(points.points);
+    return {
+        bounds,
+        svg: `<g${idAttr}${textAttrs}><${tag} points="${pointsAttr}"${style}/>${body}</g>`,
+    };
+}
+function dmlCustomPoints(custom, x, y) {
+    const result = [];
+    let closed = false;
+    const pathList = childByLocal(custom, "pathLst");
+    if (!pathList)
+        return { points: result, closed };
+    for (const command of dmlCustomCommands(pathList)) {
+        const tag = localName(command);
+        if (tag === "moveTo" || tag === "lnTo") {
+            const pointValue = dmlPathPoint(childByLocal(command, "pt"), x, y);
+            if (pointValue)
+                result.push(pointValue);
+        }
+        else if (tag === "quadBezTo" && result.length) {
+            const bezierPoints = directChildrenByLocal(command, "pt").map((pt) => dmlPathPoint(pt, x, y)).filter((pt) => pt !== null);
+            if (bezierPoints.length >= 2)
+                result.push(...quadraticPoints(result[result.length - 1], bezierPoints[0], bezierPoints[1]));
+        }
+        else if (tag === "cubicBezTo" && result.length) {
+            const bezierPoints = directChildrenByLocal(command, "pt").map((pt) => dmlPathPoint(pt, x, y)).filter((pt) => pt !== null);
+            if (bezierPoints.length >= 3)
+                result.push(...cubicPoints(result[result.length - 1], bezierPoints[0], bezierPoints[1], bezierPoints[2]));
+        }
+        else if (tag === "close") {
+            closed = true;
+        }
+    }
+    if (closed && result.length > 1 && pointsClose(result[0], result[result.length - 1]))
+        result.pop();
+    return { points: result, closed };
+}
+function dmlCustomCommands(element) {
+    const commands = [];
+    const visit = (current) => {
+        for (const child of Array.from(current.children)) {
+            if (["moveTo", "lnTo", "quadBezTo", "cubicBezTo", "close"].includes(localName(child))) {
+                commands.push(child);
+            }
+            else {
+                visit(child);
+            }
+        }
+    };
+    visit(element);
+    return commands;
+}
+function dmlPathPoint(pt, x, y) {
+    if (!pt)
+        return null;
+    const pointX = Number(pt.getAttribute("x"));
+    const pointY = Number(pt.getAttribute("y"));
+    if (!Number.isFinite(pointX) || !Number.isFinite(pointY))
+        return null;
+    return [x + pointX / emuPerPx, y + pointY / emuPerPx];
+}
+function pointsBox(points) {
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+}
+function pointsClose(a, b) {
+    return Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
 }
 function dmlConnectorToSvg(element) {
     const spPr = childByLocal(element, "spPr");
