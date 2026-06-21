@@ -2561,7 +2561,7 @@ function dmlText(element: Element): string {
   return descendantsByLocal(element, "t").map((node) => node.textContent || "").join("\n").trim();
 }
 
-type DmlTextRun = { text: string; attrs: string[] };
+type DmlTextRun = { text: string; attrs: string[]; breakBefore?: boolean };
 
 function dmlTextSvg(element: Element, box: Box): string {
   const runs = dmlTextRuns(element).filter((run) => run.text);
@@ -2577,29 +2577,55 @@ function dmlTextSvg(element: Element, box: Box): string {
     if (!run) return "";
     return `<text ${attrs.concat(run.attrs).join(" ")}>${xml(run.text)}</text>`;
   }
-  return `<text ${attrs.join(" ")}>${runs.map((run) => `<tspan${run.attrs.length ? ` ${run.attrs.join(" ")}` : ""}>${xml(run.text)}</tspan>`).join("")}</text>`;
+  const x = formatNumber(box.x + box.width / 2);
+  return `<text ${attrs.join(" ")}>${runs.map((run) => {
+    const runAttrs = run.breakBefore ? [`x="${x}"`, 'dy="1.2em"', ...run.attrs] : run.attrs;
+    return `<tspan${runAttrs.length ? ` ${runAttrs.join(" ")}` : ""}>${xml(run.text)}</tspan>`;
+  }).join("")}</text>`;
 }
 
 function dmlTextRuns(element: Element): DmlTextRun[] {
   const txBody = childByLocal(element, "txBody");
   const paragraphs = directChildrenByLocal(txBody, "p");
   const runs: DmlTextRun[] = [];
-  for (const paragraph of paragraphs) {
+  for (const [paragraphIndex, paragraph] of paragraphs.entries()) {
     const paragraphRuns: DmlTextRun[] = [];
     const defRPr = dmlParagraphDefaultRunProperties(txBody, paragraph);
     const endParaRPr = childByLocal(paragraph, "endParaRPr");
+    let pendingBreak = runs.length > 0;
+    const firstRPr = dmlFirstParagraphRunProperties(paragraph);
+    const bullet = dmlParagraphBullet(txBody, paragraph, paragraphIndex + 1);
+    if (bullet) {
+      paragraphRuns.push({
+        text: `${bullet} `,
+        attrs: dmlTextRunAttrs(firstRPr, defRPr, endParaRPr),
+        breakBefore: pendingBreak,
+      });
+      pendingBreak = false;
+    }
+    let previousRPr = firstRPr;
     for (const child of Array.from(paragraph.children)) {
       const name = localName(child);
       if (name === "r" || name === "fld") {
+        const rPr = childByLocal(child, "rPr");
         paragraphRuns.push({
           text: childByLocal(child, "t")?.textContent || "",
-          attrs: dmlTextRunAttrs(childByLocal(child, "rPr"), defRPr, endParaRPr),
+          attrs: dmlTextRunAttrs(rPr, defRPr, endParaRPr),
+          breakBefore: pendingBreak,
         });
+        pendingBreak = false;
+        previousRPr = rPr;
       } else if (name === "br") {
-        paragraphRuns.push({ text: "\n", attrs: dmlTextRunAttrs(childByLocal(child, "rPr"), defRPr, endParaRPr) });
+        pendingBreak = true;
+      } else if (name === "tab") {
+        paragraphRuns.push({
+          text: "\t",
+          attrs: dmlTextRunAttrs(previousRPr, defRPr, endParaRPr),
+          breakBefore: pendingBreak,
+        });
+        pendingBreak = false;
       }
     }
-    if (runs.length && paragraphRuns.length) runs.push({ text: "\n", attrs: [] });
     runs.push(...paragraphRuns);
   }
   if (!runs.length) {
@@ -2609,13 +2635,95 @@ function dmlTextRuns(element: Element): DmlTextRun[] {
   return runs;
 }
 
+function dmlFirstParagraphRunProperties(paragraph: Element): Element | null {
+  for (const child of Array.from(paragraph.children)) {
+    if (["r", "fld"].includes(localName(child))) {
+      const rPr = childByLocal(child, "rPr");
+      if (rPr) return rPr;
+    }
+  }
+  return null;
+}
+
 function dmlParagraphDefaultRunProperties(txBody: Element | null, paragraph: Element): Element | null {
   const pPr = childByLocal(paragraph, "pPr");
   const direct = childByLocal(pPr, "defRPr");
   if (direct) return direct;
+  return childByLocal(dmlListStyleParagraphProperties(txBody, paragraph), "defRPr");
+}
+
+function dmlListStyleParagraphProperties(txBody: Element | null, paragraph: Element): Element | null {
+  const pPr = childByLocal(paragraph, "pPr");
   const listStyle = childByLocal(txBody, "lstStyle");
   const level = optionalInt(pPr?.getAttribute("lvl") ?? null) + 1 || 1;
-  return childByLocal(childByLocal(listStyle, `lvl${Math.min(Math.max(level, 1), 9)}pPr`), "defRPr");
+  return childByLocal(listStyle, `lvl${Math.min(Math.max(level, 1), 9)}pPr`);
+}
+
+function dmlParagraphBullet(txBody: Element | null, paragraph: Element, number: number): string | null {
+  const pPr = childByLocal(paragraph, "pPr");
+  if (childByLocal(pPr, "buNone")) return null;
+  const directChar = childByLocal(pPr, "buChar")?.getAttribute("char");
+  if (directChar) return directChar;
+  const directAuto = childByLocal(pPr, "buAutoNum");
+  if (directAuto) return dmlAutoNumberBullet(directAuto, number);
+  const listPPr = dmlListStyleParagraphProperties(txBody, paragraph);
+  if (childByLocal(listPPr, "buNone")) return null;
+  const listChar = childByLocal(listPPr, "buChar")?.getAttribute("char");
+  if (listChar) return listChar;
+  return dmlAutoNumberBullet(childByLocal(listPPr, "buAutoNum"), number);
+}
+
+function dmlAutoNumberBullet(element: Element | null, number: number): string | null {
+  if (!element) return null;
+  const value = (optionalInt(element.getAttribute("startAt")) || 1) + number - 1;
+  const lowerAlpha = alphaNumber(value);
+  const upperAlpha = lowerAlpha.toUpperCase();
+  const lowerRoman = romanNumber(value);
+  const upperRoman = lowerRoman.toUpperCase();
+  return ({
+    arabicPeriod: `${value}.`,
+    arabicParenR: `${value})`,
+    arabicParenBoth: `(${value})`,
+    arabicPlain: String(value),
+    alphaLcPeriod: `${lowerAlpha}.`,
+    alphaUcPeriod: `${upperAlpha}.`,
+    alphaLcParenR: `${lowerAlpha})`,
+    alphaUcParenR: `${upperAlpha})`,
+    alphaLcParenBoth: `(${lowerAlpha})`,
+    alphaUcParenBoth: `(${upperAlpha})`,
+    romanLcPeriod: `${lowerRoman}.`,
+    romanUcPeriod: `${upperRoman}.`,
+    romanLcParenR: `${lowerRoman})`,
+    romanUcParenR: `${upperRoman})`,
+    romanLcParenBoth: `(${lowerRoman})`,
+    romanUcParenBoth: `(${upperRoman})`,
+  } as Record<string, string>)[element.getAttribute("type") || ""] ?? `${value}.`;
+}
+
+function alphaNumber(value: number): string {
+  if (value <= 0) return String(value);
+  const letters: string[] = [];
+  let current = value;
+  while (current > 0) {
+    current -= 1;
+    letters.unshift(String.fromCharCode("a".charCodeAt(0) + (current % 26)));
+    current = Math.floor(current / 26);
+  }
+  return letters.join("");
+}
+
+function romanNumber(value: number): string {
+  if (value <= 0) return String(value);
+  const pairs: Array<[number, string]> = [[1000, "m"], [900, "cm"], [500, "d"], [400, "cd"], [100, "c"], [90, "xc"], [50, "l"], [40, "xl"], [10, "x"], [9, "ix"], [5, "v"], [4, "iv"], [1, "i"]];
+  let current = value;
+  let result = "";
+  for (const [amount, token] of pairs) {
+    while (current >= amount) {
+      result += token;
+      current -= amount;
+    }
+  }
+  return result;
 }
 
 function dmlTextRunAttrs(...properties: Array<Element | null>): string[] {

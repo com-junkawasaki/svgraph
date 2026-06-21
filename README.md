@@ -146,7 +146,7 @@ PYTHONPATH=src python examples/make_pptx.py examples/svgraph.svg -o tmp/svgraph-
 
 ## Supported DrawingML presets
 
-`dml2svg` currently preserves these DrawingML preset geometries as editable SVG shapes. Text bodies keep DrawingML rich text run fill, font, outline, decoration, baseline, spacing, paragraph default run, and end-paragraph fallback details as SVG `text`/`tspan` attributes. Curved presets are converted to editable polygon approximations where SVG does not have a matching primitive:
+`dml2svg` currently preserves these DrawingML preset geometries as editable SVG shapes. Text bodies keep DrawingML rich text run fill, font, outline, decoration, baseline, spacing, paragraph default run, end-paragraph fallback, bullet, numbering, tab, and explicit line-break details as SVG `text`/`tspan` attributes. Curved presets are converted to editable polygon approximations where SVG does not have a matching primitive:
 
 - Basic primitives: `ellipse`, `line`, `oval`, `rect`, `roundRect`, `straightConnector1`
 - Common polygons and corners: `bevel`, `corner`, `decagon`, `diagStripe`, `diamond`, `dodecagon`, `foldedCorner`, `halfFrame`, `heptagon`, `hexagon`, `homePlate`, `nonIsoscelesTrapezoid`, `octagon`, `parallelogram`, `pentagon`, `plaque`, `rtTriangle`, `snip1Rect`, `snip2DiagRect`, `snip2SameRect`, `trapezoid`, `triangle`

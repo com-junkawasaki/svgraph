@@ -1057,6 +1057,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert "examples/picture.dml" in package_metadata["files"]
     assert "examples/preset.dml" in package_metadata["files"]
     assert "examples/sample.svg" in package_metadata["files"]
+    assert "examples/text-bullets.dml" in package_metadata["files"]
     assert "examples/text-defaults.dml" in package_metadata["files"]
     assert "examples/text-style.dml" in package_metadata["files"]
     assert "@xmldom/xmldom" in package_metadata["dependencies"]
@@ -1175,6 +1176,10 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function dmlTextRuns" in generated
         assert "function dmlTextRunAttrs" in generated
         assert "function dmlParagraphDefaultRunProperties" in generated
+        assert "function dmlParagraphBullet" in generated
+        assert "function dmlAutoNumberBullet" in generated
+        assert "function alphaNumber" in generated
+        assert "function romanNumber" in generated
         assert "function dmlTextTypeface" in generated
         assert "function dmlTableFrameToSvg" in generated
         assert "function dmlTableColumns" in generated
@@ -1556,7 +1561,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "drawingMlToSvg" in readme
     assert "buildSVGraphAssistantPrompt" in readme
     assert "validateAssistantPatch" in readme
-    assert "Text bodies keep DrawingML rich text run fill, font, outline, decoration, baseline, spacing, paragraph default run, and end-paragraph fallback details" in readme
+    assert "Text bodies keep DrawingML rich text run fill, font, outline, decoration, baseline, spacing, paragraph default run, end-paragraph fallback, bullet, numbering, tab, and explicit line-break details" in readme
     assert "Browser Assistant can run a local Transformers.js worker" in readme
     assert package_metadata["scripts"]["build:web"] == "tsc -p tsconfig.web.json"
     assert package_metadata["scripts"]["check:web"] == "tsc -p tsconfig.web.json --noEmit"
@@ -1575,6 +1580,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "node ./bin/svgraph.mjs dml2svg examples/line-style.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-style.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-defaults.dml" in package_metadata["scripts"]["check:package"]
+    assert "node ./bin/svgraph.mjs dml2svg examples/text-bullets.dml" in package_metadata["scripts"]["check:package"]
     assert 'transform=\\\"matrix(2 0 0 2 10 20)\\\"' in package_metadata["scripts"]["check:package"]
     assert 'transform=\\\"rotate(30 20 25) translate(20 25) scale(-1 1) translate(-20 -25)\\\"' in package_metadata["scripts"]["check:package"]
     assert 'points=\\\"30,20 50,40 10,40\\\"' in package_metadata["scripts"]["check:package"]
@@ -1597,6 +1603,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "package-line-style.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-style.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-defaults.svg" in package_metadata["scripts"]["check:package"]
+    assert "package-text-bullets.svg" in package_metadata["scripts"]["check:package"]
     assert 'fill-opacity=\\\"0.5\\\"' in package_metadata["scripts"]["check:package"]
     assert 'stroke-opacity=\\\"0.25\\\"' in package_metadata["scripts"]["check:package"]
     assert 'fill=\\\"#99b2cc\\\"' in package_metadata["scripts"]["check:package"]
@@ -1609,6 +1616,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert 'baseline-shift=\\\"super\\\"' in package_metadata["scripts"]["check:package"]
     assert 'text-decoration=\\\"underline line-through\\\"' in package_metadata["scripts"]["check:package"]
     assert 'font-family=\\\"Yu Gothic\\\"' in package_metadata["scripts"]["check:package"]
+    assert 'dy=\\\"1.2em\\\"' in package_metadata["scripts"]["check:package"]
     assert "buildSVGraphAssistantPrompt" in package_metadata["scripts"]["check:package"]
     assert "applyAssistantPatch" in package_metadata["scripts"]["check:package"]
     assert "npm exec --registry=https://npm.pkg.github.com @com-junkawasaki/svgraph -- svg2dml" in readme
@@ -1728,6 +1736,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser coverage analyzer `use` reference support checks against referenced SVG subtrees",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML rich text run fill, font, outline, decoration, baseline, and spacing details",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph default and end-paragraph text run fallback styles",
+        "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph bullets, auto-numbering, tabs, and explicit line breaks",
         "browser pattern paint-server fallback colors to ignore hidden and fully transparent content",
         "browser gradient paint-server fallback colors to ignore fully transparent stops",
         "browser gradient paint-server fallback colors with inherited stop color, opacity, and currentColor context",
