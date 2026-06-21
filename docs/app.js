@@ -1345,7 +1345,7 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
     if (name === "pathLength")
         return normalizePathLength(value) != null;
     if (name === "preserveAspectRatio")
-        return tag === "svg" || tag === "symbol" || tag === "image" || tag === "use";
+        return preserveAspectRatioIsSupportedOrNoop(element, tag, value, refs);
     if (name === "rotate")
         return singleTextRotation(value, element.textContent || null) != null;
     if (name === "stroke-dashoffset")
@@ -1442,6 +1442,20 @@ function coverageAttributeHasNoEffect(element, name, value) {
 }
 function renderingQualityHintHasNoEffect(value) {
     return ["auto", "crisp-edges", "crispedges", "geometricprecision", "optimizelegibility", "optimizequality", "optimizespeed", "pixelated"].includes(value);
+}
+function preserveAspectRatioIsSupportedOrNoop(element, tag, value, refs) {
+    if (tag === "svg" || tag === "symbol")
+        return true;
+    if (tag === "use") {
+        const href = hrefValue(element);
+        const ref = href.startsWith("#") ? refs.get(href.slice(1)) : null;
+        return !!ref && (localName(ref) === "svg" || localName(ref) === "symbol");
+    }
+    if (tag === "image") {
+        const [align] = parsePreserveAspectRatio(value);
+        return align === "none" || dataImageDimensions(hrefValue(element)) != null;
+    }
+    return false;
 }
 function paintOrderHasNoEffect(tag, value, style) {
     const normalized = value.trim().toLowerCase().split(/\s+/).join(" ");

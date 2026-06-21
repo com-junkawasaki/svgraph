@@ -1752,7 +1752,7 @@ function coverageAttributeIsSupportedOrNoop(element: Element, tag: string, name:
   if (name === "opacity") return parseAlpha(value) != null && visibleRenderingDescendantCount(element, refs, 2) < 2;
   if (name === "paint-order") return paintOrderHasNoEffect(tag, value, style);
   if (name === "pathLength") return normalizePathLength(value) != null;
-  if (name === "preserveAspectRatio") return tag === "svg" || tag === "symbol" || tag === "image" || tag === "use";
+  if (name === "preserveAspectRatio") return preserveAspectRatioIsSupportedOrNoop(element, tag, value, refs);
   if (name === "rotate") return singleTextRotation(value, element.textContent || null) != null;
   if (name === "stroke-dashoffset") return strokeDashoffsetHasNoEffect(value, style, viewport) || strokeDashoffsetIsSupported(value, style, viewport);
   if (name === "stroke-linecap" || name === "stroke-linejoin") return !subtreeHasUnsupportedStrokeLineEnum(element, style, refs, css, viewport, name);
@@ -1807,6 +1807,20 @@ function coverageAttributeHasNoEffect(element: Element, name: string, value: str
 
 function renderingQualityHintHasNoEffect(value: string): boolean {
   return ["auto", "crisp-edges", "crispedges", "geometricprecision", "optimizelegibility", "optimizequality", "optimizespeed", "pixelated"].includes(value);
+}
+
+function preserveAspectRatioIsSupportedOrNoop(element: Element, tag: string, value: string, refs: Map<string, Element>): boolean {
+  if (tag === "svg" || tag === "symbol") return true;
+  if (tag === "use") {
+    const href = hrefValue(element);
+    const ref = href.startsWith("#") ? refs.get(href.slice(1)) : null;
+    return !!ref && (localName(ref) === "svg" || localName(ref) === "symbol");
+  }
+  if (tag === "image") {
+    const [align] = parsePreserveAspectRatio(value);
+    return align === "none" || dataImageDimensions(hrefValue(element)) != null;
+  }
+  return false;
 }
 
 function paintOrderHasNoEffect(tag: string, value: string, style: SvgStyle): boolean {
