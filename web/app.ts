@@ -2864,7 +2864,7 @@ function dmlParagraphBullet(txBody: Element | null, paragraph: Element, number: 
 
 function dmlAutoNumberBullet(element: Element | null, number: number): string | null {
   if (!element) return null;
-  const value = (optionalInt(element.getAttribute("startAt")) || 1) + number - 1;
+  const value = (dmlInt(element.getAttribute("startAt"), 0) || 1) + number - 1;
   const lowerAlpha = alphaNumber(value);
   const upperAlpha = lowerAlpha.toUpperCase();
   const lowerRoman = romanNumber(value);
@@ -2928,7 +2928,7 @@ function dmlTextRunAttrsFromProperties(properties: Array<Element | null>, fallba
 function dmlTextRunAttrsFromCandidates(candidates: Element[], fallbackFill: DmlPaint | null | undefined, fallbackStroke: DmlStrokePaint | null | undefined): string[] {
   if (!candidates.length) return [...dmlPaintFillAttrs(fallbackFill), ...dmlStrokeAttrs(fallbackStroke)];
   const attrs: string[] = [];
-  const fontSize = optionalInt(dmlFirstTextAttr(candidates, "sz"));
+  const fontSize = dmlInt(dmlFirstTextAttr(candidates, "sz"), 0);
   if (fontSize > 0) attrs.push(`font-size="${formatNumber(fontSize / 100)}"`);
   if (dmlBool(dmlFirstTextAttr(candidates, "b"))) attrs.push('font-weight="bold"');
   if (dmlBool(dmlFirstTextAttr(candidates, "i"))) attrs.push('font-style="italic"');
@@ -2942,10 +2942,10 @@ function dmlTextRunAttrsFromCandidates(candidates: Element[], fallbackFill: DmlP
   const decoration = dmlTextDecoration(candidates);
   if (decoration) attrs.push(`text-decoration="${decoration}"`);
   attrs.push(...dmlTextDecorationDetailAttrs(candidates, decoration));
-  const baseline = optionalInt(dmlFirstTextAttr(candidates, "baseline"));
+  const baseline = dmlInt(dmlFirstTextAttr(candidates, "baseline"), 0);
   const baselineShift = dmlBaselineShift(baseline);
   if (baselineShift) attrs.push(`baseline-shift="${baselineShift}"`);
-  const spacing = optionalInt(dmlFirstTextAttr(candidates, "spc"));
+  const spacing = dmlInt(dmlFirstTextAttr(candidates, "spc"), 0);
   if (spacing) attrs.push(`letter-spacing="${formatNumber(spacing / 75)}"`);
   return attrs;
 }

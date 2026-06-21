@@ -1074,6 +1074,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert "examples/text-bullets.dml" in package_metadata["files"]
     assert "examples/text-defaults.dml" in package_metadata["files"]
     assert "examples/text-layout.dml" in package_metadata["files"]
+    assert "examples/text-invalid-numeric.dml" in package_metadata["files"]
     assert "examples/text-shape-paint.dml" in package_metadata["files"]
     assert "examples/text-style.dml" in package_metadata["files"]
     assert "@xmldom/xmldom" in package_metadata["dependencies"]
@@ -1640,6 +1641,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "node ./bin/svgraph.mjs dml2svg examples/text-defaults.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-bullets.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-layout.dml" in package_metadata["scripts"]["check:package"]
+    assert "node ./bin/svgraph.mjs dml2svg examples/text-invalid-numeric.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-shape-paint.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/table-border-effects.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/table-fill-effects.dml" in package_metadata["scripts"]["check:package"]
@@ -1856,6 +1858,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser TypeScript `drawingMlToSvg` import support for DrawingML underline style, color, alpha, and thickness details",
         "browser TypeScript `drawingMlToSvg` import support for Python-compatible DrawingML baseline shift thresholds",
         "browser TypeScript `drawingMlToSvg` all-caps text run imports with Python as SVG `font-variant=\"all-small-caps\"`",
+        "browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML text numeric parsing",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph default and end-paragraph text run fallback styles",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph bullets, auto-numbering, tabs, and explicit line breaks",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML text body insets, vertical anchors, paragraph/list alignment, and RTL direction",
