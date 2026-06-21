@@ -2186,22 +2186,19 @@ function dmlTextRuns(element) {
     const runs = [];
     for (const paragraph of paragraphs) {
         const paragraphRuns = [];
+        const defRPr = dmlParagraphDefaultRunProperties(txBody, paragraph);
+        const endParaRPr = childByLocal(paragraph, "endParaRPr");
         for (const child of Array.from(paragraph.children)) {
             const name = localName(child);
             if (name === "r" || name === "fld") {
                 paragraphRuns.push({
                     text: childByLocal(child, "t")?.textContent || "",
-                    attrs: dmlTextRunAttrs(childByLocal(child, "rPr")),
+                    attrs: dmlTextRunAttrs(childByLocal(child, "rPr"), defRPr, endParaRPr),
                 });
             }
             else if (name === "br") {
-                paragraphRuns.push({ text: "\n", attrs: dmlTextRunAttrs(childByLocal(child, "rPr")) });
+                paragraphRuns.push({ text: "\n", attrs: dmlTextRunAttrs(childByLocal(child, "rPr"), defRPr, endParaRPr) });
             }
-        }
-        if (!paragraphRuns.length) {
-            const end = childByLocal(childByLocal(paragraph, "endParaRPr"), "t")?.textContent || "";
-            if (end)
-                paragraphRuns.push({ text: end, attrs: dmlTextRunAttrs(childByLocal(paragraph, "endParaRPr")) });
         }
         if (runs.length && paragraphRuns.length)
             runs.push({ text: "\n", attrs: [] });
@@ -2214,41 +2211,80 @@ function dmlTextRuns(element) {
     }
     return runs;
 }
-function dmlTextRunAttrs(rPr) {
-    if (!rPr)
+function dmlParagraphDefaultRunProperties(txBody, paragraph) {
+    const pPr = childByLocal(paragraph, "pPr");
+    const direct = childByLocal(pPr, "defRPr");
+    if (direct)
+        return direct;
+    const listStyle = childByLocal(txBody, "lstStyle");
+    const level = optionalInt(pPr?.getAttribute("lvl") ?? null) + 1 || 1;
+    return childByLocal(childByLocal(listStyle, `lvl${Math.min(Math.max(level, 1), 9)}pPr`), "defRPr");
+}
+function dmlTextRunAttrs(...properties) {
+    const candidates = properties.filter((item) => Boolean(item));
+    if (!candidates.length)
         return [];
     const attrs = [];
-    const fontSize = optionalInt(rPr.getAttribute("sz"));
+    const fontSize = optionalInt(dmlFirstTextAttr(candidates, "sz"));
     if (fontSize > 0)
         attrs.push(`font-size="${formatNumber(fontSize / 100)}"`);
-    if (dmlBool(rPr.getAttribute("b")))
+    if (dmlBool(dmlFirstTextAttr(candidates, "b")))
         attrs.push('font-weight="bold"');
-    if (dmlBool(rPr.getAttribute("i")))
+    if (dmlBool(dmlFirstTextAttr(candidates, "i")))
         attrs.push('font-style="italic"');
-    if (["small", "all"].includes(rPr.getAttribute("cap") || ""))
+    if (["small", "all"].includes(dmlFirstTextAttr(candidates, "cap") || ""))
         attrs.push('font-variant="small-caps"');
-    const typeface = childByLocal(rPr, "latin")?.getAttribute("typeface");
+    const typeface = dmlTextTypeface(candidates);
     if (typeface)
         attrs.push(`font-family="${xml(typeface)}"`);
-    attrs.push(...dmlTextFillAttrs(rPr));
-    attrs.push(...dmlTextOutlineAttrs(childByLocal(rPr, "ln")));
-    const decoration = dmlTextDecoration(rPr);
+    attrs.push(...dmlTextFillAttrs(candidates));
+    attrs.push(...dmlTextOutlineAttrs(dmlFirstTextChild(candidates, "ln")));
+    const decoration = dmlTextDecoration(candidates);
     if (decoration)
         attrs.push(`text-decoration="${decoration}"`);
-    const baseline = optionalInt(rPr.getAttribute("baseline"));
+    const baseline = optionalInt(dmlFirstTextAttr(candidates, "baseline"));
     if (baseline > 0)
         attrs.push('baseline-shift="super"');
     if (baseline < 0)
         attrs.push('baseline-shift="sub"');
-    const spacing = optionalInt(rPr.getAttribute("spc"));
+    const spacing = optionalInt(dmlFirstTextAttr(candidates, "spc"));
     if (spacing)
         attrs.push(`letter-spacing="${formatNumber(spacing / 75)}"`);
     return attrs;
 }
-function dmlTextFillAttrs(rPr) {
-    if (childByLocal(rPr, "noFill"))
+function dmlFirstTextAttr(candidates, name) {
+    for (const candidate of candidates) {
+        const value = candidate.getAttribute(name);
+        if (value != null)
+            return value;
+    }
+    return null;
+}
+function dmlFirstTextChild(candidates, name) {
+    for (const candidate of candidates) {
+        const child = childByLocal(candidate, name);
+        if (child)
+            return child;
+    }
+    return null;
+}
+function dmlTextTypeface(candidates) {
+    for (const candidate of candidates) {
+        for (const name of ["latin", "ea", "cs", "sym"]) {
+            const typeface = childByLocal(candidate, name)?.getAttribute("typeface");
+            if (typeface)
+                return typeface;
+        }
+    }
+    return null;
+}
+function dmlTextFillAttrs(candidates) {
+    const source = candidates.find((candidate) => childByLocal(candidate, "noFill") || dmlFillPaint(candidate));
+    if (!source)
+        return [];
+    if (childByLocal(source, "noFill"))
         return ['fill="none"'];
-    const paint = dmlFillPaint(rPr);
+    const paint = dmlFillPaint(source);
     if (!paint)
         return [];
     return [
@@ -2271,10 +2307,10 @@ function dmlTextOutlineAttrs(ln) {
         dmlMiterlimit(ln) != null ? `stroke-miterlimit="${formatNumber(dmlMiterlimit(ln) ?? 0)}"` : "",
     ].filter(Boolean);
 }
-function dmlTextDecoration(rPr) {
+function dmlTextDecoration(candidates) {
     const values = [];
-    const underline = rPr.getAttribute("u");
-    const strike = rPr.getAttribute("strike");
+    const underline = dmlFirstTextAttr(candidates, "u");
+    const strike = dmlFirstTextAttr(candidates, "strike");
     if (underline && underline !== "none")
         values.push("underline");
     if (strike && strike !== "noStrike")
