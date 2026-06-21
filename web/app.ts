@@ -584,6 +584,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
       <linearGradient id="linear-fallback"><stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
       <radialGradient id="radial-fallback"><stop offset="0" stop-color="#fef08a"/><stop offset="1" stop-color="#16a34a"/></radialGradient>
       <linearGradient id="empty-gradient" spreadMethod="repeat" gradientUnits="userSpaceOnUse" gradientTransform="rotate(15)"/>
+      <linearGradient id="missing-base-gradient" href="#missing-base"><stop offset="0" stop-color="#14b8a6"/></linearGradient>
       <pattern id="pattern-fallback" width="12" height="12" patternUnits="userSpaceOnUse">
         <rect width="12" height="12" fill="#f97316"/>
         <circle cx="6" cy="6" r="4" fill="#22c55e"/>
@@ -692,6 +693,7 @@ line</text>
     </g>
     <rect id="gradient-fill" x="900" y="615" width="120" height="50" style="fill:url(#linear-fallback);stroke:url(#radial-fallback)"/>
     <rect id="empty-gradient-fill" x="1030" y="615" width="40" height="50" style="fill:url(#empty-gradient)"/>
+    <rect id="missing-base-gradient-fill" x="1075" y="615" width="40" height="50" style="fill:url(#missing-base-gradient)"/>
     <circle id="pattern-fill" cx="1080" cy="640" r="32" style="fill:url(#pattern-fallback);stroke:#334155"/>
     <g id="group-clipped-shapes" clip-path="url(#group-clip)">
       <rect x="1130" y="615" width="90" height="50" fill="#fef9c3" stroke="#a16207"/>
@@ -879,6 +881,10 @@ function attrs(element: Element): Record<string, string> {
 
 function hrefValue(element: Element): string {
   return element.getAttribute("href") || element.getAttributeNS("http://www.w3.org/1999/xlink", "href") || element.getAttribute("xlink:href") || "";
+}
+
+function hasHrefAttribute(element: Element): boolean {
+  return element.hasAttribute("href") || element.hasAttributeNS("http://www.w3.org/1999/xlink", "href") || element.hasAttribute("xlink:href");
 }
 
 function dataAttrs(attributes: Record<string, string>): Record<string, string> {
@@ -1688,12 +1694,12 @@ function inspectReferencedPaintServerAttributes(root: Element, refs: Map<string,
     const tag = localName(server);
     if (tag !== "linearGradient" && tag !== "radialGradient") continue;
     if (!subtreeReferencesPaintServer(root, id, css, refs, {}, viewport, new Set())) continue;
+    const href = hrefValue(server);
+    if (hasHrefAttribute(server) && (!href.startsWith("#") || !refs.has(href.slice(1)))) addCoverageCount(stats.unsupported_attributes, "href");
     if (paintServerColor(id, refs, {}, new Set(), css)) continue;
     if (server.hasAttribute("gradientTransform")) addCoverageCount(stats.unsupported_attributes, "gradientTransform");
     if (server.hasAttribute("gradientUnits")) addCoverageCount(stats.unsupported_attributes, "gradientUnits");
     if (server.hasAttribute("spreadMethod")) addCoverageCount(stats.unsupported_attributes, "spreadMethod");
-    const href = hrefValue(server);
-    if (href && (!href.startsWith("#") || !refs.has(href.slice(1)))) addCoverageCount(stats.unsupported_attributes, "href");
   }
 }
 

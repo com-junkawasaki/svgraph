@@ -22,6 +22,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Aligned browser coverage diagnostics for first positioned `tspan` baseline controls with the Python analyzer.
 - Aligned browser coverage diagnostics for positioned `tspan` run attributes with the Python analyzer, including unsupported `x`/`y`/`dx`/`dy` and `text-anchor` cases.
 - Aligned browser coverage diagnostics for referenced gradient paint-server attributes with the Python analyzer, including `gradientTransform`, `gradientUnits`, and `spreadMethod`.
+- Aligned browser coverage diagnostics for referenced gradient `href` dependencies with the Python analyzer, including unresolved links even when local stop fallback colors are available.
 - Aligned browser coverage diagnostics for `transform-origin` with the Python analyzer, including no-op handling when transforms or visible rendering are absent.
 - Aligned browser coverage diagnostics for `vector-effect` with the Python analyzer, so unsupported values are ignored when no visible stroke can be affected.
 - Added `svgraph` as the canonical typed Python import package and console-script entry point target, including `svgraph.model`, `svgraph.converter`, `svgraph.coverage`, and `svgraph.pptx` wrapper modules, while preserving `drawingml_svg` and `drawingml-svg` compatibility surfaces.
