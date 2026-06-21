@@ -41,4 +41,28 @@
       <a:solidFill><a:srgbClr val="e0f2fe"/></a:solidFill>
     </p:spPr>
   </p:sp>
+  <p:sp>
+    <p:nvSpPr><p:cNvPr id="7" name="preset plus"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+    <p:spPr>
+      <a:xfrm><a:off x="2095500" y="190500"/><a:ext cx="190500" cy="190500"/></a:xfrm>
+      <a:prstGeom prst="mathPlus"><a:avLst/></a:prstGeom>
+      <a:solidFill><a:srgbClr val="fce7f3"/></a:solidFill>
+    </p:spPr>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr><p:cNvPr id="8" name="preset star"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+    <p:spPr>
+      <a:xfrm><a:off x="2381250" y="190500"/><a:ext cx="190500" cy="190500"/></a:xfrm>
+      <a:prstGeom prst="star5"><a:avLst/></a:prstGeom>
+      <a:solidFill><a:srgbClr val="fde68a"/></a:solidFill>
+    </p:spPr>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr><p:cNvPr id="9" name="preset arrow"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+    <p:spPr>
+      <a:xfrm><a:off x="2667000" y="190500"/><a:ext cx="381000" cy="190500"/></a:xfrm>
+      <a:prstGeom prst="rightArrow"><a:avLst/></a:prstGeom>
+      <a:solidFill><a:srgbClr val="bfdbfe"/></a:solidFill>
+    </p:spPr>
+  </p:sp>
 </p:spTree>

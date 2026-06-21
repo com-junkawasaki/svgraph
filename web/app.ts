@@ -1787,6 +1787,10 @@ function dmlPresetPoints(kind: string, box: Box): [number, number][] {
   const threeQuarterX = box.x + box.width * 3 / 4;
   const quarterY = box.y + box.height / 4;
   const threeQuarterY = box.y + box.height * 3 / 4;
+  const arrowShaftTop = box.y + box.height * 0.4;
+  const arrowShaftBottom = box.y + box.height * 0.6;
+  const arrowHeadX = box.x + box.width * 0.65;
+  const arrowHeadY = box.y + box.height * 0.65;
   if (kind === "triangle" || kind === "flowChartExtract") return [[centerX, top], [right, bottom], [left, bottom]];
   if (kind === "flowChartMerge") return [[left, top], [right, top], [centerX, bottom]];
   if (kind === "rtTriangle") return [[left, top], [right, bottom], [left, bottom]];
@@ -1819,6 +1823,33 @@ function dmlPresetPoints(kind: string, box: Box): [number, number][] {
   if (kind === "corner" || kind === "halfFrame") return [[left, top], [right, top], [right, quarterY], [quarterX, quarterY], [quarterX, bottom], [left, bottom]];
   if (kind === "diagStripe") return [[left, bottom], [quarterX, bottom], [right, top], [threeQuarterX, top]];
   if (kind === "plaque") return [[box.x + box.width * 0.2, top], [box.x + box.width * 0.8, top], [right, box.y + box.height * 0.2], [right, box.y + box.height * 0.8], [box.x + box.width * 0.8, bottom], [box.x + box.width * 0.2, bottom], [left, box.y + box.height * 0.8], [left, box.y + box.height * 0.2]];
+  if (kind === "leftBracket") return [[right, top], [left, top], [left, bottom], [right, bottom], [right, threeQuarterY], [quarterX, threeQuarterY], [quarterX, quarterY], [right, quarterY]];
+  if (kind === "rightBracket") return [[left, top], [right, top], [right, bottom], [left, bottom], [left, threeQuarterY], [threeQuarterX, threeQuarterY], [threeQuarterX, quarterY], [left, quarterY]];
+  if (kind === "leftBrace") return [[right, top], [centerX, top], [quarterX, quarterY], [centerX, centerY], [quarterX, threeQuarterY], [centerX, bottom], [right, bottom], [threeQuarterX, threeQuarterY], [right, centerY], [threeQuarterX, quarterY]];
+  if (kind === "rightBrace") return [[left, top], [centerX, top], [threeQuarterX, quarterY], [centerX, centerY], [threeQuarterX, threeQuarterY], [centerX, bottom], [left, bottom], [quarterX, threeQuarterY], [left, centerY], [quarterX, quarterY]];
+  if (kind === "plus" || kind === "mathPlus") return [[box.x + box.width * 0.35, top], [box.x + box.width * 0.65, top], [box.x + box.width * 0.65, box.y + box.height * 0.35], [right, box.y + box.height * 0.35], [right, box.y + box.height * 0.65], [box.x + box.width * 0.65, box.y + box.height * 0.65], [box.x + box.width * 0.65, bottom], [box.x + box.width * 0.35, bottom], [box.x + box.width * 0.35, box.y + box.height * 0.65], [left, box.y + box.height * 0.65], [left, box.y + box.height * 0.35], [box.x + box.width * 0.35, box.y + box.height * 0.35]];
+  if (kind === "mathMinus") return [[left, arrowShaftTop], [right, arrowShaftTop], [right, arrowShaftBottom], [left, arrowShaftBottom]];
+  if (kind === "mathMultiply") return [[box.x + box.width * 0.2, top], [centerX, box.y + box.height * 0.3], [box.x + box.width * 0.8, top], [right, box.y + box.height * 0.2], [box.x + box.width * 0.7, centerY], [right, box.y + box.height * 0.8], [box.x + box.width * 0.8, bottom], [centerX, box.y + box.height * 0.7], [box.x + box.width * 0.2, bottom], [left, box.y + box.height * 0.8], [box.x + box.width * 0.3, centerY], [left, box.y + box.height * 0.2]];
+  if (kind === "heart") return [[centerX, bottom], [left, box.y + box.height * 0.45], [box.x + box.width * 0.08, box.y + box.height * 0.18], [box.x + box.width * 0.32, top], [centerX, box.y + box.height * 0.2], [box.x + box.width * 0.68, top], [box.x + box.width * 0.92, box.y + box.height * 0.18], [right, box.y + box.height * 0.45]];
+  if (kind === "lightningBolt") return [[box.x + box.width * 0.58, top], [box.x + box.width * 0.18, box.y + box.height * 0.55], [box.x + box.width * 0.46, box.y + box.height * 0.55], [box.x + box.width * 0.36, bottom], [box.x + box.width * 0.82, box.y + box.height * 0.4], [box.x + box.width * 0.54, box.y + box.height * 0.4]];
+  if (kind === "teardrop") return [[centerX, top], [box.x + box.width * 0.82, box.y + box.height * 0.08], [right, box.y + box.height * 0.38], [box.x + box.width * 0.88, box.y + box.height * 0.72], [centerX, bottom], [box.x + box.width * 0.18, box.y + box.height * 0.72], [left, box.y + box.height * 0.38], [box.x + box.width * 0.18, box.y + box.height * 0.12]];
+  if (kind === "cloud") return [[box.x + box.width * 0.15, box.y + box.height * 0.62], [box.x + box.width * 0.08, box.y + box.height * 0.48], [box.x + box.width * 0.2, box.y + box.height * 0.36], [box.x + box.width * 0.34, box.y + box.height * 0.38], [box.x + box.width * 0.42, box.y + box.height * 0.22], [box.x + box.width * 0.62, box.y + box.height * 0.2], [box.x + box.width * 0.72, box.y + box.height * 0.35], [box.x + box.width * 0.86, box.y + box.height * 0.36], [box.x + box.width * 0.96, box.y + box.height * 0.52], [box.x + box.width * 0.88, box.y + box.height * 0.7], [box.x + box.width * 0.62, box.y + box.height * 0.76], [box.x + box.width * 0.38, box.y + box.height * 0.74], [box.x + box.width * 0.22, box.y + box.height * 0.74]];
+  if (kind === "star4") return [[centerX, top], [box.x + box.width * 0.6, box.y + box.height * 0.4], [right, centerY], [box.x + box.width * 0.6, box.y + box.height * 0.6], [centerX, bottom], [box.x + box.width * 0.4, box.y + box.height * 0.6], [left, centerY], [box.x + box.width * 0.4, box.y + box.height * 0.4]];
+  if (kind === "star5") return [[centerX, top], [box.x + box.width * 0.62, box.y + box.height * 0.38], [right, box.y + box.height * 0.38], [box.x + box.width * 0.69, box.y + box.height * 0.59], [box.x + box.width * 0.81, bottom], [centerX, box.y + box.height * 0.72], [box.x + box.width * 0.19, bottom], [box.x + box.width * 0.31, box.y + box.height * 0.59], [left, box.y + box.height * 0.38], [box.x + box.width * 0.38, box.y + box.height * 0.38]];
+  if (kind === "star6") return [[centerX, top], [box.x + box.width * 0.6, box.y + box.height * 0.33], [box.x + box.width * 0.93, quarterY], [box.x + box.width * 0.7, centerY], [box.x + box.width * 0.93, threeQuarterY], [box.x + box.width * 0.6, box.y + box.height * 0.67], [centerX, bottom], [box.x + box.width * 0.4, box.y + box.height * 0.67], [box.x + box.width * 0.07, threeQuarterY], [box.x + box.width * 0.3, centerY], [box.x + box.width * 0.07, quarterY], [box.x + box.width * 0.4, box.y + box.height * 0.33]];
+  if (kind === "star8") return [[centerX, top], [box.x + box.width * 0.58, box.y + box.height * 0.32], [box.x + box.width * 0.85, box.y + box.height * 0.15], [box.x + box.width * 0.68, box.y + box.height * 0.42], [right, centerY], [box.x + box.width * 0.68, box.y + box.height * 0.58], [box.x + box.width * 0.85, box.y + box.height * 0.85], [box.x + box.width * 0.58, box.y + box.height * 0.68], [centerX, bottom], [box.x + box.width * 0.42, box.y + box.height * 0.68], [box.x + box.width * 0.15, box.y + box.height * 0.85], [box.x + box.width * 0.32, box.y + box.height * 0.58], [left, centerY], [box.x + box.width * 0.32, box.y + box.height * 0.42], [box.x + box.width * 0.15, box.y + box.height * 0.15], [box.x + box.width * 0.42, box.y + box.height * 0.32]];
+  if (kind === "star12") return regularStarPoints(12, box);
+  if (kind === "star16") return regularStarPoints(16, box);
+  if (kind === "sun") return regularStarPoints(16, box, 0.72);
+  if (kind === "irregularSeal1") return regularStarPoints(16, box, 0.62);
+  if (kind === "irregularSeal2") return regularStarPoints(24, box, 0.68);
+  if (kind === "rightArrow") return [[left, quarterY], [arrowHeadX, quarterY], [arrowHeadX, top], [right, centerY], [arrowHeadX, bottom], [arrowHeadX, threeQuarterY], [left, threeQuarterY]];
+  if (kind === "notchedRightArrow") return [[left, quarterY], [arrowHeadX, quarterY], [arrowHeadX, top], [right, centerY], [arrowHeadX, bottom], [arrowHeadX, threeQuarterY], [left, threeQuarterY], [quarterX, centerY]];
+  if (kind === "leftArrow") return [[right, quarterY], [box.x + box.width * 0.35, quarterY], [box.x + box.width * 0.35, top], [left, centerY], [box.x + box.width * 0.35, bottom], [box.x + box.width * 0.35, threeQuarterY], [right, threeQuarterY]];
+  if (kind === "upArrow") return [[quarterX, bottom], [quarterX, box.y + box.height * 0.35], [left, box.y + box.height * 0.35], [centerX, top], [right, box.y + box.height * 0.35], [threeQuarterX, box.y + box.height * 0.35], [threeQuarterX, bottom]];
+  if (kind === "downArrow") return [[quarterX, top], [quarterX, arrowHeadY], [left, arrowHeadY], [centerX, bottom], [right, arrowHeadY], [threeQuarterX, arrowHeadY], [threeQuarterX, top]];
+  if (kind === "leftRightArrow") return [[left, centerY], [quarterX, top], [quarterX, quarterY], [threeQuarterX, quarterY], [threeQuarterX, top], [right, centerY], [threeQuarterX, bottom], [threeQuarterX, threeQuarterY], [quarterX, threeQuarterY], [quarterX, bottom]];
+  if (kind === "upDownArrow") return [[centerX, top], [right, quarterY], [threeQuarterX, quarterY], [threeQuarterX, threeQuarterY], [right, threeQuarterY], [centerX, bottom], [left, threeQuarterY], [quarterX, threeQuarterY], [quarterX, quarterY], [left, quarterY]];
   return [];
 }
 
@@ -1829,6 +1860,21 @@ function regularPolygonPoints(sides: number, box: Box): [number, number][] {
   const radiusY = box.height / 2;
   return Array.from({ length: sides }, (_, index) => {
     const angle = -Math.PI / 2 + (2 * Math.PI * index) / sides;
+    return [centerX + radiusX * Math.cos(angle), centerY + radiusY * Math.sin(angle)] as [number, number];
+  });
+}
+
+function regularStarPoints(points: number, box: Box, innerScale = 0.5): [number, number][] {
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2;
+  const outerX = box.width / 2;
+  const outerY = box.height / 2;
+  const innerX = outerX * innerScale;
+  const innerY = outerY * innerScale;
+  return Array.from({ length: points * 2 }, (_, index) => {
+    const radiusX = index % 2 === 0 ? outerX : innerX;
+    const radiusY = index % 2 === 0 ? outerY : innerY;
+    const angle = -Math.PI / 2 + (Math.PI * index) / points;
     return [centerX + radiusX * Math.cos(angle), centerY + radiusY * Math.sin(angle)] as [number, number];
   });
 }
