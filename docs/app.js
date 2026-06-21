@@ -2458,6 +2458,7 @@ function dmlTextRunAttrs(...properties) {
     const decoration = dmlTextDecoration(candidates);
     if (decoration)
         attrs.push(`text-decoration="${decoration}"`);
+    attrs.push(...dmlTextDecorationDetailAttrs(candidates, decoration));
     const baseline = optionalInt(dmlFirstTextAttr(candidates, "baseline"));
     if (baseline > 0)
         attrs.push('baseline-shift="super"');
@@ -2532,6 +2533,41 @@ function dmlTextDecoration(candidates) {
     if (strike && strike !== "noStrike")
         values.push("line-through");
     return values.length ? values.join(" ") : null;
+}
+function dmlTextDecorationDetailAttrs(candidates, decoration) {
+    if (!decoration?.split(/\s+/).includes("underline"))
+        return [];
+    const u = dmlFirstTextAttr(candidates, "u") || "";
+    const uFill = dmlFirstTextChild(candidates, "uFill");
+    const uLn = dmlFirstTextChild(candidates, "uLn");
+    const paint = uFill ? dmlFillPaint(uFill) : null;
+    const thickness = uLn ? emuToPx(uLn.getAttribute("w")) : 0;
+    return [
+        dmlTextDecorationStyle(u) ? `text-decoration-style="${dmlTextDecorationStyle(u)}"` : "",
+        paint?.color ? `text-decoration-color="${dmlColorWithAlpha(paint.color, paint.alpha)}"` : "",
+        thickness ? `text-decoration-thickness="${formatNumber(thickness)}"` : "",
+    ].filter(Boolean);
+}
+function dmlTextDecorationStyle(value) {
+    return {
+        dash: "dashed",
+        dashHeavy: "dashed",
+        dbl: "double",
+        dotted: "dotted",
+        dottedHeavy: "dotted",
+        wavy: "wavy",
+        wavyDbl: "wavy",
+        wavyHeavy: "wavy",
+    }[value] ?? null;
+}
+function dmlColorWithAlpha(color, alpha) {
+    if (alpha == null || alpha >= 1)
+        return color;
+    const rgb = hexToRgb(color);
+    if (!rgb)
+        return color;
+    const suffix = clamp(Math.round(alpha * 255), 0, 255).toString(16).padStart(2, "0");
+    return `${rgbToHex(rgb)}${suffix}`;
 }
 function dmlFlip(spPr, name) {
     return childByLocal(spPr, "xfrm")?.getAttribute(name) === "1";

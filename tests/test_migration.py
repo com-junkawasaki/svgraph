@@ -1181,6 +1181,8 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function dmlTextInsets" in generated
         assert "function dmlTextRuns" in generated
         assert "function dmlTextRunAttrs" in generated
+        assert "function dmlTextDecorationDetailAttrs" in generated
+        assert "function dmlColorWithAlpha" in generated
         assert "function dmlParagraphDefaultRunProperties" in generated
         assert "function dmlTextAnchor" in generated
         assert "function dmlTextDirection" in generated
@@ -1630,6 +1632,9 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert 'stroke-dasharray=\\\"4 3 1 3\\\"' in package_metadata["scripts"]["check:package"]
     assert 'font-weight=\\\"bold\\\"' in package_metadata["scripts"]["check:package"]
     assert 'baseline-shift=\\\"super\\\"' in package_metadata["scripts"]["check:package"]
+    assert 'text-decoration-style=\\\"dashed\\\"' in package_metadata["scripts"]["check:package"]
+    assert 'text-decoration-color=\\\"#16a34a80\\\"' in package_metadata["scripts"]["check:package"]
+    assert 'text-decoration-thickness=\\\"2\\\"' in package_metadata["scripts"]["check:package"]
     assert 'text-decoration=\\\"underline line-through\\\"' in package_metadata["scripts"]["check:package"]
     assert 'font-family=\\\"Yu Gothic\\\"' in package_metadata["scripts"]["check:package"]
     assert 'dy=\\\"1.2em\\\"' in package_metadata["scripts"]["check:package"]
@@ -1756,6 +1761,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser coverage analyzer ignored-element handling for non-rendering geometry and no visible paint",
         "browser coverage analyzer `use` reference support checks against referenced SVG subtrees",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML rich text run fill, font, outline, decoration, baseline, and spacing details",
+        "browser TypeScript `drawingMlToSvg` import support for DrawingML underline style, color, alpha, and thickness details",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph default and end-paragraph text run fallback styles",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph bullets, auto-numbering, tabs, and explicit line breaks",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML text body insets, vertical anchors, paragraph/list alignment, and RTL direction",

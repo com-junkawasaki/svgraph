@@ -2853,6 +2853,7 @@ function dmlTextRunAttrs(...properties: Array<Element | null>): string[] {
   attrs.push(...dmlTextOutlineAttrs(dmlFirstTextChild(candidates, "ln")));
   const decoration = dmlTextDecoration(candidates);
   if (decoration) attrs.push(`text-decoration="${decoration}"`);
+  attrs.push(...dmlTextDecorationDetailAttrs(candidates, decoration));
   const baseline = optionalInt(dmlFirstTextAttr(candidates, "baseline"));
   if (baseline > 0) attrs.push('baseline-shift="super"');
   if (baseline < 0) attrs.push('baseline-shift="sub"');
@@ -2921,6 +2922,41 @@ function dmlTextDecoration(candidates: Element[]): string | null {
   if (underline && underline !== "none") values.push("underline");
   if (strike && strike !== "noStrike") values.push("line-through");
   return values.length ? values.join(" ") : null;
+}
+
+function dmlTextDecorationDetailAttrs(candidates: Element[], decoration: string | null): string[] {
+  if (!decoration?.split(/\s+/).includes("underline")) return [];
+  const u = dmlFirstTextAttr(candidates, "u") || "";
+  const uFill = dmlFirstTextChild(candidates, "uFill");
+  const uLn = dmlFirstTextChild(candidates, "uLn");
+  const paint = uFill ? dmlFillPaint(uFill) : null;
+  const thickness = uLn ? emuToPx(uLn.getAttribute("w")) : 0;
+  return [
+    dmlTextDecorationStyle(u) ? `text-decoration-style="${dmlTextDecorationStyle(u)}"` : "",
+    paint?.color ? `text-decoration-color="${dmlColorWithAlpha(paint.color, paint.alpha)}"` : "",
+    thickness ? `text-decoration-thickness="${formatNumber(thickness)}"` : "",
+  ].filter(Boolean);
+}
+
+function dmlTextDecorationStyle(value: string): string | null {
+  return ({
+    dash: "dashed",
+    dashHeavy: "dashed",
+    dbl: "double",
+    dotted: "dotted",
+    dottedHeavy: "dotted",
+    wavy: "wavy",
+    wavyDbl: "wavy",
+    wavyHeavy: "wavy",
+  } as Record<string, string>)[value] ?? null;
+}
+
+function dmlColorWithAlpha(color: string, alpha: number | null): string {
+  if (alpha == null || alpha >= 1) return color;
+  const rgb = hexToRgb(color);
+  if (!rgb) return color;
+  const suffix = clamp(Math.round(alpha * 255), 0, 255).toString(16).padStart(2, "0");
+  return `${rgbToHex(rgb)}${suffix}`;
 }
 
 function dmlFlip(spPr: Element, name: "flipH" | "flipV"): boolean {

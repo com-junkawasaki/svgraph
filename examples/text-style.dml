@@ -31,7 +31,7 @@
         <a:t>Plain </a:t>
       </a:r>
       <a:r>
-        <a:rPr sz="1800" b="1" i="1" cap="small" u="sng" baseline="30000" spc="150">
+        <a:rPr sz="1800" b="1" i="1" cap="small" u="dash" baseline="30000" spc="150">
           <a:solidFill>
             <a:srgbClr val="dc2626">
               <a:alpha val="85000"/>
@@ -43,6 +43,14 @@
             </a:solidFill>
             <a:round/>
           </a:ln>
+          <a:uFill>
+            <a:solidFill>
+              <a:srgbClr val="16a34a">
+                <a:alpha val="50000"/>
+              </a:srgbClr>
+            </a:solidFill>
+          </a:uFill>
+          <a:uLn w="19050"/>
           <a:latin typeface="Aptos Display"/>
         </a:rPr>
         <a:t>Styled</a:t>
