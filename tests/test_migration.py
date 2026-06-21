@@ -1077,6 +1077,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert "examples/text-bullets.dml" in package_metadata["files"]
     assert "examples/text-defaults.dml" in package_metadata["files"]
     assert "examples/text-layout.dml" in package_metadata["files"]
+    assert "examples/text-invalid-level.dml" in package_metadata["files"]
     assert "examples/text-invalid-numeric.dml" in package_metadata["files"]
     assert "examples/text-shape-paint.dml" in package_metadata["files"]
     assert "examples/text-style.dml" in package_metadata["files"]
@@ -1647,6 +1648,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "node ./bin/svgraph.mjs dml2svg examples/text-defaults.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-bullets.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-layout.dml" in package_metadata["scripts"]["check:package"]
+    assert "node ./bin/svgraph.mjs dml2svg examples/text-invalid-level.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-invalid-numeric.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-shape-paint.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/table-border-effects.dml" in package_metadata["scripts"]["check:package"]
@@ -1688,6 +1690,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "package-text-defaults.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-bullets.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-layout.svg" in package_metadata["scripts"]["check:package"]
+    assert "package-text-invalid-level.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-shape-paint.svg" in package_metadata["scripts"]["check:package"]
     assert "package-table-border-effects.svg" in package_metadata["scripts"]["check:package"]
     assert "package-table-fill-effects.svg" in package_metadata["scripts"]["check:package"]
@@ -1870,6 +1873,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML picture alpha and line miter parsing",
         "browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML picture source crop parsing",
         "browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML custom dash parsing",
+        "browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML paragraph level parsing",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph default and end-paragraph text run fallback styles",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph bullets, auto-numbering, tabs, and explicit line breaks",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML text body insets, vertical anchors, paragraph/list alignment, and RTL direction",

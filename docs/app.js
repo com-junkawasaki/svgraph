@@ -2422,7 +2422,7 @@ function dmlParagraphDefaultRunProperties(txBody, paragraph) {
 function dmlListStyleParagraphProperties(txBody, paragraph) {
     const pPr = childByLocal(paragraph, "pPr");
     const listStyle = childByLocal(txBody, "lstStyle");
-    const level = optionalInt(pPr?.getAttribute("lvl") ?? null) + 1 || 1;
+    const level = dmlInt(pPr?.getAttribute("lvl") ?? null, 0) + 1 || 1;
     return childByLocal(listStyle, `lvl${Math.min(Math.max(level, 1), 9)}pPr`);
 }
 function dmlTextAnchor(element) {

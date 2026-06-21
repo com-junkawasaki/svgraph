@@ -17,6 +17,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Aligned browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML picture alpha and line miter parsing, so malformed values are ignored instead of becoming zero-opacity images or zero miter limits.
 - Aligned browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML picture source crop parsing, so malformed `srcRect` values are ignored instead of becoming SVG crop metadata.
 - Aligned browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML custom dash parsing, so malformed dash segment values fall back to zero instead of using numeric prefixes.
+- Aligned browser TypeScript `drawingMlToSvg` Python-compatible invalid DrawingML paragraph level parsing, so malformed `lvl` values use first-level list styles instead of numeric prefixes.
 - Aligned browser coverage diagnostics for SVG markers with the Python analyzer, including inherited marker support, stricter arrow-marker shape checks, and `marker-mid` no-op handling.
 - Aligned browser coverage diagnostics for `opacity` with the Python analyzer, including invalid/no-op alpha and invisible descendant handling for group opacity.
 - Aligned browser coverage diagnostics for `pathLength` with actual browser conversion support, including cascaded dash arrays and no-op stroke cases.

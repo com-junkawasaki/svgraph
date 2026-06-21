@@ -361,7 +361,7 @@ def test_cli_version_writes_installed_package_version(capsys) -> None:
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "svgraph 0.1.46\n"
+    assert captured.out == "svgraph 0.1.47\n"
 
 
 def test_svgraph_module_cli_uses_canonical_program_name() -> None:
@@ -372,7 +372,7 @@ def test_svgraph_module_cli_uses_canonical_program_name() -> None:
         text=True,
     )
 
-    assert result.stdout == "svgraph 0.1.46\n"
+    assert result.stdout == "svgraph 0.1.47\n"
 
 
 def test_svgraph_cli_module_keeps_canonical_program_name() -> None:
@@ -383,7 +383,7 @@ def test_svgraph_cli_module_keeps_canonical_program_name() -> None:
         text=True,
     )
 
-    assert result.stdout == "svgraph 0.1.46\n"
+    assert result.stdout == "svgraph 0.1.47\n"
 
 
 def test_svgraph_module_cli_emits_canonical_svgraph_json_reports() -> None:
@@ -439,7 +439,7 @@ def test_svgraph_executable_keeps_svgraph_program_name(monkeypatch, capsys) -> N
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "svgraph 0.1.46\n"
+    assert captured.out == "svgraph 0.1.47\n"
 
 
 def test_cli_converts_between_files_and_creates_output_parent(tmp_path) -> None:
@@ -5639,6 +5639,14 @@ def test_drawingml_invalid_numeric_text_run_values_fall_back_to_defaults() -> No
     assert "font-size" not in svg
     assert "baseline-shift" not in svg
     assert "letter-spacing" not in svg
+    assert analyze_svg(svg).unsupported_attributes == {}
+
+
+def test_drawingml_invalid_paragraph_level_falls_back_to_first_level() -> None:
+    svg = drawingml_to_svg(Path("examples/text-invalid-level.dml").read_text(encoding="utf-8"))
+
+    assert "- Invalid level" in svg
+    assert "+ Invalid level" not in svg
     assert analyze_svg(svg).unsupported_attributes == {}
 
 
