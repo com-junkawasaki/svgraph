@@ -1244,6 +1244,10 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert 'addCoverageCount(stats.unsupported_attributes, "href")' in generated
         assert 'addCoverageCount(stats.unsupported_attributes, "gradientTransform")' in generated
         assert "function subtreeReferencesPaintServer" in generated
+        assert 'id="unsupported-clip-target"' in generated
+        assert "function clipPathIsSupportedOrNoop" in generated
+        assert "function clipPathTargetIsSupported" in generated
+        assert "function subtreeClipPathIsSupported" in generated
         unsupported_attributes = generated.split("const coverageUnsupportedAttributes", 1)[1].split(
             "const coverageSupportedPathCommands",
             1,

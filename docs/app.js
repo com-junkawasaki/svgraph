@@ -242,6 +242,7 @@ line</text>
       <rect x="1130" y="615" width="90" height="50" fill="#fef9c3" stroke="#a16207"/>
       <line x1="1130" y1="665" x2="1220" y2="615" stroke="#92400e" stroke-width="5"/>
     </g>
+    <polygon id="unsupported-clip-target" points="1120,690 1160,690 1140,715" clip-path="url(#group-clip)" fill="#fecaca" stroke="#991b1b"/>
     <use href="#reused-chip" class="accent-use" x="360" y="400"/>
     <use id="symbol-viewbox-use" class="css-use-frame" href="#viewbox-icon" preserveAspectRatio="xMaxYMax slice"/>
     <use id="context-paint-use" href="#context-badge" x="455" y="600" width="80" height="40" fill="#123456" stroke="#abcdef"/>
@@ -1374,7 +1375,7 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
     if (["clip-path", "filter", "isolation", "mask", "mix-blend-mode"].includes(name) && !coverageSubtreeHasVisibleRendering(element, style, refs, css, viewport, new Set()))
         return true;
     if (name === "clip-path")
-        return clipPathHasRect(value, refs);
+        return clipPathIsSupportedOrNoop(element, tag, value, style, refs, css, viewport);
     if (name === "clip-rule")
         return clipRuleHasNoEffect(element);
     if (name === "fill-rule")
@@ -1960,6 +1961,55 @@ function clipPathHasRect(value, refs) {
     const ref = urlRef(value);
     const clip = ref ? refs.get(ref) : null;
     return !!clip && localName(clip) === "clipPath" && Array.from(clip.children).some((child) => localName(child) === "rect");
+}
+function clipPathIsSupportedOrNoop(element, tag, value, style, refs, css, viewport) {
+    if (clipPathTargetIsSupported(element, tag, value, refs))
+        return true;
+    if (!["a", "g", "svg", "switch", "symbol", "use"].includes(tag))
+        return false;
+    return subtreeClipPathIsSupported(element, value, style, refs, css, viewport, new Set());
+}
+function clipPathTargetIsSupported(element, tag, value, refs) {
+    if (!clipPathHasRect(value, refs))
+        return false;
+    if (["rect", "circle", "ellipse", "line", "text", "image"].includes(tag))
+        return true;
+    if (tag === "polyline")
+        return parsePoints(element.getAttribute("points") || "").length === 2;
+    if (tag === "path") {
+        const parsed = parseBasicPath(element.getAttribute("d") || "", [1, 0, 0, 1, 0, 0]);
+        return !!parsed && !parsed.closed && parsed.points.length === 2;
+    }
+    return false;
+}
+function subtreeClipPathIsSupported(element, inheritedClipPath, inheritedStyle, refs, css, viewport, refStack) {
+    const tag = localName(element);
+    const style = computedStyle(element, inheritedStyle, css, refs, viewport);
+    if (style.display === "none")
+        return true;
+    const declarations = resolvedCascadedDeclarations(element, css, style);
+    const specifiedClipPath = declarations["clip-path"] ?? element.getAttribute("clip-path");
+    if (specifiedClipPath != null && specifiedClipPath !== inheritedClipPath) {
+        return !coverageSubtreeHasVisibleRendering(element, style, refs, css, viewport, refStack);
+    }
+    if (tag === "use") {
+        const href = hrefValue(element);
+        const refId = href.startsWith("#") ? href.slice(1) : "";
+        const ref = refId ? refs.get(refId) : null;
+        if (!ref || refStack.has(refId))
+            return true;
+        const refViewport = ["svg", "symbol"].includes(localName(ref)) ? useViewport(ref, element, viewport, css, style) : viewport;
+        return subtreeClipPathIsSupported(ref, inheritedClipPath, style, refs, css, refViewport, new Set([...refStack, refId]));
+    }
+    if (style.visibility !== "hidden" && style.visibility !== "collapse" && ["circle", "ellipse", "image", "line", "path", "polygon", "polyline", "rect", "text"].includes(tag) && !coverageHasNonRenderingGeometry(element, tag, style, css, viewport) && !coverageHasNoVisiblePaint(element, tag, style, refs, css, viewport, refStack)) {
+        return clipPathTargetIsSupported(element, tag, inheritedClipPath, refs);
+    }
+    const childViewport = tag === "svg" ? renderedSvgViewport(element, viewport, css, style) : viewport;
+    if (tag === "switch") {
+        const selected = switchSelectedChild(element);
+        return selected ? subtreeClipPathIsSupported(selected, inheritedClipPath, style, refs, css, childViewport, refStack) : true;
+    }
+    return Array.from(element.children).every((child) => subtreeClipPathIsSupported(child, inheritedClipPath, style, refs, css, childViewport, refStack));
 }
 function hasSupportedTextDecorationLine(value) {
     return textDecorationLineIsSupportedOrNoop(value);
