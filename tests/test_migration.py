@@ -1050,6 +1050,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert "bin" in package_metadata["files"]
     assert "examples/freeform.dml" in package_metadata["files"]
     assert "examples/group.dml" in package_metadata["files"]
+    assert "examples/picture.dml" in package_metadata["files"]
     assert "examples/sample.svg" in package_metadata["files"]
     assert "@xmldom/xmldom" in package_metadata["dependencies"]
     assert package_metadata["private"] is False
@@ -1144,6 +1145,8 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function dmlCustomGeometryToSvg" in generated
         assert "function dmlCustomPoints" in generated
         assert "function dmlConnectorToSvg" in generated
+        assert "function dmlPictureToSvg" in generated
+        assert "function dmlBlipAlpha" in generated
         assert "function dmlTableFrameToSvg" in generated
         assert "function dmlTableColumns" in generated
         assert "function dmlSvgItemsWalk" in generated
@@ -1512,7 +1515,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "`web/app.ts` builds SVGraph" in readme
     assert "`docs/app.js` is the compiled Pages artifact." in readme
     assert "Python or server APIs" in readme
-    assert "DrawingML-to-SVG import for basic shape, custom geometry/freeform, grouped shape, connector, and native table fragments" in readme
+    assert "DrawingML-to-SVG import for basic shape, custom geometry/freeform, grouped shape, connector, picture, and native table fragments" in readme
     assert "underline/strike decoration including underline style, color, and thickness" in readme
     assert "npm ci" in readme
     assert "npm run check:web" in readme
@@ -1532,8 +1535,10 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "node ./bin/svgraph.mjs dml2svg tmp/package-smoke.xml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/group.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/freeform.dml" in package_metadata["scripts"]["check:package"]
+    assert "node ./bin/svgraph.mjs dml2svg examples/picture.dml" in package_metadata["scripts"]["check:package"]
     assert 'transform=\\\"matrix(2 0 0 2 10 20)\\\"' in package_metadata["scripts"]["check:package"]
     assert "package-freeform.svg" in package_metadata["scripts"]["check:package"]
+    assert "package-picture.svg" in package_metadata["scripts"]["check:package"]
     assert "buildSVGraphAssistantPrompt" in package_metadata["scripts"]["check:package"]
     assert "applyAssistantPatch" in package_metadata["scripts"]["check:package"]
     assert "npm exec --registry=https://npm.pkg.github.com @com-junkawasaki/svgraph -- svg2dml" in readme
@@ -1678,6 +1683,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser TypeScript `drawingMlToSvg` import support",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML grouped shapes",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML custom geometry/freeform paths",
+        "browser TypeScript `drawingMlToSvg` import support for DrawingML pictures as SVG images",
         "XML Open flow conversion back into canonical SVG source",
         "native DrawingML table fragments as semantic SVG table and cell nodes",
         "npm package CLI backed by the TypeScript/browser converter",

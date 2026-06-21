@@ -1135,7 +1135,7 @@ function dmlSvgItemsWalk(element, matrix) {
         const groupMatrix = multiply(matrix, dmlGroupMatrix(element));
         return Array.from(element.children).flatMap((child) => dmlSvgItemsWalk(child, groupMatrix));
     }
-    const item = tag === "sp" ? dmlShapeToSvg(element) : tag === "cxnSp" ? dmlConnectorToSvg(element) : tag === "graphicFrame" ? dmlTableFrameToSvg(element) : null;
+    const item = tag === "sp" ? dmlShapeToSvg(element) : tag === "cxnSp" ? dmlConnectorToSvg(element) : tag === "graphicFrame" ? dmlTableFrameToSvg(element) : tag === "pic" ? dmlPictureToSvg(element) : null;
     if (item)
         return [transformDmlSvgItem(item, matrix)];
     return Array.from(element.children).flatMap((child) => dmlSvgItemsWalk(child, matrix));
@@ -1322,6 +1322,71 @@ function dmlConnectorToSvg(element) {
         svg: `<line id="${xml(dmlSvgId(name))}" x1="${formatNumber(x1)}" y1="${formatNumber(y1)}" x2="${formatNumber(x2)}" y2="${formatNumber(y2)}"${dmlSvgStyle(dmlSvgPaint(spPr))} data-kind="relation"/>`,
     };
 }
+function dmlPictureToSvg(element) {
+    const spPr = childByLocal(element, "spPr");
+    const blip = descendantsByLocal(element, "blip")[0];
+    if (!spPr || !blip)
+        return null;
+    const box = dmlXfrmBox(spPr);
+    if (!box)
+        return null;
+    const href = attrByLocal(blip, "embed");
+    if (!href)
+        return null;
+    const name = childByLocal(childByLocal(element, "nvPicPr"), "cNvPr")?.getAttribute("name") || "image";
+    const opacity = dmlBlipAlpha(blip);
+    const preserve = dmlPicturePreserveAspectRatio(element);
+    const attrs = [
+        `id="${xml(dmlSvgId(name))}"`,
+        `href="${xml(href)}"`,
+        `x="${formatNumber(box.x)}"`,
+        `y="${formatNumber(box.y)}"`,
+        `width="${formatNumber(box.width)}"`,
+        `height="${formatNumber(box.height)}"`,
+        opacity == null || opacity >= 1 ? "" : `opacity="${formatNumber(opacity)}"`,
+        preserve ? `preserveAspectRatio="${preserve}"` : "",
+    ].filter(Boolean);
+    return {
+        bounds: box,
+        svg: `<image ${attrs.join(" ")}/>`,
+    };
+}
+function dmlPicturePreserveAspectRatio(element) {
+    const rect = descendantsByLocal(element, "srcRect")[0];
+    if (!rect)
+        return null;
+    const left = optionalInt(rect.getAttribute("l")) ?? 0;
+    const top = optionalInt(rect.getAttribute("t")) ?? 0;
+    const right = optionalInt(rect.getAttribute("r")) ?? 0;
+    const bottom = optionalInt(rect.getAttribute("b")) ?? 0;
+    if (!left && !top && !right && !bottom)
+        return null;
+    const x = dmlCropAlignment(left, right, "x");
+    const y = dmlCropAlignment(top, bottom, "y");
+    return `${x}${y} slice`;
+}
+function dmlCropAlignment(before, after, axis) {
+    if (!before && !after)
+        return axis === "x" ? "xMid" : "YMid";
+    if (!before)
+        return axis === "x" ? "xMin" : "YMin";
+    if (!after)
+        return axis === "x" ? "xMax" : "YMax";
+    return axis === "x" ? "xMid" : "YMid";
+}
+function dmlBlipAlpha(blip) {
+    const alphaModFix = childByLocal(blip, "alphaModFix");
+    if (alphaModFix?.getAttribute("amt") != null)
+        return optionalInt(alphaModFix.getAttribute("amt")) / 100000;
+    let result = null;
+    const alpha = descendantsByLocal(blip, "alpha")[0];
+    if (alpha?.getAttribute("val") != null)
+        result = optionalInt(alpha.getAttribute("val")) / 100000;
+    const alphaMod = descendantsByLocal(blip, "alphaMod")[0];
+    if (alphaMod?.getAttribute("amt") != null)
+        result = (result ?? 1) * (optionalInt(alphaMod.getAttribute("amt")) / 100000);
+    return result;
+}
 function dmlTableFrameToSvg(element) {
     const tbl = descendantsByLocal(element, "tbl")[0];
     if (!tbl)
@@ -1395,6 +1460,18 @@ function dmlTableCellBorder(tcPr) {
     const stroke = dmlColor(childByLocal(line, "solidFill"));
     const strokeWidth = emuToPx(line.getAttribute("w"));
     return stroke ? ` stroke="${stroke}"${strokeWidth ? ` stroke-width="${formatNumber(strokeWidth)}"` : ""}` : "";
+}
+function attrByLocal(element, name) {
+    for (let index = 0; index < element.attributes.length; index += 1) {
+        const attr = element.attributes.item(index);
+        if (attr && (attr.localName || attr.name.replace(/^.*:/, "")) === name)
+            return attr.value;
+    }
+    return null;
+}
+function optionalInt(value) {
+    const parsed = Number.parseInt(value ?? "", 10);
+    return Number.isFinite(parsed) ? parsed : 0;
 }
 function dmlXfrmBox(spPr) {
     const xfrm = childByLocal(spPr, "xfrm");
