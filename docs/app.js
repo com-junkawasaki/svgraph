@@ -200,6 +200,7 @@ const sampleSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720
     <rect id="alpha-shape" x="580" y="615" width="120" height="50" style="fill:rgba(239,68,68,0.5);stroke:#2563ebcc;stroke-width:6;fill-opacity:0.8;stroke-opacity:0.5"/>
     <line id="dash-line" x1="120" y1="650" x2="300" y2="650" style="stroke:#0f766e;stroke-width:8;stroke-dasharray:18 10;stroke-dashoffset:5;stroke-linecap:round;stroke-linejoin:bevel"/>
     <line id="path-length-line" x1="120" y1="675" x2="220" y2="675" pathLength="50" style="stroke:#0891b2;stroke-width:4;stroke-dasharray:10 5"/>
+    <path id="ignored-path-length" d="M 120 700 H 220" pathLength="100" fill="none" stroke="#64748b"/>
     <line id="negative-stroke-width" x1="230" y1="675" x2="300" y2="675" style="stroke:#7f1d1d;stroke-width:-2"/>
     <rect id="ignored-vector-effect" x="305" y="668" width="10" height="10" fill="#f8fafc" stroke="none" vector-effect="non-scaling-size"/>
     <g id="scaled-stroke-group" transform="translate(320 640) scale(2)" stroke-linejoin="arcs">
@@ -1347,7 +1348,7 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
     if (name === "paint-order")
         return paintOrderHasNoEffect(tag, value, style);
     if (name === "pathLength")
-        return normalizePathLength(value) != null;
+        return pathLengthIsSupportedOrNoop(element, tag, value, style, viewport, css);
     if (name === "preserveAspectRatio")
         return preserveAspectRatioIsSupportedOrNoop(element, tag, value, refs);
     if (name === "rotate")
@@ -1440,8 +1441,6 @@ function coverageAttributeHasNoEffect(element, name, value) {
         return zeroLengthOrPercentage(value);
     if (name === "opacity")
         return normalized === "1" || normalized === "100%";
-    if (name === "pathLength")
-        return !element.getAttribute("stroke-dasharray");
     return false;
 }
 function renderingQualityHintHasNoEffect(value) {
@@ -1630,6 +1629,26 @@ function dashPatternPeriod(value, basis = rootFontSize) {
     const resolved = nums.length % 2 === 1 ? nums.concat(nums) : nums;
     const period = resolved.reduce((sum, item) => sum + item, 0);
     return period > 0 ? period : null;
+}
+function pathLengthIsSupportedOrNoop(element, tag, value, style, viewport, css) {
+    if (normalizePathLength(value) == null)
+        return false;
+    const dasharray = style.strokeDasharray;
+    if (!dasharray || dasharray.trim().toLowerCase() === "none")
+        return true;
+    if (dashPatternPeriod(dasharray, percentageBasis("diag", viewport)) == null)
+        return true;
+    if (strokeHasNoEffect(tag, style))
+        return true;
+    if (tag === "line")
+        return pathActualLength(element, tag, viewport, null, css, style) != null;
+    if (tag === "polygon" || tag === "polyline")
+        return pathActualLength(element, tag, viewport, parsePoints(element.getAttribute("points") || ""), css, style) != null;
+    if (tag === "path") {
+        const parsed = parseBasicPath(element.getAttribute("d") || "", [1, 0, 0, 1, 0, 0]);
+        return !!parsed && pathActualLength(element, tag, viewport, parsed.points, css, style) != null;
+    }
+    return false;
 }
 function zeroLengthOrPercentage(value) {
     const parsed = parseCssLength(value, 100, Number.NaN);

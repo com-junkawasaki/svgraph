@@ -1189,6 +1189,8 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function strokeDashoffsetHasNoEffect" in generated
         assert "function strokeDashoffsetIsSupported" in generated
         assert "function dashPatternPeriod" in generated
+        assert "function pathLengthIsSupportedOrNoop" in generated
+        assert 'id="ignored-path-length"' in generated
         assert "function overflowIsSupportedOrNoop" in generated
         assert "function preserveAspectRatioIsSupportedOrNoop" in generated
         assert 'localName(ref) === "svg" || localName(ref) === "symbol"' in generated

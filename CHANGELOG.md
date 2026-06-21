@@ -12,6 +12,7 @@ This project follows a simple, human-readable changelog. Until the project reach
 - Clarified in the README that `drawingml_svg` remains only as a compatibility import path over `svgraph`.
 - Renamed the public repository and Pages site to `com-junkawasaki/svgraph`, and aligned web package names, generated PPTX metadata, generated DrawingML/SVG object names, and smoke artifact filenames with SVGraph branding.
 - Aligned browser coverage diagnostics for `clip-rule` with the Python analyzer, so values outside clip paths are treated as no-op.
+- Aligned browser coverage diagnostics for `pathLength` with actual browser conversion support, including cascaded dash arrays and no-op stroke cases.
 - Aligned browser coverage diagnostics for `preserveAspectRatio` with the Python analyzer, including image intrinsic-size and `use` viewBox-reference checks.
 - Aligned browser coverage diagnostics for `vector-effect` with the Python analyzer, so unsupported values are ignored when no visible stroke can be affected.
 - Added `svgraph` as the canonical typed Python import package and console-script entry point target, including `svgraph.model`, `svgraph.converter`, `svgraph.coverage`, and `svgraph.pptx` wrapper modules, while preserving `drawingml_svg` and `drawingml-svg` compatibility surfaces.
