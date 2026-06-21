@@ -1361,15 +1361,15 @@ function coverageAttributeIsSupportedOrNoop(element, tag, name, value, style, re
     if (name === "textLength")
         return textLengthIsSupported(element, tag, value, style);
     if (name === "text-decoration")
-        return textDecorationShorthandIsSupported(value, style);
+        return textDecorationShorthandIsSupported(value, style, viewport);
     if (name === "text-decoration-line")
         return hasSupportedTextDecorationLine(value);
     if (name === "text-decoration-style")
-        return textDecorationStyleTokens.has(normalized);
+        return textDecorationStyleIsSupportedOrNoop(value, style);
     if (name === "text-decoration-color")
-        return parseCssColor(value, style) != null;
+        return textDecorationColorHasNoEffect(value, style);
     if (name === "text-decoration-thickness")
-        return value.trim().toLowerCase() === "auto" || parseCssLength(value, percentageBasis("diag", defaultViewport()), Number.NaN) >= 0;
+        return textDecorationThicknessHasNoEffect(value, style, viewport);
     if (name === "text-decoration-skip-ink" || name === "text-underline-offset")
         return !hasUnderline(style) || normalized === "auto";
     if (name === "text-orientation")
@@ -1828,16 +1828,30 @@ function hasSupportedTextDecorationLine(value) {
     const tokens = value.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return tokens.length > 0 && tokens.every((token) => ["none", "underline", "line-through"].includes(token));
 }
-function textDecorationShorthandIsSupported(value, style) {
-    let hasLine = false;
-    for (const token of cssValueTokens(value)) {
+function textDecorationShorthandIsSupported(value, style, viewport) {
+    const tokens = cssValueTokens(value);
+    const lineTokens = new Set(tokens.map((token) => token.toLowerCase()).filter((token) => textDecorationLineTokens.has(token)));
+    if (!lineTokens.size || [...lineTokens].every((token) => token === "none"))
+        return true;
+    if ([...lineTokens].some((token) => !["underline", "line-through"].includes(token)))
+        return false;
+    const styleToken = textDecorationStyleToken(value);
+    if (styleToken && styleToken !== "solid" && !hasOnlyVisibleUnderline(style))
+        return false;
+    const colorTokens = tokens.filter((token) => textDecorationColorToken(token) != null);
+    if (colorTokens.length > 1)
+        return false;
+    if (colorTokens.length === 1 && !textDecorationColorHasNoEffect(colorTokens[0], style))
+        return false;
+    const thicknessToken = textDecorationThicknessToken(value);
+    if (thicknessToken && !["auto", "from-font"].includes(thicknessToken.trim().toLowerCase()) && !hasOnlyVisibleUnderline(style))
+        return false;
+    if (thicknessToken && !textDecorationThicknessHasNoEffect(thicknessToken, style, viewport))
+        return false;
+    for (const token of tokens) {
         const normalized = token.toLowerCase();
-        if (["none", "underline", "line-through"].includes(normalized)) {
-            hasLine = true;
+        if (textDecorationLineTokens.has(normalized))
             continue;
-        }
-        if (normalized === "overline" || normalized === "blink")
-            return false;
         if (textDecorationStyleTokens.has(normalized))
             continue;
         if (normalized === "auto" || normalized === "from-font")
@@ -1849,7 +1863,44 @@ function textDecorationShorthandIsSupported(value, style) {
             continue;
         return false;
     }
-    return hasLine;
+    return true;
+}
+function textDecorationStyleIsSupportedOrNoop(value, style) {
+    const normalized = value.trim().toLowerCase();
+    if (!hasVisibleTextDecoration(style))
+        return true;
+    if (!normalized || normalized === "solid")
+        return true;
+    return textDecorationStyleTokens.has(normalized) && hasOnlyVisibleUnderline(style);
+}
+function textDecorationColorHasNoEffect(value, style) {
+    if (!hasVisibleTextDecoration(style))
+        return true;
+    const color = parseCssColor(value, style);
+    if (!color)
+        return false;
+    if (hasOnlyVisibleUnderline(style))
+        return true;
+    if (!style.fill || style.fill === "none" || style.fillAlpha != null && style.fillAlpha < 1)
+        return false;
+    const alpha = cssColorAlpha(value);
+    return color.toLowerCase() === style.fill.toLowerCase() && (alpha == null || alpha >= 1);
+}
+function textDecorationThicknessHasNoEffect(value, style, viewport) {
+    const normalized = value.trim().toLowerCase();
+    if (!hasVisibleTextDecoration(style) || !normalized || normalized === "auto" || normalized === "from-font")
+        return true;
+    return hasOnlyVisibleUnderline(style) && parseCssLength(value, percentageBasis("diag", viewport), Number.NaN) >= 0;
+}
+function textDecorationStyleToken(value) {
+    if (!value)
+        return null;
+    for (const token of cssValueTokens(value)) {
+        const normalized = token.toLowerCase();
+        if (textDecorationStyleTokens.has(normalized))
+            return normalized;
+    }
+    return null;
 }
 function textLengthIsSupported(element, tag, value, style, lengthAdjustValue = style.lengthAdjust ?? null) {
     if (tag !== "text" && tag !== "tspan")
@@ -3506,6 +3557,12 @@ function hasUnderline(style) {
 }
 function hasStrike(style) {
     return (style.textDecoration || "").toLowerCase().split(/\s+/).includes("line-through");
+}
+function hasVisibleTextDecoration(style) {
+    return hasUnderline(style) || hasStrike(style);
+}
+function hasOnlyVisibleUnderline(style) {
+    return hasUnderline(style) && !hasStrike(style);
 }
 function applyTextDecorationDetails(style, decoration, colorValue, thicknessValue, basis) {
     if (!hasUnderline(style))

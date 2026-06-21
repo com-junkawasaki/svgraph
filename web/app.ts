@@ -1762,11 +1762,11 @@ function coverageAttributeIsSupportedOrNoop(element: Element, tag: string, name:
   if (name === "stroke-dashoffset") return strokeDashoffsetHasNoEffect(value, style, viewport) || strokeDashoffsetIsSupported(value, style, viewport);
   if (name === "stroke-linecap" || name === "stroke-linejoin") return !subtreeHasUnsupportedStrokeLineEnum(element, style, refs, css, viewport, name);
   if (name === "textLength") return textLengthIsSupported(element, tag, value, style);
-  if (name === "text-decoration") return textDecorationShorthandIsSupported(value, style);
+  if (name === "text-decoration") return textDecorationShorthandIsSupported(value, style, viewport);
   if (name === "text-decoration-line") return hasSupportedTextDecorationLine(value);
-  if (name === "text-decoration-style") return textDecorationStyleTokens.has(normalized);
-  if (name === "text-decoration-color") return parseCssColor(value, style) != null;
-  if (name === "text-decoration-thickness") return value.trim().toLowerCase() === "auto" || parseCssLength(value, percentageBasis("diag", defaultViewport()), Number.NaN) >= 0;
+  if (name === "text-decoration-style") return textDecorationStyleIsSupportedOrNoop(value, style);
+  if (name === "text-decoration-color") return textDecorationColorHasNoEffect(value, style);
+  if (name === "text-decoration-thickness") return textDecorationThicknessHasNoEffect(value, style, viewport);
   if (name === "text-decoration-skip-ink" || name === "text-underline-offset") return !hasUnderline(style) || normalized === "auto";
   if (name === "text-orientation") return normalized === "mixed";
   if (name === "text-transform") return normalizeTextTransform(value) != null;
@@ -2171,15 +2171,22 @@ function hasSupportedTextDecorationLine(value: string): boolean {
   return tokens.length > 0 && tokens.every((token) => ["none", "underline", "line-through"].includes(token));
 }
 
-function textDecorationShorthandIsSupported(value: string, style: SvgStyle): boolean {
-  let hasLine = false;
-  for (const token of cssValueTokens(value)) {
+function textDecorationShorthandIsSupported(value: string, style: SvgStyle, viewport: Viewport): boolean {
+  const tokens = cssValueTokens(value);
+  const lineTokens = new Set(tokens.map((token) => token.toLowerCase()).filter((token) => textDecorationLineTokens.has(token)));
+  if (!lineTokens.size || [...lineTokens].every((token) => token === "none")) return true;
+  if ([...lineTokens].some((token) => !["underline", "line-through"].includes(token))) return false;
+  const styleToken = textDecorationStyleToken(value);
+  if (styleToken && styleToken !== "solid" && !hasOnlyVisibleUnderline(style)) return false;
+  const colorTokens = tokens.filter((token) => textDecorationColorToken(token) != null);
+  if (colorTokens.length > 1) return false;
+  if (colorTokens.length === 1 && !textDecorationColorHasNoEffect(colorTokens[0]!, style)) return false;
+  const thicknessToken = textDecorationThicknessToken(value);
+  if (thicknessToken && !["auto", "from-font"].includes(thicknessToken.trim().toLowerCase()) && !hasOnlyVisibleUnderline(style)) return false;
+  if (thicknessToken && !textDecorationThicknessHasNoEffect(thicknessToken, style, viewport)) return false;
+  for (const token of tokens) {
     const normalized = token.toLowerCase();
-    if (["none", "underline", "line-through"].includes(normalized)) {
-      hasLine = true;
-      continue;
-    }
-    if (normalized === "overline" || normalized === "blink") return false;
+    if (textDecorationLineTokens.has(normalized)) continue;
     if (textDecorationStyleTokens.has(normalized)) continue;
     if (normalized === "auto" || normalized === "from-font") continue;
     if (parseCssColor(token, style)) continue;
@@ -2187,7 +2194,39 @@ function textDecorationShorthandIsSupported(value: string, style: SvgStyle): boo
     if (Number.isFinite(thickness) && thickness >= 0) continue;
     return false;
   }
-  return hasLine;
+  return true;
+}
+
+function textDecorationStyleIsSupportedOrNoop(value: string, style: SvgStyle): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!hasVisibleTextDecoration(style)) return true;
+  if (!normalized || normalized === "solid") return true;
+  return textDecorationStyleTokens.has(normalized) && hasOnlyVisibleUnderline(style);
+}
+
+function textDecorationColorHasNoEffect(value: string, style: SvgStyle): boolean {
+  if (!hasVisibleTextDecoration(style)) return true;
+  const color = parseCssColor(value, style);
+  if (!color) return false;
+  if (hasOnlyVisibleUnderline(style)) return true;
+  if (!style.fill || style.fill === "none" || style.fillAlpha != null && style.fillAlpha < 1) return false;
+  const alpha = cssColorAlpha(value);
+  return color.toLowerCase() === style.fill.toLowerCase() && (alpha == null || alpha >= 1);
+}
+
+function textDecorationThicknessHasNoEffect(value: string, style: SvgStyle, viewport: Viewport): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!hasVisibleTextDecoration(style) || !normalized || normalized === "auto" || normalized === "from-font") return true;
+  return hasOnlyVisibleUnderline(style) && parseCssLength(value, percentageBasis("diag", viewport), Number.NaN) >= 0;
+}
+
+function textDecorationStyleToken(value: string | null): string | null {
+  if (!value) return null;
+  for (const token of cssValueTokens(value)) {
+    const normalized = token.toLowerCase();
+    if (textDecorationStyleTokens.has(normalized)) return normalized;
+  }
+  return null;
 }
 
 function textLengthIsSupported(element: Element, tag: string, value: string, style: SvgStyle, lengthAdjustValue: string | null = style.lengthAdjust ?? null): boolean {
@@ -3786,6 +3825,14 @@ function hasUnderline(style: SvgStyle): boolean {
 
 function hasStrike(style: SvgStyle): boolean {
   return (style.textDecoration || "").toLowerCase().split(/\s+/).includes("line-through");
+}
+
+function hasVisibleTextDecoration(style: SvgStyle): boolean {
+  return hasUnderline(style) || hasStrike(style);
+}
+
+function hasOnlyVisibleUnderline(style: SvgStyle): boolean {
+  return hasUnderline(style) && !hasStrike(style);
 }
 
 function applyTextDecorationDetails(style: SvgStyle, decoration: string | null, colorValue: string | null, thicknessValue: string | null, basis: number): void {
