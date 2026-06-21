@@ -1057,6 +1057,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
     assert "examples/picture.dml" in package_metadata["files"]
     assert "examples/preset.dml" in package_metadata["files"]
     assert "examples/sample.svg" in package_metadata["files"]
+    assert "examples/style-ref.dml" in package_metadata["files"]
     assert "examples/table-rich.dml" in package_metadata["files"]
     assert "examples/text-bullets.dml" in package_metadata["files"]
     assert "examples/text-defaults.dml" in package_metadata["files"]
@@ -1171,6 +1172,7 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function dmlPresetColor" in generated
         assert "function dmlAveragePaint" in generated
         assert "function dmlFillPaint" in generated
+        assert "function dmlStylePaint" in generated
         assert "function dmlLineCap" in generated
         assert "function dmlLineJoin" in generated
         assert "function dmlDasharray" in generated
@@ -1181,6 +1183,8 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function dmlTextInsets" in generated
         assert "function dmlTextRuns" in generated
         assert "function dmlTextRunAttrs" in generated
+        assert "function dmlTextRunAttrsFromProperties" in generated
+        assert "function dmlPaintFillAttrs" in generated
         assert "function dmlTextDecorationDetailAttrs" in generated
         assert "function dmlColorWithAlpha" in generated
         assert "function dmlParagraphDefaultRunProperties" in generated
@@ -1188,6 +1192,9 @@ def test_web_source_and_package_metadata_use_svgraph_naming() -> None:
         assert "function dmlTextDirection" in generated
         assert "function dmlTextBaseline" in generated
         assert "function dmlTextWrap" in generated
+        assert 'dmlStylePaint(element, "fillRef")' in generated
+        assert 'dmlStylePaint(element, "lnRef")' in generated
+        assert 'dmlStylePaint(element, "fontRef")' in generated
         assert "function dmlParagraphBullet" in generated
         assert "function dmlAutoNumberBullet" in generated
         assert "function alphaNumber" in generated
@@ -1566,6 +1573,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "`docs/app.js` is the compiled Pages artifact." in readme
     assert "Python or server APIs" in readme
     assert "DrawingML-to-SVG import for basic shape, solid-fill/stroke alpha, gradient/pattern fill fallback colors, DrawingML color luminance modifiers and srgb/scrgb/hsl/scheme/system/preset color sources, DrawingML stroke cap/join/dash/miter details, common preset polygon/arc/flowchart/bevel/snip/symbol/star/arrow/callout/ribbon/action shape, custom geometry/freeform, grouped shape, connector, picture, and native table fragments" in readme
+    assert "shape style fill/line/font reference fallback" in readme
     assert "underline/strike decoration including underline style, color, and thickness" in readme
     assert "npm ci" in readme
     assert "npm run check:web" in readme
@@ -1592,6 +1600,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "node ./bin/svgraph.mjs dml2svg examples/color.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/fill-effects.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/line-style.dml" in package_metadata["scripts"]["check:package"]
+    assert "node ./bin/svgraph.mjs dml2svg examples/style-ref.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-style.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-defaults.dml" in package_metadata["scripts"]["check:package"]
     assert "node ./bin/svgraph.mjs dml2svg examples/text-bullets.dml" in package_metadata["scripts"]["check:package"]
@@ -1617,6 +1626,7 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert "package-color.svg" in package_metadata["scripts"]["check:package"]
     assert "package-fill-effects.svg" in package_metadata["scripts"]["check:package"]
     assert "package-line-style.svg" in package_metadata["scripts"]["check:package"]
+    assert "package-style-ref.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-style.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-defaults.svg" in package_metadata["scripts"]["check:package"]
     assert "package-text-bullets.svg" in package_metadata["scripts"]["check:package"]
@@ -1630,6 +1640,8 @@ def test_browser_only_svgraph_build_is_documented_and_ci_guarded() -> None:
     assert 'stroke=\\\"#004000\\\"' in package_metadata["scripts"]["check:package"]
     assert 'stroke-linecap=\\\"round\\\"' in package_metadata["scripts"]["check:package"]
     assert 'stroke-dasharray=\\\"4 3 1 3\\\"' in package_metadata["scripts"]["check:package"]
+    assert 'fill=\\\"#16a34a\\\"' in package_metadata["scripts"]["check:package"]
+    assert 'fill-opacity=\\\"0.75\\\"' in package_metadata["scripts"]["check:package"]
     assert 'font-weight=\\\"bold\\\"' in package_metadata["scripts"]["check:package"]
     assert 'baseline-shift=\\\"super\\\"' in package_metadata["scripts"]["check:package"]
     assert 'text-decoration-style=\\\"dashed\\\"' in package_metadata["scripts"]["check:package"]
@@ -1765,6 +1777,7 @@ def test_changelog_documents_svgraph_migration_guard_surfaces() -> None:
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph default and end-paragraph text run fallback styles",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML paragraph bullets, auto-numbering, tabs, and explicit line breaks",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML text body insets, vertical anchors, paragraph/list alignment, and RTL direction",
+        "browser TypeScript `drawingMlToSvg` import support for DrawingML shape style fill, line, and font references",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML native table cell text layout/rich runs and individual border line style details",
         "browser TypeScript `drawingMlToSvg` import support for DrawingML `bodyPr` no-wrap text bodies",
         "browser pattern paint-server fallback colors to ignore hidden and fully transparent content",
