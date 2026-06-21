@@ -361,7 +361,7 @@ def test_cli_version_writes_installed_package_version(capsys) -> None:
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "svgraph 0.1.35\n"
+    assert captured.out == "svgraph 0.1.36\n"
 
 
 def test_svgraph_module_cli_uses_canonical_program_name() -> None:
@@ -372,7 +372,7 @@ def test_svgraph_module_cli_uses_canonical_program_name() -> None:
         text=True,
     )
 
-    assert result.stdout == "svgraph 0.1.35\n"
+    assert result.stdout == "svgraph 0.1.36\n"
 
 
 def test_svgraph_cli_module_keeps_canonical_program_name() -> None:
@@ -383,7 +383,7 @@ def test_svgraph_cli_module_keeps_canonical_program_name() -> None:
         text=True,
     )
 
-    assert result.stdout == "svgraph 0.1.35\n"
+    assert result.stdout == "svgraph 0.1.36\n"
 
 
 def test_svgraph_module_cli_emits_canonical_svgraph_json_reports() -> None:
@@ -439,7 +439,7 @@ def test_svgraph_executable_keeps_svgraph_program_name(monkeypatch, capsys) -> N
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 0
-    assert captured.out == "svgraph 0.1.35\n"
+    assert captured.out == "svgraph 0.1.36\n"
 
 
 def test_cli_converts_between_files_and_creates_output_parent(tmp_path) -> None:
@@ -9516,6 +9516,43 @@ def test_drawingml_native_table_grid_scales_to_graphic_frame_extents() -> None:
     assert "A" in svg
     assert "B" in svg
     assert "Wide" in svg
+
+
+def test_drawingml_native_table_truthy_merge_attrs_are_continuations() -> None:
+    dml = """<p:spTree xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+      xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <p:graphicFrame>
+        <p:nvGraphicFramePr><p:cNvPr id="1" name="bool merge"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
+        <p:xfrm><a:off x="0" y="0"/><a:ext cx="762000" cy="1143000"/></p:xfrm>
+        <a:graphic><a:graphicData><a:tbl>
+          <a:tblGrid><a:gridCol w="381000"/><a:gridCol w="381000"/></a:tblGrid>
+          <a:tr h="381000">
+            <a:tc gridSpan="2"><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1000"/><a:t>Wide</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>
+            <a:tc hMerge="true"><a:txBody><a:bodyPr/><a:lstStyle/><a:p/></a:txBody><a:tcPr/></a:tc>
+          </a:tr>
+          <a:tr h="381000">
+            <a:tc rowSpan="2"><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1000"/><a:t>Tall</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>
+            <a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1000"/><a:t>B</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>
+          </a:tr>
+          <a:tr h="381000">
+            <a:tc vMerge="true"><a:txBody><a:bodyPr/><a:lstStyle/><a:p/></a:txBody><a:tcPr/></a:tc>
+            <a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr sz="1000"/><a:t>D</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc>
+          </a:tr>
+        </a:tbl></a:graphicData></a:graphic>
+      </p:graphicFrame>
+    </p:spTree>"""
+
+    svg = drawingml_to_svg(dml)
+
+    assert '<rect fill="none" stroke="none" x="0" y="0" width="80" height="40"/>' in svg
+    assert '<rect fill="none" stroke="none" x="0" y="40" width="40" height="80"/>' in svg
+    assert '<rect fill="none" stroke="none" x="40" y="40" width="40" height="40"/>' in svg
+    assert '<rect fill="none" stroke="none" x="40" y="80" width="40" height="40"/>' in svg
+    assert svg.count("<rect") == 4
+    assert "Wide" in svg
+    assert "Tall" in svg
+    assert "B" in svg
+    assert "D" in svg
 
 
 def test_drawingml_native_table_preserves_individual_cell_borders() -> None:

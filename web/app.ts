@@ -2216,13 +2216,20 @@ function dmlTableFrameToSvg(element: Element): DmlSvgItem | null {
     let colX = originX;
     let colIndex = 0;
     for (const cell of directChildrenByLocal(row, "tc")) {
+      const colSpan = Math.max(1, Number(cell.getAttribute("gridSpan") || 1) || 1);
+      const rowSpan = Math.max(1, Number(cell.getAttribute("rowSpan") || 1) || 1);
+      const hMerge = dmlTruthyAttr(cell, "hMerge");
+      const vMerge = dmlTruthyAttr(cell, "vMerge");
+      if (vMerge && !hMerge && occupied[rowIndex]?.[colIndex]) {
+        colX += columns.slice(colIndex, colIndex + colSpan).reduce((total, value) => total + value, 0);
+        colIndex += colSpan;
+        continue;
+      }
       while (occupied[rowIndex]?.[colIndex]) {
         colX += columns[colIndex] ?? 0;
         colIndex += 1;
       }
-      const colSpan = Math.max(1, Number(cell.getAttribute("gridSpan") || 1) || 1);
-      const rowSpan = Math.max(1, Number(cell.getAttribute("rowSpan") || 1) || 1);
-      const isMerge = cell.getAttribute("hMerge") === "1" || cell.getAttribute("vMerge") === "1";
+      const isMerge = hMerge || vMerge;
       const cellWidth = columns.slice(colIndex, colIndex + colSpan).reduce((total, value) => total + value, 0);
       const cellHeight = rows.slice(rowIndex, rowIndex + rowSpan).reduce((total, value) => total + value, 0);
       for (let r = rowIndex; r < Math.min(rows.length, rowIndex + rowSpan); r += 1) {
@@ -2259,6 +2266,11 @@ function dmlTableFrameToSvg(element: Element): DmlSvgItem | null {
 function dmlTableColumns(tbl: Element): number[] {
   const grid = childByLocal(tbl, "tblGrid");
   return grid ? directChildrenByLocal(grid, "gridCol").map((col) => emuToPx(col.getAttribute("w"))) : [];
+}
+
+function dmlTruthyAttr(element: Element, name: string): boolean {
+  const value = element.getAttribute(name);
+  return value != null && !["", "0", "false", "none"].includes(value.trim().toLowerCase());
 }
 
 function dmlTableCellBorderLines(tcPr: Element | null, x: number, y: number, width: number, height: number): string[] {
