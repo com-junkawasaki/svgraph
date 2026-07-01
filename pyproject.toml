@@ -1,5 +1,5 @@
 [project]
-name = "kotoba-svg"
+name = "svgraph"
 version = "0.1.47"
 description = "Small, dependency-free SVG presentation graph toolkit for SVGraph, DrawingML, PresentationML/PPTX, and browser-only web editing."
 readme = "README.md"
@@ -25,10 +25,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/kotoba-lang/svg"
-Repository = "https://github.com/kotoba-lang/svg"
-Documentation = "https://kotoba-lang.github.io/svg/"
-Issues = "https://github.com/kotoba-lang/svg/issues"
+Homepage = "https://github.com/com-junkawasaki/svgraph"
+Repository = "https://github.com/com-junkawasaki/svgraph"
+Documentation = "https://com-junkawasaki.github.io/svgraph/"
+Issues = "https://github.com/com-junkawasaki/svgraph/issues"
 
 [project.scripts]
 svgraph = "svgraph.cli:main"
